@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from .models import Menu, MenuItem
+from .models import Locale, Menu, MenuItem, Page
 from .routing import get_locale
 
 
@@ -75,11 +75,69 @@ def build_menu_tree(items: list[MenuItem]) -> list[MenuItemNode]:
     return roots
 
 
+async def create_menu(
+    *,
+    name: str,
+    slug: str,
+    locale: Locale,
+    is_active: bool = True,
+) -> Menu:
+    return await Menu.objects.create(
+        name=name,
+        slug=slug,
+        locale_id=locale.id,
+        is_active=is_active,
+    )
+
+
+async def create_menu_item(
+    *,
+    menu: Menu,
+    label: str,
+    parent: MenuItem | None = None,
+    page: Page | None = None,
+    url: str | None = None,
+    sort_order: int = 0,
+    is_active: bool = True,
+    open_in_new_tab: bool = False,
+) -> MenuItem:
+    return await MenuItem.objects.create(
+        menu_id=menu.id,
+        parent_id=parent.id if parent is not None else None,
+        page_id=page.id if page is not None else None,
+        label=label,
+        url=url,
+        sort_order=sort_order,
+        is_active=is_active,
+        open_in_new_tab=open_in_new_tab,
+    )
+
+
+async def _hydrate_page_links(items: list[MenuItem]) -> list[MenuItem]:
+    page_ids = sorted(
+        {
+            page_id
+            for item in items
+            if (page_id := _relation_id(item, "page")) is not None
+        }
+    )
+    if not page_ids:
+        return items
+
+    pages = await Page.objects.filter(id__in=page_ids).all()
+    pages_by_id = {page.id: page for page in pages}
+    for item in items:
+        page_id = _relation_id(item, "page")
+        if page_id in pages_by_id:
+            item.page = pages_by_id[page_id]
+    return items
+
+
 async def get_menu(slug: str, *, language_code: str | None = None) -> Menu | None:
     locale = await get_locale(language_code)
     if locale is None:
         return None
-    return await Menu.objects.filter(slug=slug, locale=locale, is_active=True).first()
+    return await Menu.objects.filter(slug=slug, locale_id=locale.id, is_active=True).first()
 
 
 async def get_menu_tree(slug: str, *, language_code: str | None = None) -> list[MenuItemNode]:
@@ -88,8 +146,9 @@ async def get_menu_tree(slug: str, *, language_code: str | None = None) -> list[
         return []
 
     items = (
-        await MenuItem.objects.filter(menu=menu, is_active=True)
+        await MenuItem.objects.filter(menu_id=menu.id, is_active=True)
         .order_by("parent_id", "sort_order", "id")
         .all()
     )
+    items = await _hydrate_page_links(items)
     return build_menu_tree(items)

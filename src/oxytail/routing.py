@@ -94,7 +94,7 @@ async def resolve_page(
     if locale is None:
         return None
 
-    query = Page.objects.filter(path=normalize_path(path), locale=locale)
+    query = Page.objects.filter(path=normalize_path(path), locale_id=locale.id)
     if not include_unpublished:
         query = query.filter(live=True)
     return await query.first()
@@ -122,7 +122,7 @@ async def resolve_route(
     if locale is None:
         return None
 
-    query = Page.objects.filter(path=local_path, locale=locale)
+    query = Page.objects.filter(path=local_path, locale_id=locale.id)
     if not include_unpublished:
         query = query.filter(live=True)
 
@@ -146,7 +146,10 @@ async def resolve_route(
 async def get_translation(page: Page, language_code: str) -> Page | None:
     """Find the translated sibling for a page using its translation key."""
 
+    if page.translation_key is None:
+        return None
+
     locale = await get_locale(language_code)
     if locale is None:
         return None
-    return await Page.objects.filter(translation_key=page.translation_key, locale=locale).first()
+    return await Page.objects.filter(translation_key=page.translation_key, locale_id=locale.id).first()
