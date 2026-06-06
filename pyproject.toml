@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "oxytail"
+version = "0.1.0"
+description = "A tiny Wagtail-inspired CMS MVP built on Oxyde ORM."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "Oxytail Contributors" }
+]
+dependencies = [
+  "fastapi>=0.115",
+  "oxyde>=0.7.1",
+]
+
+[project.optional-dependencies]
+admin = [
+  "oxyde-admin>=0.4.0",
+]
+dev = [
+  "httpx>=0.27",
+  "pytest>=8.0",
+  "pytest-asyncio>=0.23",
+]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
