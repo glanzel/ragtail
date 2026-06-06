@@ -1,7 +1,15 @@
 from .admin import create_fastapi_admin, register_cms_models
 from .fastapi import create_api_router, create_app, create_cms_router
-from .menus import MenuItemNode, build_menu_tree, get_menu, get_menu_tree
+from .menus import (
+    MenuItemNode,
+    build_menu_tree,
+    create_menu,
+    create_menu_item,
+    get_menu,
+    get_menu_tree,
+)
 from .models import Locale, Menu, MenuItem, Page
+from .pages import create_page, create_translation
 from .routing import (
     RouteMatch,
     get_active_locales,
@@ -28,6 +36,10 @@ __all__ = [
     "create_app",
     "create_cms_router",
     "create_fastapi_admin",
+    "create_menu",
+    "create_menu_item",
+    "create_page",
+    "create_translation",
     "get_active_locales",
     "get_default_locale",
     "get_locale",

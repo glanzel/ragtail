@@ -88,7 +88,7 @@ def create_app(
     *,
     database_url: str = "sqlite:///oxytail.db",
     renderer: PageRenderer | None = None,
-    mount_admin: bool = True,
+    mount_admin: bool = False,
     admin_path: str = "/admin",
     title: str = "Oxytail CMS",
 ) -> FastAPI:
@@ -109,6 +109,7 @@ def create_app(
 __all__ = [
     "Page",
     "PageRenderer",
+    "RouteMatch",
     "create_api_router",
     "create_app",
     "create_cms_router",

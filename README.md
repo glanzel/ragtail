@@ -54,6 +54,17 @@ oxyde makemigrations
 oxyde migrate
 ```
 
+Create pages through the helper service so `path`, `depth` and
+`translation_key` are filled consistently:
+
+```python
+from oxytail.pages import create_page, create_translation
+
+home = await create_page(title="Home", slug="", locale=en, live=True)
+about = await create_page(title="About", slug="about", parent=home, locale=en, live=True)
+ueber_uns = await create_translation(about, title="Ueber uns", slug="ueber-uns", locale=de)
+```
+
 ## FastAPI app
 
 ```python
@@ -66,8 +77,10 @@ This creates:
 
 - `/api/cms/pages/{path}` for JSON page lookup
 - `/api/cms/menus/{slug}` for JSON menu trees
-- `/admin` when `oxytail[admin]` is installed
 - a catch-all page route, which should be mounted last
+
+Pass `mount_admin=True` when `oxytail[admin]` is installed to expose
+`oxyde-admin` at `/admin`.
 
 By default pages are returned as JSON. Pass a renderer to serve templates or
 another response format:
@@ -107,7 +120,10 @@ Menus can be maintained through the admin or created with Oxyde directly. A menu
 tree can be fetched as serializable nodes:
 
 ```python
-from oxytail.menus import get_menu_tree
+from oxytail.menus import create_menu, create_menu_item, get_menu_tree
+
+main = await create_menu(name="Main", slug="main", locale=en)
+await create_menu_item(menu=main, label="About", page=about)
 
 items = await get_menu_tree("main", language_code="en")
 payload = [item.as_dict() for item in items]

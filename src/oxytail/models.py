@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
-from uuid import UUID, uuid4
+from datetime import UTC, datetime
 
 from oxyde import Field, Index, Model
 
@@ -18,7 +17,7 @@ class TimestampedModel(Model):
         is_create: bool,
         update_fields: set[str] | None = None,
     ) -> None:
-        now = datetime.utcnow()
+        now = datetime.now(UTC).replace(tzinfo=None)
         if is_create and self.created_at is None:
             self.created_at = now
         self.updated_at = now
@@ -50,7 +49,7 @@ class Page(TimestampedModel):
     sort_order: int = Field(default=0, db_index=True)
 
     locale: Locale | None = Field(default=None, db_on_delete="RESTRICT")
-    translation_key: UUID = Field(default_factory=uuid4, db_index=True)
+    translation_key: str | None = Field(default=None, max_length=36, db_index=True)
     parent: Page | None = Field(default=None, db_on_delete="CASCADE")
     children: list[Page] = Field(default=[], db_reverse_fk="parent")
 
