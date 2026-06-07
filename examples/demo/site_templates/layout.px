@@ -1,0 +1,37 @@
+from pyjsx import jsx
+
+
+def SiteLayout(*, title: str, menu_items, children):
+  return (
+    <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>{title}</title>
+        <link rel="stylesheet" href="/static/site.css" />
+      </head>
+      <body>
+        <header class="site-header">
+          <div class="site-header__inner">
+            <a href="/" class="site-logo">
+              Oxytail Demo
+            </a>
+            <nav class="site-nav" aria-label="Main">
+              <ul>
+                {[
+                  <li>
+                    <a href={item.href}>{item.label}</a>
+                  </li>
+                  for item in menu_items
+                ]}
+              </ul>
+            </nav>
+          </div>
+        </header>
+        <main class="site-main">{children}</main>
+        <footer class="site-footer">
+          <p>Rendered with PyJSX · Powered by Oxytail</p>
+        </footer>
+      </body>
+    </html>
+  )

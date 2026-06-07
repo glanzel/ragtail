@@ -1,0 +1,118 @@
+from pyjsx import jsx
+
+from oxytail.wagtail_admin.components.icons import (
+    IconDocEmptyInverse,
+    IconHome,
+    WagtailLogoBird,
+)
+
+
+def _menu_item_class(active: str, name: str) -> str:
+  base = "sidebar-menu-item"
+  if active == name:
+    return base + " sidebar-menu-item--active"
+  return base
+
+
+def AdminSidebar(active: str = "pages", username: str = "", children=None):
+  return (
+    <aside id="wagtail-sidebar" class="sidebar" aria-label="Sidebar">
+      <div class="sidebar__inner">
+        <div class="sidebar__header">
+          <a href="/admin/" class="sidebar-logo" aria-label="Dashboard">
+            <WagtailLogoBird />
+          </a>
+        </div>
+        <nav class="sidebar-nav" aria-label="Main menu">
+          <ul class="sidebar-menu">
+            <li class={_menu_item_class(active, "home")}>
+              <a href="/admin/" class="sidebar-menu-item__link">
+                <IconHome />
+                <span class="sidebar-menu-item__label">Dashboard</span>
+              </a>
+            </li>
+            <li class={_menu_item_class(active, "pages")}>
+              <a href="/admin/pages/" class="sidebar-menu-item__link">
+                <IconDocEmptyInverse />
+                <span class="sidebar-menu-item__label">Pages</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+        <div class="sidebar__footer">
+          <span class="sidebar-user">{username}</span>
+          <form action="/admin/logout/" method="post">
+            <button type="submit" class="button button-small button-secondary">
+              Sign out
+            </button>
+          </form>
+        </div>
+      </div>
+    </aside>
+  )
+
+
+def BreadcrumbItem(crumb, children=None):
+  if crumb.url:
+    return <a href={crumb.url}>{crumb.title}</a>
+  return <span aria-current="page">{crumb.title}</span>
+
+
+def Breadcrumbs(crumbs, children=None):
+  return (
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <ol>
+        {[<li><BreadcrumbItem crumb={crumb} /></li> for crumb in crumbs]}
+      </ol>
+    </nav>
+  )
+
+
+def MessageItem(message, children=None):
+  return <li class={message.kind}>{message.text}</li>
+
+
+def Messages(messages, children=None):
+  if not messages:
+    return None
+  return (
+    <div class="messages" role="status">
+      <ul>{[<MessageItem message={message} /> for message in messages]}</ul>
+    </div>
+  )
+
+
+def AdminLayout(
+  *,
+  title: str,
+  body_class: str = "",
+  active: str = "pages",
+  username: str = "",
+  breadcrumbs=None,
+  messages=None,
+  children,
+):
+  crumbs = breadcrumbs or []
+  body_classes = "template-admin " + body_class
+  return (
+    <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>{title} - Wagtail</title>
+        <link rel="stylesheet" href="/admin/static/wagtail-admin.css" />
+      </head>
+      <body class={body_classes}>
+        <div class="wrapper">
+          <AdminSidebar active={active} username={username} />
+          <main class="content-wrapper" id="main">
+            <div class="content">
+              <Messages messages={messages} />
+              {(<header class="header"><Breadcrumbs crumbs={crumbs} /></header>) if crumbs else None}
+              {children}
+            </div>
+          </main>
+        </div>
+      </body>
+    </html>
+  )

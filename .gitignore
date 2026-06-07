@@ -4,3 +4,5 @@ __pycache__/
 .pytest_cache/
 .venv/
 oxytail.db
+examples/demo/oxytail.db
+examples/demo/oxytail.db-*

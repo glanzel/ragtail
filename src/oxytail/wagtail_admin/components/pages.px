@@ -1,0 +1,340 @@
+from pyjsx import jsx
+
+from oxytail.wagtail_admin.components.icons import IconFolderOpenInverse, IconPlus
+from oxytail.wagtail_admin.components.layout import AdminLayout
+
+
+def _explorer_item_class(page_id, current_page_id):
+  if page_id == current_page_id:
+    return "page-explorer-item page-explorer-item--active"
+  return "page-explorer-item"
+
+
+def PageTreeItem(node, *, current_page_id: int | None = None, depth: int = 0, children=None):
+  page = node.page
+  page_id = page.id
+  padding = f"{depth * 1.25 + 0.75}rem"
+  return (
+    <li class={_explorer_item_class(page_id, current_page_id)}>
+      <a
+        href={f"/admin/pages/{page_id}/"}
+        class="page-explorer-item__link"
+        style={{"padding-left": padding}}
+      >
+        <IconFolderOpenInverse />
+        <span>{page.title}</span>
+      </a>
+      {(
+        <ul class="page-explorer-item__children">
+          {[
+            <PageTreeItem node={child} current_page_id={current_page_id} depth={depth + 1} />
+            for child in node.children
+          ]}
+        </ul>
+      ) if node.children else None}
+    </li>
+  )
+
+
+def PageExplorer(tree, *, current_page_id: int | None = None, parent_title: str = "Root", children=None):
+  return (
+    <aside class="c-page-explorer" aria-label="Page explorer">
+      <div class="c-page-explorer__header">
+        <a href="/admin/pages/" class="c-page-explorer__header__title">
+          <span class="c-page-explorer__header__title__inner">
+            <IconFolderOpenInverse />
+            {parent_title}
+          </span>
+        </a>
+      </div>
+      <div class="c-page-explorer__drawer">
+        <ul class="page-explorer">
+          {[<PageTreeItem node={node} current_page_id={current_page_id} /> for node in tree]}
+        </ul>
+      </div>
+    </aside>
+  )
+
+
+def _status_class(live: bool) -> str:
+  if live:
+    return "status-tag primary"
+  return "status-tag disabled"
+
+
+def _status_label(live: bool) -> str:
+  if live:
+    return "Live"
+  return "Draft"
+
+
+def ChildRow(child, children=None):
+  return (
+    <tr>
+      <td class="title">
+        <a href={f"/admin/pages/{child.id}/"}>
+          <IconFolderOpenInverse />
+          {child.title}
+        </a>
+      </td>
+      <td>
+        <span class={_status_class(child.live)}>{_status_label(child.live)}</span>
+      </td>
+      <td>{child.updated_at or "-"}</td>
+      <td class="actions">
+        <a href={f"/admin/pages/{child.id}/edit/"} class="button button-small button-secondary">
+          Edit
+        </a>
+      </td>
+    </tr>
+  )
+
+
+def PageListingPage(
+  *,
+  username: str,
+  parent_page,
+  children,
+  tree,
+  breadcrumbs,
+  messages=None,
+):
+  parent_id = parent_page.id
+  return (
+    <AdminLayout
+      title={parent_page.title}
+      active="pages"
+      username={username}
+      breadcrumbs={breadcrumbs}
+      messages={messages}
+      body_class="page-explorer"
+    >
+      <div class="page-explorer-layout">
+        <PageExplorer tree={tree} current_page_id={parent_id} parent_title={parent_page.title} />
+        <section class="listing">
+          <header class="header--merged">
+            <div class="row">
+              <div class="left">
+                <h1 class="page-title">{parent_page.title}</h1>
+              </div>
+              <div class="right">
+                <a href={f"/admin/pages/add/?parent={parent_id}"} class="button bicolor icon icon-plus">
+                  <IconPlus />
+                  Add child page
+                </a>
+              </div>
+            </div>
+          </header>
+          <table class="listing full-width">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Updated</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {(
+                [<ChildRow child={child} /> for child in children]
+                if children
+                else [
+                  <tr>
+                    <td colspan="4" class="no-results-message">
+                      No pages have been created at this location.
+                    </td>
+                  </tr>
+                ]
+              )}
+            </tbody>
+          </table>
+          <div class="nice-padding">
+            <a href={f"/admin/pages/{parent_id}/edit/"} class="button button-secondary">
+              Edit this page
+            </a>
+          </div>
+        </section>
+      </div>
+    </AdminLayout>
+  )
+
+
+def PageFormPage(
+  *,
+  username: str,
+  page=None,
+  parent_page=None,
+  breadcrumbs,
+  action_url: str,
+  title: str,
+  submit_label: str,
+  messages=None,
+  error: str | None = None,
+  values=None,
+):
+  form_values = values or {}
+  cancel_href = "/admin/pages/"
+  if page and page.id:
+    cancel_href = f"/admin/pages/{page.id}/"
+  elif parent_page:
+    cancel_href = f"/admin/pages/{parent_page.id}/"
+
+  return (
+    <AdminLayout
+      title={title}
+      active="pages"
+      username={username}
+      breadcrumbs={breadcrumbs}
+      messages={messages}
+      body_class="page-editor"
+    >
+      <header class="header--merged">
+        <h1 class="page-title">{title}</h1>
+      </header>
+      <div class="nice-padding">
+        {(
+          <div class="messages" role="status">
+            <ul>
+              <li class="error">{error}</li>
+            </ul>
+          </div>
+        ) if error else None}
+        <form method="post" action={action_url} class="object-form">
+          <ul class="objects">
+            <li class="object">
+              <fieldset>
+                <legend>Content</legend>
+                <ul class="fields">
+                  <li class="field char_field">
+                    <label for="id_title">Title</label>
+                    <div class="field-content">
+                      <input
+                        id="id_title"
+                        name="title"
+                        type="text"
+                        required
+                        value={form_values.get("title", "")}
+                      />
+                    </div>
+                  </li>
+                  <li class="field char_field">
+                    <label for="id_slug">Slug</label>
+                    <div class="field-content">
+                      <input id="id_slug" name="slug" type="text" value={form_values.get("slug", "")} />
+                    </div>
+                  </li>
+                  <li class="field text_field">
+                    <label for="id_body">Body</label>
+                    <div class="field-content">
+                      <textarea id="id_body" name="body" rows="12">
+                        {form_values.get("body", "")}
+                      </textarea>
+                    </div>
+                  </li>
+                </ul>
+              </fieldset>
+            </li>
+            <li class="object">
+              <fieldset>
+                <legend>Promote</legend>
+                <ul class="fields">
+                  <li class="field char_field">
+                    <label for="id_seo_title">Title tag</label>
+                    <div class="field-content">
+                      <input
+                        id="id_seo_title"
+                        name="seo_title"
+                        type="text"
+                        value={form_values.get("seo_title", "")}
+                      />
+                    </div>
+                  </li>
+                  <li class="field char_field">
+                    <label for="id_search_description">Meta description</label>
+                    <div class="field-content">
+                      <textarea id="id_search_description" name="search_description" rows="3">
+                        {form_values.get("search_description", "")}
+                      </textarea>
+                    </div>
+                  </li>
+                </ul>
+              </fieldset>
+            </li>
+            <li class="object">
+              <fieldset>
+                <legend>Settings</legend>
+                <ul class="fields">
+                  <li class="field boolean_field">
+                    <label class="checkbox">
+                      <input type="checkbox" name="live" value="1" checked={form_values.get("live")} />
+                      Live
+                    </label>
+                  </li>
+                  <li class="field boolean_field">
+                    <label class="checkbox">
+                      <input
+                        type="checkbox"
+                        name="show_in_menus"
+                        value="1"
+                        checked={form_values.get("show_in_menus")}
+                      />
+                      Show in menus
+                    </label>
+                  </li>
+                </ul>
+              </fieldset>
+            </li>
+          </ul>
+          <footer class="footer__container">
+            <div class="footer">
+              <button type="submit" class="button action-save button-longrunning">
+                <em>{submit_label}</em>
+              </button>
+              <a href={cancel_href} class="button button-secondary">
+                Cancel
+              </a>
+              {(
+                <a href={f"/admin/pages/{page.id}/delete/"} class="button button-secondary no">
+                  Delete
+                </a>
+              ) if page and page.id else None}
+            </div>
+          </footer>
+        </form>
+      </div>
+    </AdminLayout>
+  )
+
+
+def DeletePagePage(*, username: str, page, breadcrumbs, error: str | None = None, children=None):
+  return (
+    <AdminLayout
+      title="Delete page"
+      active="pages"
+      username={username}
+      breadcrumbs={breadcrumbs}
+      body_class="delete-confirm"
+    >
+      <div class="nice-padding">
+        {(
+          <div class="messages" role="status">
+            <ul>
+              <li class="error">{error}</li>
+            </ul>
+          </div>
+        ) if error else None}
+        <h1 class="page-title">Delete page</h1>
+        <p>
+          Are you sure you want to delete <strong>{page.title}</strong>?
+        </p>
+        <form method="post" action={f"/admin/pages/{page.id}/delete/"}>
+          <button type="submit" class="button no">
+            Yes, delete
+          </button>
+          <a href={f"/admin/pages/{page.id}/edit/"} class="button button-secondary">
+            No, don't delete
+          </a>
+        </form>
+      </div>
+    </AdminLayout>
+  )
