@@ -1,5 +1,6 @@
 from pyjsx import jsx
 
+from oxytail.wagtail_admin.classes import BTN, INPUT, LABEL
 from oxytail.wagtail_admin.components.icons import WagtailLogoWordmark
 
 
@@ -8,7 +9,7 @@ def LoginError(error, children=None):
     return None
   return (
     <ul>
-      <li class="error">{error}</li>
+      <li class="border-b border-red-100 bg-red-50 px-4 py-3 text-red-700">{error}</li>
     </ul>
   )
 
@@ -22,34 +23,35 @@ def LoginPage(*, error: str | None = None, next_url: str = "/admin/", children=N
         <title>Sign in - Wagtail</title>
         <link rel="stylesheet" href="/admin/static/wagtail-admin.css" />
       </head>
-      <body class="login">
-        <main class="content-wrapper" id="main">
-          <h1>Sign in to Wagtail</h1>
-          <div class="messages" role="status">
+      <body class="min-h-screen bg-gray-50">
+        <main
+          class="mx-auto mt-16 max-w-login rounded border border-gray-200 bg-white p-8 shadow-sm"
+          id="main"
+        >
+          <h1 class="mb-6 text-2xl font-semibold text-gray-900">Sign in to Wagtail</h1>
+          <div role="status">
             <LoginError error={error} />
           </div>
-          <form class="login-form" action="/admin/login/" method="post" autocomplete="off">
+          <form class="mt-4 space-y-4" action="/admin/login/" method="post" autocomplete="off">
             <input type="hidden" name="next" value={next_url} />
-            <div class="field">
-              <label for="id_username">Username</label>
-              <div class="field-content">
-                <input id="id_username" name="username" type="text" required />
-              </div>
+            <div>
+              <label for="id_username" class={LABEL}>Username</label>
+              <input id="id_username" name="username" type="text" class={INPUT} required />
             </div>
-            <div class="field">
-              <label for="id_password">Password</label>
-              <div class="field-content">
-                <input id="id_password" name="password" type="password" required />
-              </div>
+            <div>
+              <label for="id_password" class={LABEL}>Password</label>
+              <input id="id_password" name="password" type="password" class={INPUT} required />
             </div>
-            <footer class="form-actions">
-              <button type="submit" class="button button-longrunning">
-                <em>Sign in</em>
+            <footer class="pt-2">
+              <button type="submit" class={BTN}>
+                <em class="not-italic">Sign in</em>
               </button>
             </footer>
           </form>
-          <div class="login-logo">
-            <WagtailLogoWordmark />
+          <div class="mt-8 text-center">
+            <div class="mx-auto w-48">
+              <WagtailLogoWordmark />
+            </div>
           </div>
         </main>
       </body>

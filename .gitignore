@@ -6,3 +6,4 @@ __pycache__/
 oxytail.db
 examples/demo/oxytail.db
 examples/demo/oxytail.db-*
+node_modules/

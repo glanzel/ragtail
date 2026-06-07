@@ -12,18 +12,15 @@ class MenuLink:
 
 def SitePage(*, route, menu_items):
   page = route.page
-  menu_links = [
-    MenuLink(label=item.label, href=item.href)
-    for item in menu_items
-  ]
+  menu_links = [MenuLink(label=item.label, href=item.href) for item in menu_items]
   return (
     <SiteLayout title={page.seo_title or page.title} menu_items={menu_links}>
-      <article class="page">
-        <h1>{page.title}</h1>
+      <article>
+        <h1 class="mb-6 text-4xl font-bold text-gray-900">{page.title}</h1>
         {(
-          <div class="page-body">{HTMLDontEscape(page.body)}</div>
+          <div class="max-w-none space-y-4 leading-relaxed text-gray-700">{HTMLDontEscape(page.body)}</div>
           if page.body
-          else <p class="page-empty">This page has no content yet.</p>
+          else <p class="italic text-gray-500">This page has no content yet.</p>
         )}
       </article>
     </SiteLayout>

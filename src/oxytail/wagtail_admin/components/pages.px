@@ -1,13 +1,23 @@
 from pyjsx import jsx
 
+from oxytail.wagtail_admin.classes import (
+    BTN,
+    BTN_DANGER,
+    BTN_SECONDARY,
+    BTN_SM,
+    INPUT,
+    LABEL,
+    TEXTAREA,
+)
 from oxytail.wagtail_admin.components.icons import IconFolderOpenInverse, IconPlus
 from oxytail.wagtail_admin.components.layout import AdminLayout
 
 
-def _explorer_item_class(page_id, current_page_id):
+def _explorer_link_class(page_id, current_page_id) -> str:
+  base = "flex items-center gap-2 px-3 py-2 text-white/90 hover:bg-white/10 hover:text-white"
   if page_id == current_page_id:
-    return "page-explorer-item page-explorer-item--active"
-  return "page-explorer-item"
+    return base + " bg-white/10 text-white"
+  return base
 
 
 def PageTreeItem(node, *, current_page_id: int | None = None, depth: int = 0, children=None):
@@ -15,17 +25,17 @@ def PageTreeItem(node, *, current_page_id: int | None = None, depth: int = 0, ch
   page_id = page.id
   padding = f"{depth * 1.25 + 0.75}rem"
   return (
-    <li class={_explorer_item_class(page_id, current_page_id)}>
+    <li>
       <a
         href={f"/admin/pages/{page_id}/"}
-        class="page-explorer-item__link"
+        class={_explorer_link_class(page_id, current_page_id)}
         style={{"padding-left": padding}}
       >
         <IconFolderOpenInverse />
         <span>{page.title}</span>
       </a>
       {(
-        <ul class="page-explorer-item__children">
+        <ul>
           {[
             <PageTreeItem node={child} current_page_id={current_page_id} depth={depth + 1} />
             for child in node.children
@@ -38,17 +48,20 @@ def PageTreeItem(node, *, current_page_id: int | None = None, depth: int = 0, ch
 
 def PageExplorer(tree, *, current_page_id: int | None = None, parent_title: str = "Root", children=None):
   return (
-    <aside class="c-page-explorer" aria-label="Page explorer">
-      <div class="c-page-explorer__header">
-        <a href="/admin/pages/" class="c-page-explorer__header__title">
-          <span class="c-page-explorer__header__title__inner">
+    <aside
+      class="w-full shrink-0 border-r border-white/10 bg-wagtail-primary-dark text-white md:w-explorer"
+      aria-label="Page explorer"
+    >
+      <div class="border-b border-white/10">
+        <a href="/admin/pages/" class="block text-inherit no-underline hover:bg-white/5">
+          <span class="flex items-center gap-2 px-4 py-3.5 font-semibold">
             <IconFolderOpenInverse />
             {parent_title}
           </span>
         </a>
       </div>
-      <div class="c-page-explorer__drawer">
-        <ul class="page-explorer">
+      <div class="max-h-[calc(100vh-3rem)] overflow-y-auto py-1">
+        <ul>
           {[<PageTreeItem node={node} current_page_id={current_page_id} /> for node in tree]}
         </ul>
       </div>
@@ -58,31 +71,28 @@ def PageExplorer(tree, *, current_page_id: int | None = None, parent_title: str 
 
 def _status_class(live: bool) -> str:
   if live:
-    return "status-tag primary"
-  return "status-tag disabled"
-
-
-def _status_label(live: bool) -> str:
-  if live:
-    return "Live"
-  return "Draft"
+    return "inline-block rounded px-2 py-0.5 text-xs font-semibold bg-teal-50 text-wagtail-secondary"
+  return "inline-block rounded px-2 py-0.5 text-xs font-semibold bg-gray-100 text-gray-500"
 
 
 def ChildRow(child, children=None):
   return (
-    <tr>
-      <td class="title">
-        <a href={f"/admin/pages/{child.id}/"}>
+    <tr class="border-b border-gray-200">
+      <td class="px-5 py-3.5">
+        <a
+          href={f"/admin/pages/{child.id}/"}
+          class="inline-flex items-center gap-2 font-semibold text-gray-900 hover:text-wagtail-secondary"
+        >
           <IconFolderOpenInverse />
           {child.title}
         </a>
       </td>
-      <td>
-        <span class={_status_class(child.live)}>{_status_label(child.live)}</span>
+      <td class="px-5 py-3.5">
+        <span class={_status_class(child.live)}>{"Live" if child.live else "Draft"}</span>
       </td>
-      <td>{child.updated_at or "-"}</td>
-      <td class="actions">
-        <a href={f"/admin/pages/{child.id}/edit/"} class="button button-small button-secondary">
+      <td class="px-5 py-3.5 text-sm text-gray-500">{child.updated_at or "-"}</td>
+      <td class="px-5 py-3.5">
+        <a href={f"/admin/pages/{child.id}/edit/"} class={BTN_SM}>
           Edit
         </a>
       </td>
@@ -109,29 +119,23 @@ def PageListingPage(
       messages={messages}
       body_class="page-explorer"
     >
-      <div class="page-explorer-layout">
+      <div class="flex min-h-[calc(100vh-3.125rem)] flex-col md:flex-row">
         <PageExplorer tree={tree} current_page_id={parent_id} parent_title={parent_page.title} />
-        <section class="listing">
-          <header class="header--merged">
-            <div class="row">
-              <div class="left">
-                <h1 class="page-title">{parent_page.title}</h1>
-              </div>
-              <div class="right">
-                <a href={f"/admin/pages/add/?parent={parent_id}"} class="button bicolor icon icon-plus">
-                  <IconPlus />
-                  Add child page
-                </a>
-              </div>
-            </div>
+        <section class="min-w-0 flex-1">
+          <header class="flex min-h-slim-header items-center justify-between gap-4 border-b border-gray-200 bg-gray-50 px-5">
+            <h1 class="text-2xl font-semibold text-gray-900">{parent_page.title}</h1>
+            <a href={f"/admin/pages/add/?parent={parent_id}"} class={BTN}>
+              <IconPlus />
+              Add child page
+            </a>
           </header>
-          <table class="listing full-width">
+          <table class="w-full border-collapse text-left">
             <thead>
-              <tr>
-                <th>Title</th>
-                <th>Status</th>
-                <th>Updated</th>
-                <th></th>
+              <tr class="border-b border-gray-200 bg-gray-50 text-sm text-gray-500">
+                <th class="px-5 py-3 font-medium">Title</th>
+                <th class="px-5 py-3 font-medium">Status</th>
+                <th class="px-5 py-3 font-medium">Updated</th>
+                <th class="px-5 py-3 font-medium"></th>
               </tr>
             </thead>
             <tbody>
@@ -140,7 +144,7 @@ def PageListingPage(
                 if children
                 else [
                   <tr>
-                    <td colspan="4" class="no-results-message">
+                    <td colspan="4" class="px-5 py-8 text-center italic text-gray-400">
                       No pages have been created at this location.
                     </td>
                   </tr>
@@ -148,14 +152,23 @@ def PageListingPage(
               )}
             </tbody>
           </table>
-          <div class="nice-padding">
-            <a href={f"/admin/pages/{parent_id}/edit/"} class="button button-secondary">
+          <div class="px-6 py-5">
+            <a href={f"/admin/pages/{parent_id}/edit/"} class={BTN_SECONDARY}>
               Edit this page
             </a>
           </div>
         </section>
       </div>
     </AdminLayout>
+  )
+
+
+def _field_block(*, label: str, field_id: str, control):
+  return (
+    <li class="mb-4">
+      <label for={field_id} class={LABEL}>{label}</label>
+      {control}
+    </li>
   )
 
 
@@ -188,113 +201,121 @@ def PageFormPage(
       messages={messages}
       body_class="page-editor"
     >
-      <header class="header--merged">
-        <h1 class="page-title">{title}</h1>
+      <header class="flex min-h-slim-header items-center border-b border-gray-200 bg-gray-50 px-5">
+        <h1 class="text-2xl font-semibold text-gray-900">{title}</h1>
       </header>
-      <div class="nice-padding">
+      <div class="px-6 py-5">
         {(
-          <div class="messages" role="status">
-            <ul>
-              <li class="error">{error}</li>
-            </ul>
+          <div class="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700" role="status">
+            {error}
           </div>
         ) if error else None}
-        <form method="post" action={action_url} class="object-form">
-          <ul class="objects">
-            <li class="object">
-              <fieldset>
-                <legend>Content</legend>
-                <ul class="fields">
-                  <li class="field char_field">
-                    <label for="id_title">Title</label>
-                    <div class="field-content">
-                      <input
-                        id="id_title"
-                        name="title"
-                        type="text"
-                        required
-                        value={form_values.get("title", "")}
-                      />
-                    </div>
-                  </li>
-                  <li class="field char_field">
-                    <label for="id_slug">Slug</label>
-                    <div class="field-content">
-                      <input id="id_slug" name="slug" type="text" value={form_values.get("slug", "")} />
-                    </div>
-                  </li>
-                  <li class="field text_field">
-                    <label for="id_body">Body</label>
-                    <div class="field-content">
-                      <textarea id="id_body" name="body" rows="12">
-                        {form_values.get("body", "")}
-                      </textarea>
-                    </div>
-                  </li>
-                </ul>
-              </fieldset>
-            </li>
-            <li class="object">
-              <fieldset>
-                <legend>Promote</legend>
-                <ul class="fields">
-                  <li class="field char_field">
-                    <label for="id_seo_title">Title tag</label>
-                    <div class="field-content">
-                      <input
-                        id="id_seo_title"
-                        name="seo_title"
-                        type="text"
-                        value={form_values.get("seo_title", "")}
-                      />
-                    </div>
-                  </li>
-                  <li class="field char_field">
-                    <label for="id_search_description">Meta description</label>
-                    <div class="field-content">
-                      <textarea id="id_search_description" name="search_description" rows="3">
-                        {form_values.get("search_description", "")}
-                      </textarea>
-                    </div>
-                  </li>
-                </ul>
-              </fieldset>
-            </li>
-            <li class="object">
-              <fieldset>
-                <legend>Settings</legend>
-                <ul class="fields">
-                  <li class="field boolean_field">
-                    <label class="checkbox">
-                      <input type="checkbox" name="live" value="1" checked={form_values.get("live")} />
-                      Live
-                    </label>
-                  </li>
-                  <li class="field boolean_field">
-                    <label class="checkbox">
-                      <input
-                        type="checkbox"
-                        name="show_in_menus"
-                        value="1"
-                        checked={form_values.get("show_in_menus")}
-                      />
-                      Show in menus
-                    </label>
-                  </li>
-                </ul>
-              </fieldset>
-            </li>
-          </ul>
-          <footer class="footer__container">
-            <div class="footer">
-              <button type="submit" class="button action-save button-longrunning">
-                <em>{submit_label}</em>
+        <form method="post" action={action_url} class="max-w-3xl space-y-8">
+          <fieldset>
+            <legend class="mb-4 text-lg font-semibold text-gray-900">Content</legend>
+            <ul>
+              {_field_block(
+                label="Title",
+                field_id="id_title",
+                control=(
+                  <input
+                    id="id_title"
+                    name="title"
+                    type="text"
+                    class={INPUT}
+                    required
+                    value={form_values.get("title", "")}
+                  />
+                ),
+              )}
+              {_field_block(
+                label="Slug",
+                field_id="id_slug",
+                control=(
+                  <input
+                    id="id_slug"
+                    name="slug"
+                    type="text"
+                    class={INPUT}
+                    value={form_values.get("slug", "")}
+                  />
+                ),
+              )}
+              {_field_block(
+                label="Body",
+                field_id="id_body",
+                control=(
+                  <textarea id="id_body" name="body" rows="12" class={TEXTAREA}>
+                    {form_values.get("body", "")}
+                  </textarea>
+                ),
+              )}
+            </ul>
+          </fieldset>
+          <fieldset>
+            <legend class="mb-4 text-lg font-semibold text-gray-900">Promote</legend>
+            <ul>
+              {_field_block(
+                label="Title tag",
+                field_id="id_seo_title",
+                control=(
+                  <input
+                    id="id_seo_title"
+                    name="seo_title"
+                    type="text"
+                    class={INPUT}
+                    value={form_values.get("seo_title", "")}
+                  />
+                ),
+              )}
+              {_field_block(
+                label="Meta description",
+                field_id="id_search_description",
+                control=(
+                  <textarea
+                    id="id_search_description"
+                    name="search_description"
+                    rows="3"
+                    class={TEXTAREA}
+                  >
+                    {form_values.get("search_description", "")}
+                  </textarea>
+                ),
+              )}
+            </ul>
+          </fieldset>
+          <fieldset>
+            <legend class="mb-4 text-lg font-semibold text-gray-900">Settings</legend>
+            <ul class="space-y-3">
+              <li>
+                <label class="inline-flex items-center gap-2 font-semibold">
+                  <input type="checkbox" name="live" value="1" checked={form_values.get("live")} />
+                  Live
+                </label>
+              </li>
+              <li>
+                <label class="inline-flex items-center gap-2 font-semibold">
+                  <input
+                    type="checkbox"
+                    name="show_in_menus"
+                    value="1"
+                    checked={form_values.get("show_in_menus")}
+                  />
+                  Show in menus
+                </label>
+              </li>
+            </ul>
+          </fieldset>
+          <footer class="sticky bottom-0 -mx-6 border-t border-gray-200 bg-white px-6 py-4">
+            <div class="flex flex-wrap gap-3">
+              <button type="submit" class={BTN}>
+                <em class="not-italic">{submit_label}</em>
               </button>
-              <a href={cancel_href} class="button button-secondary">
+              <a href={cancel_href} class={BTN_SECONDARY}>
                 Cancel
               </a>
               {(
-                <a href={f"/admin/pages/{page.id}/delete/"} class="button button-secondary no">
+                <a href={f"/admin/pages/{page.id}/delete/"} class={BTN_DANGER}>
                   Delete
                 </a>
               ) if page and page.id else None}
@@ -315,23 +336,21 @@ def DeletePagePage(*, username: str, page, breadcrumbs, error: str | None = None
       breadcrumbs={breadcrumbs}
       body_class="delete-confirm"
     >
-      <div class="nice-padding">
+      <div class="px-6 py-5">
         {(
-          <div class="messages" role="status">
-            <ul>
-              <li class="error">{error}</li>
-            </ul>
+          <div class="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700" role="status">
+            {error}
           </div>
         ) if error else None}
-        <h1 class="page-title">Delete page</h1>
-        <p>
-          Are you sure you want to delete <strong>{page.title}</strong>?
+        <h1 class="mb-4 text-2xl font-semibold text-gray-900">Delete page</h1>
+        <p class="mb-6 text-gray-600">
+          Are you sure you want to delete <strong class="text-gray-900">{page.title}</strong>?
         </p>
-        <form method="post" action={f"/admin/pages/{page.id}/delete/"}>
-          <button type="submit" class="button no">
+        <form method="post" action={f"/admin/pages/{page.id}/delete/"} class="flex flex-wrap gap-3">
+          <button type="submit" class={BTN_DANGER}>
             Yes, delete
           </button>
-          <a href={f"/admin/pages/{page.id}/edit/"} class="button button-secondary">
+          <a href={f"/admin/pages/{page.id}/edit/"} class={BTN_SECONDARY}>
             No, don't delete
           </a>
         </form>

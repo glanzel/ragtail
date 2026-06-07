@@ -31,6 +31,17 @@ For the demo application:
 pip install -e ".[demo]"
 ```
 
+## Frontend (Tailwind CSS)
+
+Admin and demo templates use [Tailwind CSS](https://tailwindcss.com/) utility
+classes in PyJSX components. Compiled CSS is committed, but after changing
+`.px` templates run:
+
+```bash
+npm install
+npm run build:css
+```
+
 ## Demo application
 
 A runnable demo with Wagtail-style admin and PyJSX public templates lives in
