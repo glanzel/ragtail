@@ -1,0 +1,57 @@
+from pyjsx import jsx
+
+from oxytail.wagtail_admin.components.icons import WagtailLogoWordmark
+
+
+def LoginError(error, children=None):
+  if not error:
+    return None
+  return (
+    <ul>
+      <li class="error">{error}</li>
+    </ul>
+  )
+
+
+def LoginPage(*, error: str | None = None, next_url: str = "/admin/", children=None):
+  return (
+    <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Sign in - Wagtail</title>
+        <link rel="stylesheet" href="/admin/static/wagtail-admin.css" />
+      </head>
+      <body class="login">
+        <main class="content-wrapper" id="main">
+          <h1>Sign in to Wagtail</h1>
+          <div class="messages" role="status">
+            <LoginError error={error} />
+          </div>
+          <form class="login-form" action="/admin/login/" method="post" autocomplete="off">
+            <input type="hidden" name="next" value={next_url} />
+            <div class="field">
+              <label for="id_username">Username</label>
+              <div class="field-content">
+                <input id="id_username" name="username" type="text" required />
+              </div>
+            </div>
+            <div class="field">
+              <label for="id_password">Password</label>
+              <div class="field-content">
+                <input id="id_password" name="password" type="password" required />
+              </div>
+            </div>
+            <footer class="form-actions">
+              <button type="submit" class="button button-longrunning">
+                <em>Sign in</em>
+              </button>
+            </footer>
+          </form>
+          <div class="login-logo">
+            <WagtailLogoWordmark />
+          </div>
+        </main>
+      </body>
+    </html>
+  )

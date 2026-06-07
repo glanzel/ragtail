@@ -1,17 +1,17 @@
 # Oxytail
 
-Oxytail is a very small Wagtail-inspired CMS MVP built on
-[Oxyde ORM](https://oxyde.fatalyst.dev/). It intentionally starts with only the
-core primitives:
+Oxytail is a Wagtail-inspired CMS built on [Oxyde ORM](https://oxyde.fatalyst.dev/)
+and FastAPI. It ships with:
 
 - hierarchical `Page` model
 - locale-aware pages for multilingual sites
 - named navigation menus with nested menu items
-- FastAPI routing for page delivery
-- optional `oxyde-admin` registration for CRUD/admin screens
+- FastAPI routing for page delivery (HTML via custom renderer, JSON API optional)
+- **Wagtail-style admin** with login, page explorer, and page editor (PyJSX UI)
+- optional legacy `oxyde-admin` CRUD integration
 
-StreamField-like content blocks, images/documents, workflows and richer user
-management are left for later iterations.
+StreamField-like content blocks, images/documents, workflows and role-based
+permissions are left for later iterations.
 
 ## Installation
 
@@ -19,11 +19,30 @@ management are left for later iterations.
 pip install -e .
 ```
 
-For the bundled admin integration:
+For the legacy oxyde-admin CRUD screens:
 
 ```bash
 pip install -e ".[admin]"
 ```
+
+For the demo application:
+
+```bash
+pip install -e ".[demo]"
+```
+
+## Demo application
+
+A runnable demo with Wagtail-style admin and PyJSX public templates lives in
+`examples/demo/`:
+
+```bash
+python examples/demo/main.py
+```
+
+- Public site: http://127.0.0.1:8000/
+- Admin: http://127.0.0.1:8000/admin/
+- Login: `admin` / `admin`
 
 ## Models
 
@@ -34,24 +53,15 @@ Oxytail provides Oxyde models in `oxytail.models`:
   `translation_key`
 - `Menu`: named menu per locale, for example `main` or `footer`
 - `MenuItem`: nested menu entries pointing either to a `Page` or an external URL
+- `User`: staff users for CMS admin login
 
-Create an `oxyde_config.py` that points to the model module:
+Create tables with Oxyde:
 
 ```python
-DATABASES = {
-    "default": "sqlite:///oxytail.db",
-}
+from oxyde import create_tables, db
 
-INSTALLED_MODELS = [
-    "oxytail.models",
-]
-```
-
-Then create and apply migrations:
-
-```bash
-oxyde makemigrations
-oxyde migrate
+database = await db.get_connection("default")
+await create_tables(database)
 ```
 
 Create pages through the helper service so `path`, `depth` and
@@ -70,33 +80,62 @@ ueber_uns = await create_translation(about, title="Ueber uns", slug="ueber-uns",
 ```python
 from oxytail.fastapi import create_app
 
-app = create_app(database_url="sqlite:///oxytail.db")
+app = create_app(
+    database_url="sqlite:///oxytail.db",
+    mount_wagtail_admin=True,
+    secret_key="replace-me",
+)
 ```
 
 This creates:
 
+- `/admin/` Wagtail-style CMS admin (login required)
 - `/api/cms/pages/{path}` for JSON page lookup
 - `/api/cms/menus/{slug}` for JSON menu trees
 - a catch-all page route, which should be mounted last
 
-Pass `mount_admin=True` when `oxytail[admin]` is installed to expose
-`oxyde-admin` at `/admin`.
-
-By default pages are returned as JSON. Pass a renderer to serve templates or
-another response format:
+Pass a renderer to serve HTML templates (for example with PyJSX):
 
 ```python
-from fastapi import Request
 from fastapi.responses import HTMLResponse
-from oxytail.fastapi import RouteMatch, create_app
+from oxytail.fastapi import create_app
 
-
-async def render_page(request: Request, route: RouteMatch) -> HTMLResponse:
-    return HTMLResponse(f"<h1>{route.page.title}</h1>{route.page.body or ''}")
-
-
-app = create_app(database_url="sqlite:///oxytail.db", renderer=render_page)
+app = create_app(
+    database_url="sqlite:///oxytail.db",
+    renderer=my_html_renderer,
+    mount_wagtail_admin=True,
+)
 ```
+
+See `examples/demo/` for a full PyJSX setup.
+
+## Wagtail-style admin
+
+Enable the built-in admin with session login:
+
+```python
+from oxytail.fastapi import create_app
+from oxytail.auth import ensure_superuser
+
+app = create_app(
+    database_url="sqlite:///oxytail.db",
+    mount_wagtail_admin=True,
+    secret_key="replace-me",
+)
+
+# once, e.g. in startup:
+await ensure_superuser(username="admin", password="admin")
+```
+
+Features:
+
+- Sign-in screen styled like Wagtail
+- Sidebar navigation (Dashboard, Pages)
+- Page explorer with tree + child listing
+- Page editor (Content, Promote, Settings panels)
+- Create / edit / delete pages
+
+The legacy generic `oxyde-admin` CRUD remains available via `mount_admin=True`.
 
 ## Routing and multilingual URLs
 
@@ -127,19 +166,4 @@ await create_menu_item(menu=main, label="About", page=about)
 
 items = await get_menu_tree("main", language_code="en")
 payload = [item.as_dict() for item in items]
-```
-
-## Admin
-
-Oxytail does not implement a user system. For the MVP it delegates CRUD screens
-to `oxyde-admin`:
-
-```python
-from fastapi import FastAPI
-from oxyde import db
-from oxytail.admin import create_fastapi_admin
-
-app = FastAPI(lifespan=db.lifespan(default="sqlite:///oxytail.db"))
-admin = create_fastapi_admin(title="CMS Admin")
-app.mount("/admin", admin.app)
 ```

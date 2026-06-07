@@ -1,4 +1,5 @@
 from .admin import create_fastapi_admin, register_cms_models
+from .auth import authenticate_user, create_user, ensure_superuser, hash_password, verify_password
 from .fastapi import create_api_router, create_app, create_cms_router
 from .menus import (
     MenuItemNode,
@@ -8,7 +9,8 @@ from .menus import (
     get_menu,
     get_menu_tree,
 )
-from .models import Locale, Menu, MenuItem, Page
+from .models import Locale, Menu, MenuItem, Page, User
+from .wagtail_admin import create_admin_router
 from .pages import create_page, create_translation
 from .routing import (
     RouteMatch,
@@ -31,11 +33,17 @@ __all__ = [
     "MenuItemNode",
     "Page",
     "RouteMatch",
+    "User",
+    "authenticate_user",
     "build_menu_tree",
+    "create_admin_router",
     "create_api_router",
     "create_app",
     "create_cms_router",
     "create_fastapi_admin",
+    "create_user",
+    "ensure_superuser",
+    "hash_password",
     "create_menu",
     "create_menu_item",
     "create_page",
@@ -53,4 +61,5 @@ __all__ = [
     "resolve_page",
     "resolve_route",
     "strip_locale_prefix",
+    "verify_password",
 ]

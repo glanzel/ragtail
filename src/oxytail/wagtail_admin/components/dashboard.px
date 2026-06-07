@@ -1,0 +1,32 @@
+from pyjsx import jsx
+
+from oxytail.wagtail_admin.components.layout import AdminLayout
+
+
+def DashboardPage(*, username: str, page_count: int, locale_name: str, children=None):
+  return (
+    <AdminLayout
+      title="Dashboard"
+      active="home"
+      username={username}
+      breadcrumbs={[]}
+    >
+      <div class="nice-padding">
+        <h1 class="page-title">Welcome to the Wagtail CMS</h1>
+        <p class="help-block help-info">
+          You are signed in as <strong>{username}</strong>. Default locale: {locale_name}.
+        </p>
+        <div class="dashboard-stats">
+          <div class="stat-card">
+            <h2>{page_count}</h2>
+            <p>Pages</p>
+          </div>
+        </div>
+        <p>
+          <a href="/admin/pages/" class="button button-secondary">
+            Explore pages
+          </a>
+        </p>
+      </div>
+    </AdminLayout>
+  )
