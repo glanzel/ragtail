@@ -1,5 +1,6 @@
 from pyjsx import jsx
 
+from oxytail.wagtail_admin.classes import BTN_SECONDARY, SIDEBAR_LINK, SIDEBAR_LINK_ACTIVE
 from oxytail.wagtail_admin.components.icons import (
     IconDocEmptyInverse,
     IconHome,
@@ -7,42 +8,45 @@ from oxytail.wagtail_admin.components.icons import (
 )
 
 
-def _menu_item_class(active: str, name: str) -> str:
-  base = "sidebar-menu-item"
+def _sidebar_link_class(active: str, name: str) -> str:
   if active == name:
-    return base + " sidebar-menu-item--active"
-  return base
+    return SIDEBAR_LINK_ACTIVE
+  return SIDEBAR_LINK
 
 
 def AdminSidebar(active: str = "pages", username: str = "", children=None):
   return (
-    <aside id="wagtail-sidebar" class="sidebar" aria-label="Sidebar">
-      <div class="sidebar__inner">
-        <div class="sidebar__header">
-          <a href="/admin/" class="sidebar-logo" aria-label="Dashboard">
+    <aside
+      id="wagtail-sidebar"
+      class="sticky top-0 z-[110] h-screen w-sidebar shrink-0 bg-wagtail-primary text-white"
+      aria-label="Sidebar"
+    >
+      <div class="flex h-full flex-col">
+        <div class="flex h-slim-header items-center justify-center border-b border-white/10">
+          <a href="/admin/" class="flex items-center justify-center p-2" aria-label="Dashboard">
             <WagtailLogoBird />
           </a>
         </div>
-        <nav class="sidebar-nav" aria-label="Main menu">
-          <ul class="sidebar-menu">
-            <li class={_menu_item_class(active, "home")}>
-              <a href="/admin/" class="sidebar-menu-item__link">
+        <nav class="flex-1 overflow-y-auto py-2" aria-label="Main menu">
+          <ul>
+            <li>
+              <a href="/admin/" class={_sidebar_link_class(active, "home")}>
                 <IconHome />
-                <span class="sidebar-menu-item__label">Dashboard</span>
+                <span>Dashboard</span>
               </a>
             </li>
-            <li class={_menu_item_class(active, "pages")}>
-              <a href="/admin/pages/" class="sidebar-menu-item__link">
+            <li>
+              <a href="/admin/pages/" class={_sidebar_link_class(active, "pages")}>
                 <IconDocEmptyInverse />
-                <span class="sidebar-menu-item__label">Pages</span>
+                <span>Pages</span>
               </a>
             </li>
           </ul>
         </nav>
-        <div class="sidebar__footer">
-          <span class="sidebar-user">{username}</span>
+        <div class="flex flex-col gap-2 border-t border-white/10 p-4">
+          <span class="text-sm text-white/85">{username}</span>
           <form action="/admin/logout/" method="post">
-            <button type="submit" class="button button-small button-secondary">
+            <button type="submit" class={BTN_SECONDARY + " text-sm"}>
               Sign out
             </button>
           </form>
@@ -54,29 +58,41 @@ def AdminSidebar(active: str = "pages", username: str = "", children=None):
 
 def BreadcrumbItem(crumb, children=None):
   if crumb.url:
-    return <a href={crumb.url}>{crumb.title}</a>
-  return <span aria-current="page">{crumb.title}</span>
+    return <a href={crumb.url} class="text-wagtail-secondary hover:underline">{crumb.title}</a>
+  return <span aria-current="page" class="text-gray-600">{crumb.title}</span>
 
 
 def Breadcrumbs(crumbs, children=None):
   return (
-    <nav class="breadcrumbs" aria-label="Breadcrumb">
-      <ol>
-        {[<li><BreadcrumbItem crumb={crumb} /></li> for crumb in crumbs]}
+    <nav class="text-sm" aria-label="Breadcrumb">
+      <ol class="flex flex-wrap items-center gap-1">
+        {[
+          <li class="flex items-center gap-1 after:content-['/'] last:after:content-none">
+            <BreadcrumbItem crumb={crumb} />
+          </li>
+          for crumb in crumbs
+        ]}
       </ol>
     </nav>
   )
 
 
 def MessageItem(message, children=None):
-  return <li class={message.kind}>{message.text}</li>
+  base = "border-b px-5 py-3"
+  if message.kind == "success":
+    classes = base + " bg-emerald-50 text-emerald-900"
+  elif message.kind == "error":
+    classes = base + " bg-red-50 text-red-700"
+  else:
+    classes = base + " bg-amber-50 text-amber-900"
+  return <li class={classes}>{message.text}</li>
 
 
 def Messages(messages, children=None):
   if not messages:
     return None
   return (
-    <div class="messages" role="status">
+    <div role="status">
       <ul>{[<MessageItem message={message} /> for message in messages]}</ul>
     </div>
   )
@@ -93,7 +109,6 @@ def AdminLayout(
   children,
 ):
   crumbs = breadcrumbs or []
-  body_classes = "template-admin " + body_class
   return (
     <html lang="en">
       <head>
@@ -102,13 +117,17 @@ def AdminLayout(
         <title>{title} - Wagtail</title>
         <link rel="stylesheet" href="/admin/static/wagtail-admin.css" />
       </head>
-      <body class={body_classes}>
-        <div class="wrapper">
+      <body class={"min-h-screen bg-white " + body_class}>
+        <div class="flex min-h-screen">
           <AdminSidebar active={active} username={username} />
-          <main class="content-wrapper" id="main">
-            <div class="content">
+          <main class="min-w-0 flex-1" id="main">
+            <div class="min-h-screen">
               <Messages messages={messages} />
-              {(<header class="header"><Breadcrumbs crumbs={crumbs} /></header>) if crumbs else None}
+              {(
+                <header class="flex min-h-slim-header items-center border-b border-gray-200 bg-gray-50 px-5">
+                  <Breadcrumbs crumbs={crumbs} />
+                </header>
+              ) if crumbs else None}
               {children}
             </div>
           </main>

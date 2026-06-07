@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from pyjsx.jsx import HTMLDontEscape
 
-_ICON = '<svg class="icon" viewBox="0 0 16 16" aria-hidden="true">{body}</svg>'
+_ICON = (
+    '<svg class="inline-block h-4 w-4 shrink-0 align-text-top" '
+    'viewBox="0 0 16 16" aria-hidden="true">{body}</svg>'
+)
 
 
 def IconHome(children=None) -> HTMLDontEscape:
@@ -43,7 +46,7 @@ def IconPlus(children=None) -> HTMLDontEscape:
 
 def WagtailLogoBird(children=None) -> HTMLDontEscape:
     return HTMLDontEscape(
-        '<svg class="icon-wagtail" role="img" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" '
+        '<svg class="block h-8 w-auto" role="img" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" '
         'viewBox="0 0 225 274" fill="none">'
         '<path fill="#fff" d="M194.897 79.492c-8.392-12.793-22.602-21.27-38.773-21.27-5.322 0-10.496.915-15.32 2.62a30.755 30.755 0 0 1-4.039-15.3c0-17.078 13.325-30.792 29.918-30.792 4.274 0 8.046.776 11.565 2.328 1.746-2.566 3.491-5.64 5.236-9.476 7.108 4.095 19.786 14.99 21.26 33.397L190.72 61.88l4.177 17.612Z"/>'
         '<path fill="#000" d="m49.277 186.425 8.718 18.407-1.743-30.679-6.975 12.272Z"/>'
@@ -56,7 +59,7 @@ def WagtailLogoBird(children=None) -> HTMLDontEscape:
 
 def WagtailLogoWordmark(children=None) -> HTMLDontEscape:
     return HTMLDontEscape(
-        '<svg class="icon-wagtail" role="img" aria-label="Wagtail" xmlns="http://www.w3.org/2000/svg" '
+        '<svg class="mx-auto block h-auto w-full max-w-xs" role="img" aria-label="Wagtail" xmlns="http://www.w3.org/2000/svg" '
         'viewBox="0 0 427 182" fill="none">'
         '<circle cx="90.455" cy="61.735" r="60" fill="#fff" opacity=".1"/>'
         '<path fill="#fff" d="M112.664 70.424c-4.833-7.31-13.017-12.154-22.33-12.154a26.65 26.65 0 0 0-8.822 1.497 17.468 17.468 0 0 1-2.326-8.742c0-9.76 7.674-17.597 17.23-17.597 2.461 0 4.633.444 6.66 1.331 1.005-1.466 2.01-3.223 3.015-5.415 4.094 2.34 11.395 8.565 12.244 19.084l-8.076 11.932 2.405 10.064Z"/>'

@@ -10,17 +10,19 @@ def SiteLayout(*, title: str, menu_items, children):
         <title>{title}</title>
         <link rel="stylesheet" href="/static/site.css" />
       </head>
-      <body>
-        <header class="site-header">
-          <div class="site-header__inner">
-            <a href="/" class="site-logo">
+      <body class="min-h-screen bg-white">
+        <header class="bg-wagtail-primary text-white">
+          <div class="mx-auto flex max-w-content items-center justify-between gap-4 px-6 py-4">
+            <a href="/" class="text-lg font-bold text-white no-underline hover:text-white">
               Oxytail Demo
             </a>
-            <nav class="site-nav" aria-label="Main">
-              <ul>
+            <nav aria-label="Main">
+              <ul class="flex list-none gap-4 p-0">
                 {[
                   <li>
-                    <a href={item.href}>{item.label}</a>
+                    <a href={item.href} class="text-white/90 no-underline hover:text-white hover:underline">
+                      {item.label}
+                    </a>
                   </li>
                   for item in menu_items
                 ]}
@@ -28,8 +30,8 @@ def SiteLayout(*, title: str, menu_items, children):
             </nav>
           </div>
         </header>
-        <main class="site-main">{children}</main>
-        <footer class="site-footer">
+        <main class="mx-auto max-w-content px-6 py-8">{children}</main>
+        <footer class="border-t border-gray-200 bg-gray-50 py-6 text-center text-sm text-gray-500">
           <p>Rendered with PyJSX · Powered by Oxytail</p>
         </footer>
       </body>

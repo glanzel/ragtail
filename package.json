@@ -1,0 +1,15 @@
+{
+  "name": "oxytail",
+  "private": true,
+  "scripts": {
+    "build:css": "npm run build:admin && npm run build:site",
+    "build:admin": "tailwindcss -i ./styles/admin.css -o ./src/oxytail/wagtail_admin/static/wagtail-admin.css --minify",
+    "build:site": "tailwindcss -i ./styles/site.css -o ./examples/demo/static/site.css --minify",
+    "watch:css": "tailwindcss -i ./styles/admin.css -o ./src/oxytail/wagtail_admin/static/wagtail-admin.css --watch"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17"
+  }
+}

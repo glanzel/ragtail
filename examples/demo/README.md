@@ -10,6 +10,7 @@ Runnable demo site with:
 
 ```bash
 pip install -e ".[demo]"
+npm install && npm run build:css   # only needed after template/CSS changes
 python examples/demo/main.py
 ```
 
