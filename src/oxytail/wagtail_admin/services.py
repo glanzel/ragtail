@@ -214,6 +214,22 @@ async def ensure_root_page(locale: Locale) -> Page:
     return await create_page(title="Root", slug="", locale=locale, live=True, show_in_menus=True)
 
 
+async def get_locale_or_404(locale_id: int) -> Locale:
+    locale = await Locale.objects.get_or_none(id=locale_id)
+    if locale is None:
+        raise HTTPException(status_code=404, detail="Locale not found")
+    return locale
+
+
+async def _clear_other_default_locales(*, exclude_locale_id: int | None = None) -> None:
+    defaults = await Locale.objects.filter(is_default=True).all()
+    for other in defaults:
+        if other.id == exclude_locale_id:
+            continue
+        other.is_default = False
+        await other.save()
+
+
 async def create_locale(
     *,
     language_code: str,
@@ -221,16 +237,48 @@ async def create_locale(
     is_default: bool = False,
 ) -> Locale:
     if is_default:
-        defaults = await Locale.objects.filter(is_default=True).all()
-        for locale in defaults:
-            locale.is_default = False
-            await locale.save()
+        await _clear_other_default_locales()
     return await Locale.objects.create(
         language_code=language_code,
         display_name=display_name,
         is_default=is_default,
         is_active=True,
     )
+
+
+async def update_locale(
+    locale: Locale,
+    *,
+    display_name: str,
+    is_default: bool,
+    is_active: bool,
+) -> Locale:
+    if not display_name.strip():
+        raise ValueError("Display name is required.")
+
+    if not is_active and locale.is_default:
+        raise ValueError("Set another locale as default before deactivating this one.")
+
+    if not is_default and locale.is_default:
+        others = [
+            other
+            for other in await get_all_locales()
+            if other.id != locale.id and other.is_active
+        ]
+        if not others:
+            raise ValueError("At least one locale must be marked as default.")
+        promoted = others[0]
+        promoted.is_default = True
+        await promoted.save()
+
+    if is_default:
+        await _clear_other_default_locales(exclude_locale_id=locale.id)
+
+    locale.display_name = display_name.strip()
+    locale.is_default = is_default
+    locale.is_active = is_active
+    await locale.save()
+    return locale
 
 
 def new_translation_key() -> str:

@@ -13,7 +13,7 @@ from ..auth import authenticate_user
 from ..menus import create_menu, create_menu_item
 from ..models import Page, User
 from .components.dashboard import DashboardPage
-from .components.locales import LocaleAddPage, LocaleListPage
+from .components.locales import LocaleAddPage, LocaleEditPage, LocaleListPage
 from .components.login import LoginPage
 from .components.menus import MenuAddPage, MenuDetailPage, MenuListPage
 from .components.pages import DeletePagePage, PageFormPage, PageListingPage
@@ -28,6 +28,7 @@ from .services import (
     ensure_root_page,
     get_admin_locale,
     get_all_locales,
+    get_locale_or_404,
     get_child_pages,
     get_menu_item_or_404,
     get_menu_items,
@@ -36,6 +37,7 @@ from .services import (
     get_page_locale,
     get_page_or_404,
     get_pages_for_locale,
+    update_locale,
     update_page,
 )
 
@@ -186,6 +188,50 @@ def create_admin_router() -> APIRouter:
             is_default=is_default == "1" or not existing,
         )
         await ensure_root_page(locale)
+        return RedirectResponse("/admin/locales/", status_code=status.HTTP_303_SEE_OTHER)
+
+    @router.get("/locales/{locale_id}/edit/")
+    async def locales_edit_get(locale_id: int, user: Annotated[User, Depends(require_user)]):
+        locale = await get_locale_or_404(locale_id)
+        return html_response(LocaleEditPage, username=user.username, locale=locale)
+
+    @router.post("/locales/{locale_id}/edit/")
+    async def locales_edit_post(
+        locale_id: int,
+        user: Annotated[User, Depends(require_user)],
+        display_name: Annotated[str, Form()],
+        is_default: Annotated[str | None, Form()] = None,
+        is_active: Annotated[str | None, Form()] = None,
+    ):
+        locale = await get_locale_or_404(locale_id)
+        values = {
+            "display_name": display_name,
+            "is_default": is_default == "1",
+            "is_active": is_active == "1",
+        }
+        if not display_name.strip():
+            return html_response(
+                LocaleEditPage,
+                username=user.username,
+                locale=locale,
+                values=values,
+                error="Display name is required.",
+            )
+        try:
+            await update_locale(
+                locale,
+                display_name=display_name,
+                is_default=is_default == "1",
+                is_active=is_active == "1",
+            )
+        except ValueError as exc:
+            return html_response(
+                LocaleEditPage,
+                username=user.username,
+                locale=locale,
+                values=values,
+                error=str(exc),
+            )
         return RedirectResponse("/admin/locales/", status_code=status.HTTP_303_SEE_OTHER)
 
     @router.get("/menus/")
