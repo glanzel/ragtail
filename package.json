@@ -2,14 +2,27 @@
   "name": "oxytail",
   "private": true,
   "scripts": {
-    "build:css": "npm run build:admin && npm run build:site",
+    "build:css": "npm run build:admin && npm run build:site && npm run build:richtext",
     "build:admin": "tailwindcss -i ./styles/admin.css -o ./src/oxytail/wagtail_admin/static/wagtail-admin.css --minify",
     "build:site": "tailwindcss -i ./styles/site.css -o ./examples/demo/static/site.css --minify",
+    "build:richtext": "esbuild scripts/richtext-src.mjs --bundle --format=esm --outfile=src/oxytail/wagtail_admin/static/richtext.js --minify",
     "watch:css": "tailwindcss -i ./styles/admin.css -o ./src/oxytail/wagtail_admin/static/wagtail-admin.css --watch"
+  },
+  "dependencies": {
+    "@tiptap/core": "2.11.5",
+    "@tiptap/starter-kit": "2.11.5",
+    "tiptap-markdown": "0.8.10"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.21",
+    "esbuild": "^0.25.0",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17"
+  },
+  "overrides": {
+    "@tiptap/core": "2.11.5",
+    "@tiptap/pm": "2.11.5",
+    "@tiptap/extension-horizontal-rule": "2.11.5",
+    "@tiptap/starter-kit": "2.11.5"
   }
 }

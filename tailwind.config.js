@@ -5,6 +5,14 @@ module.exports = {
     "./src/oxytail/wagtail_admin/classes.py",
     "./examples/demo/site_templates/**/*.px",
   ],
+  safelist: [
+    "ProseMirror",
+    "richtext-toolbar",
+    "richtext-toolbar-group",
+    "richtext-toolbar-separator",
+    "richtext-toolbar-btn",
+    "richtext-toolbar-btn--text",
+  ],
   theme: {
     extend: {
       colors: {

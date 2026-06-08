@@ -57,6 +57,109 @@ def IconMenu(children=None) -> HTMLDontEscape:
     )
 
 
+_RICHTEXT_ICON = (
+    '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{body}</svg>'
+)
+
+
+def RichtextIconBold(children=None) -> HTMLDontEscape:
+    return HTMLDontEscape(
+        _RICHTEXT_ICON.format(
+            body='<path d="M6 4h8a4 4 0 0 1 0 8H6z"/><path d="M6 12h9a4 4 0 0 1 0 8H6z"/>'
+        )
+    )
+
+
+def RichtextIconItalic(children=None) -> HTMLDontEscape:
+    return HTMLDontEscape(
+        _RICHTEXT_ICON.format(
+            body=(
+                '<line x1="19" y1="4" x2="10" y2="4"/>'
+                '<line x1="14" y1="20" x2="5" y2="20"/>'
+                '<line x1="15" y1="4" x2="9" y2="20"/>'
+            )
+        )
+    )
+
+
+def RichtextIconStrike(children=None) -> HTMLDontEscape:
+    return HTMLDontEscape(
+        _RICHTEXT_ICON.format(
+            body=(
+                '<path d="M16 4H9a3 3 0 0 0-2.83 4"/>'
+                '<path d="M14 12a4 4 0 0 1 0 8H6"/>'
+                '<line x1="4" y1="12" x2="20" y2="12"/>'
+            )
+        )
+    )
+
+
+def RichtextIconBulletList(children=None) -> HTMLDontEscape:
+    return HTMLDontEscape(
+        _RICHTEXT_ICON.format(
+            body=(
+                '<line x1="9" y1="6" x2="20" y2="6"/>'
+                '<line x1="9" y1="12" x2="20" y2="12"/>'
+                '<line x1="9" y1="18" x2="20" y2="18"/>'
+                '<circle cx="4" cy="6" r="1.25" fill="currentColor" stroke="none"/>'
+                '<circle cx="4" cy="12" r="1.25" fill="currentColor" stroke="none"/>'
+                '<circle cx="4" cy="18" r="1.25" fill="currentColor" stroke="none"/>'
+            )
+        )
+    )
+
+
+def RichtextIconOrderedList(children=None) -> HTMLDontEscape:
+    return HTMLDontEscape(
+        _RICHTEXT_ICON.format(
+            body=(
+                '<line x1="10" y1="6" x2="20" y2="6"/>'
+                '<line x1="10" y1="12" x2="20" y2="12"/>'
+                '<line x1="10" y1="18" x2="20" y2="18"/>'
+                '<path d="M4 6h1v4"/>'
+                '<path d="M4 10h2"/>'
+                '<path d="M5 18H4c0-1 1-2 2-2s1-1 1-2-1-2-2-2"/>'
+            )
+        )
+    )
+
+
+def RichtextIconBlockquote(children=None) -> HTMLDontEscape:
+    return HTMLDontEscape(
+        _RICHTEXT_ICON.format(
+            body=(
+                '<path d="M7 7h10v10H7z"/>'
+                '<path d="M11 9v6"/>'
+                '<path d="M7 9h1"/>'
+                '<path d="M7 15h1"/>'
+            )
+        )
+    )
+
+
+def RichtextIconUndo(children=None) -> HTMLDontEscape:
+    return HTMLDontEscape(
+        _RICHTEXT_ICON.format(
+            body=(
+                '<path d="M3 7v6h6"/>'
+                '<path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6.36 2.64L3 13"/>'
+            )
+        )
+    )
+
+
+def RichtextIconRedo(children=None) -> HTMLDontEscape:
+    return HTMLDontEscape(
+        _RICHTEXT_ICON.format(
+            body=(
+                '<path d="M21 7v6h-6"/>'
+                '<path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6.36 2.64L21 13"/>'
+            )
+        )
+    )
+
+
 def IconPlus(children=None) -> HTMLDontEscape:
     return HTMLDontEscape(
         _ICON.format(body='<path fill="currentColor" d="M7 1.5h2v5h5v2h-5v5H7v-5h-5v-2h5v-5Z"/>')

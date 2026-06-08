@@ -8,13 +8,18 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY pyproject.toml README.md ./
+COPY pyproject.toml README.md package.json package-lock.json ./
+COPY scripts ./scripts
+COPY styles ./styles
+COPY tailwind.config.js ./
 COPY src ./src
 COPY examples/demo ./examples/demo
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates nodejs npm \
+    && rm -rf /var/lib/apt/lists/* \
+    && npm ci \
+    && npm run build:css
 
 RUN pip install --upgrade pip \
     && pip install -e ".[demo]"
