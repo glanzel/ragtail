@@ -112,7 +112,7 @@ async def build_all_locale_trees() -> list[LocaleTreeSection]:
 
 
 async def build_breadcrumbs(page: Page) -> list[Breadcrumb]:
-    crumbs: list[Breadcrumb] = [Breadcrumb(title="Root", url="/admin/pages/")]
+    crumbs: list[Breadcrumb] = [Breadcrumb(title="Pages", url="/admin/pages/")]
     current = page
     chain: list[Page] = []
 

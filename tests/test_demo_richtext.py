@@ -13,7 +13,8 @@ def test_demo_registers_richtext_body_field() -> None:
     from oxytail.wagtail_admin.registry import clear_page_form_fields, get_page_form_fields
 
     clear_page_form_fields()
-    importlib.import_module("admin_setup")
+    admin_setup = importlib.import_module("admin_setup")
+    importlib.reload(admin_setup)
 
     fields = get_page_form_fields()
     assert len(fields) == 1

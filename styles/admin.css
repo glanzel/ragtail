@@ -36,4 +36,12 @@
   .ProseMirror a {
     @apply text-wagtail-secondary underline;
   }
+
+  .richtext-toolbar-btn {
+    @apply rounded border border-gray-200 bg-white px-2.5 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-100;
+  }
+
+  .richtext-toolbar-btn.is-active {
+    @apply border-wagtail-secondary bg-wagtail-secondary text-white;
+  }
 }
