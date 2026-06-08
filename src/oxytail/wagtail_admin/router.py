@@ -20,8 +20,8 @@ from .components.pages import DeletePagePage, PageFormPage, PageListingPage
 from .registry import get_page_form_fields, uses_richtext
 from .render import html_response
 from .services import (
+    build_all_locale_trees,
     build_breadcrumbs,
-    build_page_tree,
     create_child_page,
     create_locale,
     delete_page,
@@ -33,6 +33,7 @@ from .services import (
     get_menu_items,
     get_menu_or_404,
     get_menus_for_locale,
+    get_page_locale,
     get_page_or_404,
     get_pages_for_locale,
     update_page,
@@ -309,29 +310,17 @@ def create_admin_router() -> APIRouter:
         root = await ensure_root_page(locale)
         return RedirectResponse(f"/admin/pages/{root.id}/", status_code=status.HTTP_303_SEE_OTHER)
 
-    @router.get("/pages/{page_id}/")
-    async def page_listing(page_id: int, user: Annotated[User, Depends(require_user)]):
-        locale = await get_admin_locale()
-        page = await get_page_or_404(page_id)
-        children = await get_child_pages(page)
-        tree = await build_page_tree(locale)
-        breadcrumbs = await build_breadcrumbs(page)
-        return html_response(
-            PageListingPage,
-            username=user.username,
-            parent_page=page,
-            children=children,
-            tree=tree,
-            breadcrumbs=breadcrumbs,
-        )
-
     @router.get("/pages/add/")
     async def page_add_get(
         user: Annotated[User, Depends(require_user)],
         parent: int | None = None,
     ):
-        locale = await get_admin_locale()
-        parent_page = await get_page_or_404(parent) if parent else await ensure_root_page(locale)
+        default_locale = await get_admin_locale()
+        parent_page = (
+            await get_page_or_404(parent)
+            if parent
+            else await ensure_root_page(default_locale)
+        )
         breadcrumbs = await build_breadcrumbs(parent_page)
         breadcrumbs.append(type(breadcrumbs[-1])("Add child page", None))
         return html_response(
@@ -358,8 +347,13 @@ def create_admin_router() -> APIRouter:
         show_in_menus: Annotated[str | None, Form()] = None,
         parent: int | None = None,
     ):
-        locale = await get_admin_locale()
-        parent_page = await get_page_or_404(parent) if parent else await ensure_root_page(locale)
+        default_locale = await get_admin_locale()
+        parent_page = (
+            await get_page_or_404(parent)
+            if parent
+            else await ensure_root_page(default_locale)
+        )
+        locale = await get_page_locale(parent_page)
         breadcrumbs = await build_breadcrumbs(parent_page)
         breadcrumbs.append(type(breadcrumbs[-1])("Add child page", None))
         values = _form_values(
@@ -397,6 +391,21 @@ def create_admin_router() -> APIRouter:
             search_description=search_description or None,
         )
         return RedirectResponse(f"/admin/pages/{page.id}/edit/", status_code=status.HTTP_303_SEE_OTHER)
+
+    @router.get("/pages/{page_id}/")
+    async def page_listing(page_id: int, user: Annotated[User, Depends(require_user)]):
+        page = await get_page_or_404(page_id)
+        children = await get_child_pages(page)
+        locale_sections = await build_all_locale_trees()
+        breadcrumbs = await build_breadcrumbs(page)
+        return html_response(
+            PageListingPage,
+            username=user.username,
+            parent_page=page,
+            children=children,
+            locale_sections=locale_sections,
+            breadcrumbs=breadcrumbs,
+        )
 
     @router.get("/pages/{page_id}/edit/")
     async def page_edit_get(page_id: int, user: Annotated[User, Depends(require_user)]):

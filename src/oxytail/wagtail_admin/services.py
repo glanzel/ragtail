@@ -17,6 +17,12 @@ class PageTreeNode:
 
 
 @dataclass(frozen=True)
+class LocaleTreeSection:
+    locale: Locale
+    roots: list[PageTreeNode]
+
+
+@dataclass(frozen=True)
 class Breadcrumb:
     title: str
     url: str | None
@@ -45,11 +51,25 @@ async def get_page_or_404(page_id: int) -> Page:
 
 
 async def get_child_pages(page: Page) -> list[Page]:
+    filters: dict[str, object] = {"parent_id": page.id}
+    if page.locale_id is not None:
+        filters["locale_id"] = page.locale_id
     return (
-        await Page.objects.filter(parent_id=page.id)
+        await Page.objects.filter(**filters)
         .order_by("sort_order", "title")
         .all()
     )
+
+
+async def get_page_locale(page: Page) -> Locale:
+    if page.locale_id is not None:
+        locale = await Locale.objects.get_or_none(id=page.locale_id)
+        if locale is not None:
+            return locale
+    if page.locale is not None:
+        return page.locale
+    locale = await get_admin_locale()
+    return locale
 
 
 async def build_page_tree(locale: Locale) -> list[PageTreeNode]:
@@ -77,6 +97,18 @@ async def build_page_tree(locale: Locale) -> list[PageTreeNode]:
             roots.append(node)
 
     return roots
+
+
+async def build_all_locale_trees() -> list[LocaleTreeSection]:
+    locales = await get_all_locales()
+    sections: list[LocaleTreeSection] = []
+    for locale in locales:
+        if not locale.is_active:
+            continue
+        sections.append(
+            LocaleTreeSection(locale=locale, roots=await build_page_tree(locale))
+        )
+    return sections
 
 
 async def build_breadcrumbs(page: Page) -> list[Breadcrumb]:
