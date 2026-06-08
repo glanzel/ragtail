@@ -17,5 +17,13 @@ def RichTextField(*, name: str, label: str, value: str = "", field_id: str, chil
       <textarea id={field_id} name={name} class="sr-only" tabindex="-1" aria-hidden="true">
         {value}
       </textarea>
+      <p class="mt-2 text-xs leading-relaxed text-gray-500">
+        Markdown supported: type <code class="rounded bg-gray-100 px-1">**bold**</code>,
+        <code class="rounded bg-gray-100 px-1">*italic*</code>,
+        <code class="rounded bg-gray-100 px-1">## heading</code>,
+        <code class="rounded bg-gray-100 px-1">- list</code>,
+        <code class="rounded bg-gray-100 px-1">&gt; quote</code>
+        — or paste Markdown to convert automatically.
+      </p>
     </div>
   )
