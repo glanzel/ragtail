@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -20,13 +21,18 @@ from oxytail.fastapi import create_app  # noqa: E402
 from renderer import create_site_renderer  # noqa: E402
 from seed import seed_if_empty  # noqa: E402
 
-DATABASE_URL = f"sqlite:///{DEMO_DIR / 'oxytail.db'}"
+DEFAULT_DB_PATH = DEMO_DIR / "oxytail.db"
+DATABASE_URL = os.environ.get(
+    "OXYTAIL_DATABASE_URL",
+    f"sqlite:///{DEFAULT_DB_PATH}",
+)
+SECRET_KEY = os.environ.get("OXYTAIL_SECRET_KEY", "oxytail-demo-secret-change-me")
 
 app = create_app(
     database_url=DATABASE_URL,
     renderer=create_site_renderer(),
     mount_wagtail_admin=True,
-    secret_key="oxytail-demo-secret-change-me",
+    secret_key=SECRET_KEY,
     title="Oxytail Demo",
     startup_hook=seed_if_empty,
 )
