@@ -123,6 +123,8 @@ async def test_admin_page_edit_includes_richtext_editor(client: AsyncClient) -> 
     assert edit.status_code == 200
     assert "data-richtext-toolbar" in edit.text
     assert "data-richtext-mount" in edit.text
+    assert "richtext-toolbar-btn" in edit.text
+    assert edit.text.count('data-action="') >= 9
     assert "richtext.js" in edit.text
 
     clear_page_form_fields()
