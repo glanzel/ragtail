@@ -13,6 +13,8 @@ ROOT = DEMO_DIR.parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(DEMO_DIR))
 
+import admin_setup  # noqa: F401,E402 registers demo rich text field
+
 from oxytail.fastapi import create_app  # noqa: E402
 
 from renderer import create_site_renderer  # noqa: E402

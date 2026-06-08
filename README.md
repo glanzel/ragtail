@@ -141,10 +141,27 @@ await ensure_superuser(username="admin", password="admin")
 Features:
 
 - Sign-in screen styled like Wagtail
-- Sidebar navigation (Dashboard, Pages)
+- Sidebar navigation (Dashboard, Pages, Menus, Locales)
 - Page explorer with tree + child listing
-- Page editor (Content, Promote, Settings panels)
+- Page editor (title, slug, SEO, publish settings)
+- Locale management (add a second language, creates root page)
+- Menu builder (create menus and add page/URL items)
 - Create / edit / delete pages
+
+### Demo-only rich text (TipTap)
+
+The core page editor intentionally has no body field. The demo registers a
+`body` rich text field (TipTap) similar to Wagtail's `RichTextField`:
+
+```python
+from oxytail.wagtail_admin.registry import PageFormField, register_page_form_field
+
+register_page_form_field(
+    PageFormField(name="body", label="Content", widget="richtext")
+)
+```
+
+See `examples/demo/admin_setup.py`.
 
 The legacy generic `oxyde-admin` CRUD remains available via `mount_admin=True`.
 

@@ -38,6 +38,25 @@ def IconFolderOpenInverse(children=None) -> HTMLDontEscape:
     )
 
 
+def IconGlobe(children=None) -> HTMLDontEscape:
+    return HTMLDontEscape(
+        _ICON.format(
+            body=(
+                '<path fill="currentColor" '
+                'd="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Zm5.1 3H9.6a10.7 10.7 0 0 1 0-3h3.5a5.5 5.5 0 0 1 2.1 1.4l-.1.1ZM8 3a9.2 9.2 0 0 0-1.2 3h2.4A9.2 9.2 0 0 0 8 3Zm-2.4 4a9.2 9.2 0 0 0 0 3h2.4a9.2 9.2 0 0 0 0-3H5.6Zm0 4.5a9.2 9.2 0 0 0 1.2 3 9.2 9.2 0 0 0-1.2-3Zm2.4 3a9.2 9.2 0 0 0 1.2-3H6.8a9.2 9.2 0 0 0 1.2 3ZM11.2 11a9.2 9.2 0 0 0 1.2 3 9.2 9.2 0 0 0-1.2-3Zm2.4-1.5h3.5a5.5 5.5 0 0 1-2.1 1.4H13.6a10.7 10.7 0 0 0 0-3h3.5a5.5 5.5 0 0 1 2.1 1.4l-.1.1Z"/>'
+            )
+        )
+    )
+
+
+def IconMenu(children=None) -> HTMLDontEscape:
+    return HTMLDontEscape(
+        _ICON.format(
+            body='<path fill="currentColor" d="M2 3.5h12v2H2v-2Zm0 4h12v2H2v-2Zm0 4h12v2H2v-2Z"/>'
+        )
+    )
+
+
 def IconPlus(children=None) -> HTMLDontEscape:
     return HTMLDontEscape(
         _ICON.format(body='<path fill="currentColor" d="M7 1.5h2v5h5v2h-5v5H7v-5h-5v-2h5v-5Z"/>')

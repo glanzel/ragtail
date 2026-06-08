@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from fastapi import HTTPException
 
-from ..models import Locale, Page
+from ..models import Locale, Menu, MenuItem, Page
 from ..pages import create_page
 from ..routing import get_default_locale, join_page_path, normalize_path
 
@@ -203,3 +203,45 @@ async def create_locale(
 
 def new_translation_key() -> str:
     return str(uuid4())
+
+
+async def get_all_locales() -> list[Locale]:
+    return await Locale.objects.order_by("sort_order", "language_code").all()
+
+
+async def get_menus_for_locale(locale: Locale) -> list[Menu]:
+    return await Menu.objects.filter(locale_id=locale.id).order_by("name").all()
+
+
+async def get_menu_or_404(menu_id: int) -> Menu:
+    menu = await Menu.objects.get_or_none(id=menu_id)
+    if menu is None:
+        raise HTTPException(status_code=404, detail="Menu not found")
+    return menu
+
+
+async def get_menu_items(menu: Menu) -> list[MenuItem]:
+    items = (
+        await MenuItem.objects.filter(menu_id=menu.id)
+        .order_by("sort_order", "label")
+        .all()
+    )
+    page_ids = [item.page_id for item in items if item.page_id is not None]
+    if page_ids:
+        pages = await Page.objects.filter(id__in=page_ids).all()
+        pages_by_id = {page.id: page for page in pages}
+        for item in items:
+            if item.page_id in pages_by_id:
+                item.page = pages_by_id[item.page_id]
+    return items
+
+
+async def get_pages_for_locale(locale: Locale) -> list[Page]:
+    return await Page.objects.filter(locale_id=locale.id).order_by("path", "title").all()
+
+
+async def get_menu_item_or_404(item_id: int) -> MenuItem:
+    item = await MenuItem.objects.get_or_none(id=item_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Menu item not found")
+    return item

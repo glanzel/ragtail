@@ -1,0 +1,16 @@
+from pyjsx import jsx
+
+
+def RichTextField(*, name: str, label: str, value: str = "", field_id: str, children=None):
+  return (
+    <div class="mb-4" data-richtext>
+      <label for={field_id} class="mb-1.5 block font-semibold text-gray-800">
+        {label}
+      </label>
+      <div
+        data-richtext-mount
+        class="min-h-[16rem] rounded border border-gray-200 bg-white px-3 py-2 prose prose-sm max-w-none focus-within:border-wagtail-secondary focus-within:outline focus-within:outline-[3px] focus-within:outline-wagtail-focus"
+      />
+      <textarea id={field_id} name={name} class="hidden">{value}</textarea>
+    </div>
+  )

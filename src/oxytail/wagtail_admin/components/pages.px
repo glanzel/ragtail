@@ -11,6 +11,7 @@ from oxytail.wagtail_admin.classes import (
 )
 from oxytail.wagtail_admin.components.icons import IconFolderOpenInverse, IconPlus
 from oxytail.wagtail_admin.components.layout import AdminLayout
+from oxytail.wagtail_admin.components.richtext import RichTextField
 
 
 def _explorer_link_class(page_id, current_page_id) -> str:
@@ -172,6 +173,38 @@ def _field_block(*, label: str, field_id: str, control):
   )
 
 
+def ExtraFieldControl(field_def, value: str = "", children=None):
+  field_id = "id_" + field_def.name
+  if field_def.widget == "richtext":
+    return (
+      <li>
+        <RichTextField
+          name={field_def.name}
+          label={field_def.label}
+          value={value}
+          field_id={field_id}
+        />
+      </li>
+    )
+  if field_def.widget == "text":
+    return _field_block(
+      label=field_def.label,
+      field_id=field_id,
+      control=(
+        <input id={field_id} name={field_def.name} type="text" class={INPUT} value={value} />
+      ),
+    )
+  return _field_block(
+    label=field_def.label,
+    field_id=field_id,
+    control=(
+      <textarea id={field_id} name={field_def.name} rows="8" class={TEXTAREA}>
+        {value}
+      </textarea>
+    ),
+  )
+
+
 def PageFormPage(
   *,
   username: str,
@@ -184,8 +217,11 @@ def PageFormPage(
   messages=None,
   error: str | None = None,
   values=None,
+  extra_fields=None,
+  include_richtext_script=False,
 ):
   form_values = values or {}
+  extra_field_defs = extra_fields or []
   cancel_href = "/admin/pages/"
   if page and page.id:
     cancel_href = f"/admin/pages/{page.id}/"
@@ -241,15 +277,13 @@ def PageFormPage(
                   />
                 ),
               )}
-              {_field_block(
-                label="Body",
-                field_id="id_body",
-                control=(
-                  <textarea id="id_body" name="body" rows="12" class={TEXTAREA}>
-                    {form_values.get("body", "")}
-                  </textarea>
-                ),
-              )}
+              {[
+                <ExtraFieldControl
+                  field_def={field_def}
+                  value={form_values.get(field_def.name, "")}
+                />
+                for field_def in extra_field_defs
+              ]}
             </ul>
           </fieldset>
           <fieldset>
@@ -322,6 +356,9 @@ def PageFormPage(
             </div>
           </footer>
         </form>
+        {(
+          <script type="module" src="/admin/static/richtext.js"></script>
+        ) if include_richtext_script else None}
       </div>
     </AdminLayout>
   )

@@ -10,7 +10,7 @@ from .menus import (
     get_menu_tree,
 )
 from .models import Locale, Menu, MenuItem, Page, User
-from .wagtail_admin import create_admin_router
+from .wagtail_admin import PageFormField, create_admin_router, register_page_form_field
 from .pages import create_page, create_translation
 from .routing import (
     RouteMatch,
@@ -32,6 +32,7 @@ __all__ = [
     "MenuItem",
     "MenuItemNode",
     "Page",
+    "PageFormField",
     "RouteMatch",
     "User",
     "authenticate_user",
@@ -58,6 +59,7 @@ __all__ = [
     "localized_path",
     "normalize_path",
     "register_cms_models",
+    "register_page_form_field",
     "resolve_page",
     "resolve_route",
     "strip_locale_prefix",

@@ -3,7 +3,9 @@ from pyjsx import jsx
 from oxytail.wagtail_admin.classes import BTN_SECONDARY, SIDEBAR_LINK, SIDEBAR_LINK_ACTIVE
 from oxytail.wagtail_admin.components.icons import (
     IconDocEmptyInverse,
+    IconGlobe,
     IconHome,
+    IconMenu,
     WagtailLogoBird,
 )
 
@@ -39,6 +41,18 @@ def AdminSidebar(active: str = "pages", username: str = "", children=None):
               <a href="/admin/pages/" class={_sidebar_link_class(active, "pages")}>
                 <IconDocEmptyInverse />
                 <span>Pages</span>
+              </a>
+            </li>
+            <li>
+              <a href="/admin/menus/" class={_sidebar_link_class(active, "menus")}>
+                <IconMenu />
+                <span>Menus</span>
+              </a>
+            </li>
+            <li>
+              <a href="/admin/locales/" class={_sidebar_link_class(active, "locales")}>
+                <IconGlobe />
+                <span>Locales</span>
               </a>
             </li>
           </ul>

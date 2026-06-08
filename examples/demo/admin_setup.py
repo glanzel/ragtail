@@ -1,0 +1,11 @@
+"""Register demo-only admin extensions (TipTap rich text on Page.body)."""
+
+from oxytail.wagtail_admin.registry import PageFormField, register_page_form_field
+
+register_page_form_field(
+    PageFormField(
+        name="body",
+        label="Content",
+        widget="richtext",
+    )
+)
