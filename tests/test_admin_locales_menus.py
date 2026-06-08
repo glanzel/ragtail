@@ -1,0 +1,100 @@
+from pathlib import Path
+
+import pytest
+import pytest_asyncio
+from httpx import ASGITransport, AsyncClient
+from oxyde import create_tables, db
+
+from oxytail.auth import ensure_superuser
+from oxytail.fastapi import create_app
+from oxytail.models import Locale, Menu, Page
+from oxytail.pages import create_page
+from oxytail.wagtail_admin.services import ensure_root_page
+
+
+@pytest_asyncio.fixture
+async def client(tmp_path: Path):
+    database_url = f"sqlite:///{tmp_path / 'admin-extra.db'}"
+    await db.init(default=database_url)
+    try:
+        connection = await db.get_connection("default")
+        await create_tables(connection)
+        await ensure_superuser(username="admin", password="admin")
+        en = await Locale.objects.create(
+            language_code="en",
+            display_name="English",
+            is_default=True,
+            is_active=True,
+        )
+        home = await ensure_root_page(en)
+        await create_page(title="About", slug="about", parent=home, locale=en, live=True)
+
+        app = create_app(
+            database_url=database_url,
+            mount_wagtail_admin=True,
+            secret_key="test-secret",
+        )
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as http_client:
+            yield http_client
+    finally:
+        await db.close()
+
+
+async def _login(client: AsyncClient) -> None:
+    response = await client.post(
+        "/admin/login/",
+        data={"username": "admin", "password": "admin", "next": "/admin/"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+
+@pytest.mark.asyncio
+async def test_add_locale_creates_second_language(client: AsyncClient) -> None:
+    await _login(client)
+    response = await client.post(
+        "/admin/locales/add/",
+        data={
+            "language_code": "de",
+            "display_name": "Deutsch",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/locales/"
+
+    locales = await Locale.objects.order_by("language_code").all()
+    assert len(locales) == 2
+    assert any(locale.language_code == "de" for locale in locales)
+
+
+@pytest.mark.asyncio
+async def test_create_menu_and_item(client: AsyncClient) -> None:
+    await _login(client)
+    create_menu_response = await client.post(
+        "/admin/menus/add/",
+        data={"name": "Footer", "slug": "footer", "is_active": "1"},
+        follow_redirects=False,
+    )
+    assert create_menu_response.status_code == 303
+    menu = await Menu.objects.get_or_none(slug="footer")
+    assert menu is not None
+
+    about_page = await Page.objects.filter(slug="about").first()
+    assert about_page is not None
+
+    add_item = await client.post(
+        f"/admin/menus/{menu.id}/items/add/",
+        data={
+            "label": "About us",
+            "page_id": str(about_page.id),
+            "sort_order": "0",
+        },
+        follow_redirects=False,
+    )
+    assert add_item.status_code == 303
+
+    listing = await client.get(f"/admin/menus/{menu.id}/")
+    assert listing.status_code == 200
+    assert "About us" in listing.text

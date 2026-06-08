@@ -7,3 +7,33 @@
     @apply font-sans text-gray-600 antialiased;
   }
 }
+
+@layer components {
+  .ProseMirror {
+    @apply min-h-[16rem] outline-none;
+  }
+
+  .ProseMirror > * + * {
+    @apply mt-3;
+  }
+
+  .ProseMirror ul {
+    @apply list-disc pl-6;
+  }
+
+  .ProseMirror ol {
+    @apply list-decimal pl-6;
+  }
+
+  .ProseMirror h1 {
+    @apply text-2xl font-bold;
+  }
+
+  .ProseMirror h2 {
+    @apply text-xl font-semibold;
+  }
+
+  .ProseMirror a {
+    @apply text-wagtail-secondary underline;
+  }
+}

@@ -3,6 +3,8 @@
 Runnable demo site with:
 
 - **Wagtail-style admin** at `/admin/` (login: `admin` / `admin`)
+- **Locales & menus** management in the admin sidebar
+- **TipTap rich text** for page content (demo-only `body` field)
 - **PyJSX HTML rendering** for the public site
 - SQLite database at `oxytail.db` (created on first run)
 
