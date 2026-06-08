@@ -37,11 +37,35 @@
     @apply text-wagtail-secondary underline;
   }
 
+  .richtext-toolbar {
+    @apply flex flex-wrap items-center gap-2 border-b border-gray-200 bg-gray-50 px-2 py-2;
+  }
+
+  .richtext-toolbar-group {
+    @apply flex items-center gap-1;
+  }
+
+  .richtext-toolbar-separator {
+    @apply h-7 w-px shrink-0 bg-gray-300;
+  }
+
   .richtext-toolbar-btn {
-    @apply rounded border border-gray-200 bg-white px-2.5 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-100;
+    @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-700 shadow-sm transition hover:border-gray-400 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  .richtext-toolbar-btn svg {
+    @apply h-4 w-4;
+  }
+
+  .richtext-toolbar-btn--text {
+    @apply w-auto min-w-[2.25rem] px-2 text-xs font-bold tracking-wide;
   }
 
   .richtext-toolbar-btn.is-active {
-    @apply border-wagtail-secondary bg-wagtail-secondary text-white;
+    @apply border-wagtail-secondary bg-wagtail-secondary text-white hover:border-wagtail-secondary hover:bg-wagtail-secondary;
+  }
+
+  .ProseMirror blockquote {
+    @apply border-l-4 border-gray-300 pl-4 italic text-gray-700;
   }
 }
