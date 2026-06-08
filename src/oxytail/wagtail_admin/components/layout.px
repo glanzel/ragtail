@@ -136,7 +136,9 @@ def AdminLayout(
           <AdminSidebar active={active} username={username} />
           <main class="min-w-0 flex-1" id="main">
             <div class="min-h-screen">
-              <Messages messages={messages} />
+              {(
+                <Messages messages={messages} />
+              ) if messages else None}
               {(
                 <header class="flex min-h-slim-header items-center border-b border-gray-200 bg-gray-50 px-5">
                   <Breadcrumbs crumbs={crumbs} />

@@ -10,7 +10,7 @@ from oxytail.wagtail_admin.classes import (
     TEXTAREA,
 )
 from oxytail.wagtail_admin.components.icons import IconFolderOpenInverse, IconPlus
-from oxytail.wagtail_admin.components.layout import AdminLayout
+from oxytail.wagtail_admin.components.layout import AdminLayout, Breadcrumbs
 from oxytail.wagtail_admin.components.richtext import RichTextField
 
 
@@ -150,7 +150,7 @@ def PageListingPage(
       title={parent_page.title}
       active="pages"
       username={username}
-      breadcrumbs={breadcrumbs}
+      breadcrumbs={[]}
       messages={messages}
       body_class="page-explorer"
     >
@@ -161,8 +161,11 @@ def PageListingPage(
           parent_title="Pages"
         />
         <section class="min-w-0 flex-1">
-          <header class="flex min-h-slim-header items-center justify-between gap-4 border-b border-gray-200 bg-gray-50 px-5">
-            <h1 class="text-2xl font-semibold text-gray-900">{parent_page.title}</h1>
+          <header class="flex min-h-slim-header flex-col justify-center gap-1 border-b border-gray-200 bg-gray-50 px-5 py-3 md:flex-row md:items-center md:justify-between md:gap-4 md:py-0">
+            <div class="min-w-0">
+              <Breadcrumbs crumbs={breadcrumbs} />
+              <h1 class="text-2xl font-semibold text-gray-900">{parent_page.title}</h1>
+            </div>
             <a href={f"/admin/pages/add/?parent={parent_id}"} class={BTN}>
               <IconPlus />
               Add child page
@@ -271,11 +274,12 @@ def PageFormPage(
       title={title}
       active="pages"
       username={username}
-      breadcrumbs={breadcrumbs}
+      breadcrumbs={[]}
       messages={messages}
       body_class="page-editor"
     >
-      <header class="flex min-h-slim-header items-center border-b border-gray-200 bg-gray-50 px-5">
+      <header class="flex min-h-slim-header flex-col justify-center gap-1 border-b border-gray-200 bg-gray-50 px-5 py-3">
+        <Breadcrumbs crumbs={breadcrumbs} />
         <h1 class="text-2xl font-semibold text-gray-900">{title}</h1>
       </header>
       <div class="px-6 py-5">
@@ -408,16 +412,19 @@ def DeletePagePage(*, username: str, page, breadcrumbs, error: str | None = None
       title="Delete page"
       active="pages"
       username={username}
-      breadcrumbs={breadcrumbs}
+      breadcrumbs={[]}
       body_class="delete-confirm"
     >
+      <header class="flex min-h-slim-header flex-col justify-center gap-1 border-b border-gray-200 bg-gray-50 px-5 py-3">
+        <Breadcrumbs crumbs={breadcrumbs} />
+        <h1 class="text-2xl font-semibold text-gray-900">Delete page</h1>
+      </header>
       <div class="px-6 py-5">
         {(
           <div class="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700" role="status">
             {error}
           </div>
         ) if error else None}
-        <h1 class="mb-4 text-2xl font-semibold text-gray-900">Delete page</h1>
         <p class="mb-6 text-gray-600">
           Are you sure you want to delete <strong class="text-gray-900">{page.title}</strong>?
         </p>
