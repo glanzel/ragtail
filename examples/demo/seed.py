@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from oxyde import create_tables, db
+from oxyde import db
 
 from oxytail.auth import ensure_superuser
+from oxytail.db import ensure_tables
 from oxytail.menus import create_menu, create_menu_item
 from oxytail.models import Locale, Page, User
 from oxytail.pages import create_page
@@ -15,7 +16,7 @@ async def seed_if_empty(
     admin_password: str = "admin",
 ) -> None:
     database = await db.get_connection("default")
-    await create_tables(database)
+    await ensure_tables(database)
 
     if await User.objects.first() is not None:
         return
