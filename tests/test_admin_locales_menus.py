@@ -70,6 +70,43 @@ async def test_add_locale_creates_second_language(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_edit_locale_changes_default(client: AsyncClient) -> None:
+    await _login(client)
+    de = await Locale.objects.get_or_none(language_code="de")
+    if de is None:
+        await client.post(
+            "/admin/locales/add/",
+            data={"language_code": "de", "display_name": "Deutsch"},
+            cookies=client.cookies,
+            follow_redirects=False,
+        )
+        de = await Locale.objects.get_or_none(language_code="de")
+    assert de is not None
+
+    edit = await client.get(f"/admin/locales/{de.id}/edit/", cookies=client.cookies)
+    assert edit.status_code == 200
+    assert "Default locale" in edit.text
+
+    save = await client.post(
+        f"/admin/locales/{de.id}/edit/",
+        data={
+            "display_name": "Deutsch",
+            "is_default": "1",
+            "is_active": "1",
+        },
+        cookies=client.cookies,
+        follow_redirects=False,
+    )
+    assert save.status_code == 303
+
+    de = await Locale.objects.get_or_none(id=de.id)
+    en = await Locale.objects.get_or_none(language_code="en")
+    assert de is not None and en is not None
+    assert de.is_default is True
+    assert en.is_default is False
+
+
+@pytest.mark.asyncio
 async def test_create_menu_and_item(client: AsyncClient) -> None:
     await _login(client)
     create_menu_response = await client.post(
