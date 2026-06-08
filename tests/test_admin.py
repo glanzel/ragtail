@@ -76,3 +76,45 @@ async def test_admin_login_and_page_explorer(client: AsyncClient) -> None:
     assert listing.status_code == 200
     assert "Add child page" in listing.text
     assert "About" in listing.text
+
+
+@pytest.mark.asyncio
+async def test_admin_page_add_route(client: AsyncClient) -> None:
+    login = await client.post(
+        "/admin/login/",
+        data={"username": "admin", "password": "admin", "next": "/admin/pages/"},
+        follow_redirects=False,
+    )
+    pages = await client.get("/admin/pages/", cookies=login.cookies, follow_redirects=False)
+    root_id = pages.headers["location"].rstrip("/").rsplit("/", 1)[-1]
+
+    add_page = await client.get(
+        f"/admin/pages/add/?parent={root_id}",
+        cookies=login.cookies,
+    )
+    assert add_page.status_code == 200
+    assert "Add child page" in add_page.text
+
+
+@pytest.mark.asyncio
+async def test_admin_page_explorer_shows_all_locales(client: AsyncClient) -> None:
+    login = await client.post(
+        "/admin/login/",
+        data={"username": "admin", "password": "admin", "next": "/admin/pages/"},
+        follow_redirects=False,
+    )
+    await client.post(
+        "/admin/locales/add/",
+        data={"language_code": "de", "display_name": "Deutsch"},
+        cookies=login.cookies,
+        follow_redirects=False,
+    )
+
+    pages = await client.get("/admin/pages/", cookies=login.cookies, follow_redirects=False)
+    root_id = pages.headers["location"].rstrip("/").rsplit("/", 1)[-1]
+
+    listing = await client.get(f"/admin/pages/{root_id}/", cookies=login.cookies)
+    assert listing.status_code == 200
+    assert "English" in listing.text
+    assert "Deutsch" in listing.text
+    assert "About" in listing.text

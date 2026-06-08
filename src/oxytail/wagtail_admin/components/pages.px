@@ -47,7 +47,37 @@ def PageTreeItem(node, *, current_page_id: int | None = None, depth: int = 0, ch
   )
 
 
-def PageExplorer(tree, *, current_page_id: int | None = None, parent_title: str = "Root", children=None):
+def LocaleTreeSectionBlock(section, *, current_page_id: int | None = None, children=None):
+  locale = section.locale
+  roots = section.roots
+  return (
+    <div class="border-b border-white/10 last:border-b-0">
+      <div class="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white/50">
+        {locale.display_name}
+        {(
+          <span class="ml-1 normal-case text-white/40">({locale.language_code})</span>
+        ) if locale.language_code else None}
+      </div>
+      <ul>
+        {(
+          [<PageTreeItem node={node} current_page_id={current_page_id} /> for node in roots]
+          if roots
+          else [
+            <li class="px-4 py-2 text-sm italic text-white/40">No pages yet</li>
+          ]
+        )}
+      </ul>
+    </div>
+  )
+
+
+def PageExplorer(
+  locale_sections,
+  *,
+  current_page_id: int | None = None,
+  parent_title: str = "Pages",
+  children=None,
+):
   return (
     <aside
       class="w-full shrink-0 border-r border-white/10 bg-wagtail-primary-dark text-white md:w-explorer"
@@ -62,9 +92,13 @@ def PageExplorer(tree, *, current_page_id: int | None = None, parent_title: str 
         </a>
       </div>
       <div class="max-h-[calc(100vh-3rem)] overflow-y-auto py-1">
-        <ul>
-          {[<PageTreeItem node={node} current_page_id={current_page_id} /> for node in tree]}
-        </ul>
+        {[
+          <LocaleTreeSectionBlock
+            section={section}
+            current_page_id={current_page_id}
+          />
+          for section in locale_sections
+        ]}
       </div>
     </aside>
   )
@@ -106,7 +140,7 @@ def PageListingPage(
   username: str,
   parent_page,
   children,
-  tree,
+  locale_sections,
   breadcrumbs,
   messages=None,
 ):
@@ -121,7 +155,11 @@ def PageListingPage(
       body_class="page-explorer"
     >
       <div class="flex min-h-[calc(100vh-3.125rem)] flex-col md:flex-row">
-        <PageExplorer tree={tree} current_page_id={parent_id} parent_title={parent_page.title} />
+        <PageExplorer
+          locale_sections={locale_sections}
+          current_page_id={parent_id}
+          parent_title="Pages"
+        />
         <section class="min-w-0 flex-1">
           <header class="flex min-h-slim-header items-center justify-between gap-4 border-b border-gray-200 bg-gray-50 px-5">
             <h1 class="text-2xl font-semibold text-gray-900">{parent_page.title}</h1>
