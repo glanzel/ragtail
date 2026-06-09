@@ -3,11 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import uuid4
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 
 from ..models import Locale, Menu, MenuItem, Page
 from ..pages import create_page
-from ..routing import get_default_locale, join_page_path, normalize_path
+from ..routing import get_default_locale, get_translation, join_page_path, normalize_path
+
+ADMIN_LOCALE_SESSION_KEY = "oxytail_admin_locale"
 
 
 @dataclass(frozen=True)
@@ -17,22 +19,99 @@ class PageTreeNode:
 
 
 @dataclass(frozen=True)
-class LocaleTreeSection:
-    locale: Locale
-    roots: list[PageTreeNode]
-
-
-@dataclass(frozen=True)
 class Breadcrumb:
     title: str
     url: str | None
 
 
-async def get_admin_locale() -> Locale:
+async def get_admin_locale(request: Request | None = None) -> Locale:
+    if request is not None:
+        language_code = request.session.get(ADMIN_LOCALE_SESSION_KEY)
+        if language_code:
+            locale = await Locale.objects.get_or_none(
+                language_code=language_code,
+                is_active=True,
+            )
+            if locale is not None:
+                return locale
     locale = await get_default_locale()
     if locale is None:
         raise HTTPException(status_code=500, detail="No default locale configured")
     return locale
+
+
+def set_admin_locale(request: Request, locale: Locale) -> None:
+    request.session[ADMIN_LOCALE_SESSION_KEY] = locale.language_code
+
+
+async def resolve_page_for_admin_locale(page: Page, admin_locale: Locale) -> Page:
+    if page.locale_id == admin_locale.id:
+        return page
+    if page.translation_key is None:
+        return page
+    translated = await Page.objects.filter(
+        translation_key=page.translation_key,
+        locale_id=admin_locale.id,
+    ).first()
+    return translated or page
+
+
+async def resolve_translated_parent(source_page: Page, target_locale: Locale) -> Page:
+    if source_page.parent_id is None:
+        return await ensure_root_page(target_locale)
+    parent = await Page.objects.get_or_none(id=source_page.parent_id)
+    if parent is None:
+        return await ensure_root_page(target_locale)
+    translated_parent = await get_translation(parent, target_locale.language_code)
+    if translated_parent is not None:
+        return translated_parent
+    return await ensure_root_page(target_locale)
+
+
+async def get_locales_missing_translation(page: Page) -> list[Locale]:
+    if page.translation_key is None:
+        return []
+    locales = await get_all_locales()
+    missing: list[Locale] = []
+    for locale in locales:
+        if not locale.is_active or locale.id == page.locale_id:
+            continue
+        exists = await Page.objects.filter(
+            translation_key=page.translation_key,
+            locale_id=locale.id,
+        ).first()
+        if exists is None:
+            missing.append(locale)
+    return missing
+
+
+async def get_missing_translations_by_page(pages: list[Page]) -> dict[int, list[Locale]]:
+    if not pages:
+        return {}
+    translation_keys = {page.translation_key for page in pages if page.translation_key}
+    if not translation_keys:
+        return {page.id: [] for page in pages if page.id is not None}
+
+    locales = [locale for locale in await get_all_locales() if locale.is_active]
+    siblings = await Page.objects.filter(translation_key__in=list(translation_keys)).all()
+    by_key_and_locale: dict[tuple[str, int], Page] = {}
+    for sibling in siblings:
+        if sibling.translation_key is not None and sibling.locale_id is not None:
+            by_key_and_locale[(sibling.translation_key, sibling.locale_id)] = sibling
+
+    result: dict[int, list[Locale]] = {}
+    for page in pages:
+        if page.id is None or page.translation_key is None:
+            result[page.id] = []
+            continue
+        missing = [
+            locale
+            for locale in locales
+            if locale.id != page.locale_id
+            and (page.translation_key, locale.id) not in by_key_and_locale
+        ]
+        result[page.id] = missing
+    return result
 
 
 async def get_root_pages(locale: Locale) -> list[Page]:
@@ -68,7 +147,9 @@ async def get_page_locale(page: Page) -> Locale:
             return locale
     if page.locale is not None:
         return page.locale
-    locale = await get_admin_locale()
+    locale = await get_default_locale()
+    if locale is None:
+        raise HTTPException(status_code=500, detail="No default locale configured")
     return locale
 
 
@@ -97,18 +178,6 @@ async def build_page_tree(locale: Locale) -> list[PageTreeNode]:
             roots.append(node)
 
     return roots
-
-
-async def build_all_locale_trees() -> list[LocaleTreeSection]:
-    locales = await get_all_locales()
-    sections: list[LocaleTreeSection] = []
-    for locale in locales:
-        if not locale.is_active:
-            continue
-        sections.append(
-            LocaleTreeSection(locale=locale, roots=await build_page_tree(locale))
-        )
-    return sections
 
 
 async def build_breadcrumbs(page: Page) -> list[Breadcrumb]:

@@ -66,6 +66,7 @@ class RouteMatch:
     locale: Locale
     path: str
     public_path: str
+    is_fallback: bool = False
 
 
 async def get_default_locale() -> Locale | None:
@@ -127,11 +128,34 @@ async def resolve_route(
         query = query.filter(live=True)
 
     page = await query.first()
-    if page is None:
+    if page is not None:
+        return RouteMatch(
+            page=page,
+            locale=locale,
+            path=local_path,
+            public_path=localized_path(
+                local_path,
+                locale.language_code,
+                default_language_code=default_locale.language_code,
+                prefix_default_language=prefix_default_language,
+            ),
+        )
+
+    if locale.id == default_locale.id:
+        return None
+
+    default_query = Page.objects.filter(path=local_path, locale_id=default_locale.id)
+    if not include_unpublished:
+        default_query = default_query.filter(live=True)
+    default_page = await default_query.first()
+    if default_page is None:
+        return None
+
+    if not include_unpublished and not default_page.live:
         return None
 
     return RouteMatch(
-        page=page,
+        page=default_page,
         locale=locale,
         path=local_path,
         public_path=localized_path(
@@ -140,6 +164,7 @@ async def resolve_route(
             default_language_code=default_locale.language_code,
             prefix_default_language=prefix_default_language,
         ),
+        is_fallback=True,
     )
 
 

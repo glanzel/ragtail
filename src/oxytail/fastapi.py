@@ -38,6 +38,7 @@ def default_page_payload(route: RouteMatch) -> dict[str, Any]:
         "body": page.body,
         "seo_title": page.seo_title,
         "search_description": page.search_description,
+        "is_fallback": route.is_fallback,
     }
 
 
