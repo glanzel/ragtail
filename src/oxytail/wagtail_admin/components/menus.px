@@ -2,6 +2,7 @@ from pyjsx import jsx
 
 from oxytail.wagtail_admin.classes import BTN, BTN_DANGER, BTN_SECONDARY, BTN_SM, INPUT, LABEL, TEXTAREA
 from oxytail.wagtail_admin.components.layout import AdminLayout
+from oxytail.wagtail_admin.components.locale_switcher import LocaleSwitcher
 
 
 def MenuRow(menu, children=None):
@@ -33,13 +34,17 @@ def MenuRow(menu, children=None):
   )
 
 
-def MenuListPage(*, username: str, menus, locale_name: str, children=None):
+def MenuListPage(*, username: str, menus, locales, current_locale, return_url: str, children=None):
   return (
     <AdminLayout title="Menus" active="menus" username={username} breadcrumbs={[]}>
-      <header class="flex min-h-slim-header items-center justify-between gap-4 border-b border-gray-200 bg-gray-50 px-5">
+      <header class="flex min-h-slim-header flex-wrap items-center justify-between gap-4 border-b border-gray-200 bg-gray-50 px-5 py-3">
         <div>
           <h1 class="text-2xl font-semibold text-gray-900">Menus</h1>
-          <p class="text-sm text-gray-500">Locale: {locale_name}</p>
+          <LocaleSwitcher
+            locales={locales}
+            current_locale={current_locale}
+            return_url={return_url}
+          />
         </div>
         <a href="/admin/menus/add/" class={BTN}>
           Add menu

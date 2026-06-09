@@ -11,6 +11,7 @@ from oxytail.wagtail_admin.classes import (
 )
 from oxytail.wagtail_admin.components.icons import IconFolderOpenInverse, IconPlus
 from oxytail.wagtail_admin.components.layout import AdminLayout, Breadcrumbs
+from oxytail.wagtail_admin.components.locale_switcher import LocaleSwitcher
 from oxytail.wagtail_admin.components.richtext import RichTextField
 
 
@@ -47,33 +48,38 @@ def PageTreeItem(node, *, current_page_id: int | None = None, depth: int = 0, ch
   )
 
 
-def LocaleTreeSectionBlock(section, *, current_page_id: int | None = None, children=None):
-  locale = section.locale
-  roots = section.roots
+def ExplorerLocaleSwitcher(locales, current_locale, current_page_id, children=None):
   return (
-    <div class="border-b border-white/10 last:border-b-0">
-      <div class="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white/50">
-        {locale.display_name}
-        {(
-          <span class="ml-1 normal-case text-white/40">({locale.language_code})</span>
-        ) if locale.language_code else None}
-      </div>
-      <ul>
-        {(
-          [<PageTreeItem node={node} current_page_id={current_page_id} /> for node in roots]
-          if roots
-          else [
-            <li class="px-4 py-2 text-sm italic text-white/40">No pages yet</li>
-          ]
-        )}
-      </ul>
-    </div>
+    <form method="post" action="/admin/set-locale/" class="px-4 py-2">
+      <label for="id_explorer_locale" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-white/50">
+        Language
+      </label>
+      <select
+        id="id_explorer_locale"
+        name="language_code"
+        class="w-full rounded border border-white/20 bg-white/10 px-2 py-1.5 text-sm text-white"
+        onchange="this.form.submit()"
+      >
+        {[
+          <option
+            value={locale.language_code}
+            selected={locale.id == current_locale.id}
+          >
+            {locale.display_name}
+          </option>
+          for locale in locales
+        ]}
+      </select>
+      <input type="hidden" name="next" value={f"/admin/pages/{current_page_id}/"} />
+    </form>
   )
 
 
 def PageExplorer(
-  locale_sections,
+  tree,
   *,
+  locales,
+  current_locale,
   current_page_id: int | None = None,
   parent_title: str = "Pages",
   children=None,
@@ -91,14 +97,21 @@ def PageExplorer(
           </span>
         </a>
       </div>
+      <ExplorerLocaleSwitcher
+        locales={locales}
+        current_locale={current_locale}
+        current_page_id={current_page_id}
+      />
       <div class="min-h-0 flex-1 overflow-y-auto py-1">
-        {[
-          <LocaleTreeSectionBlock
-            section={section}
-            current_page_id={current_page_id}
-          />
-          for section in locale_sections
-        ]}
+        <ul>
+          {(
+            [<PageTreeItem node={node} current_page_id={current_page_id} /> for node in tree]
+            if tree
+            else [
+              <li class="px-4 py-2 text-sm italic text-white/40">No pages yet</li>
+            ]
+          )}
+        </ul>
       </div>
     </aside>
   )
@@ -110,7 +123,19 @@ def _status_class(live: bool) -> str:
   return "inline-block rounded px-2 py-0.5 text-xs font-semibold bg-gray-100 text-gray-500"
 
 
-def ChildRow(child, children=None):
+def TranslateLink(child, locale, children=None):
+  return (
+    <a
+      href={f"/admin/pages/{child.id}/translate/?language_code={locale.language_code}"}
+      class="text-xs font-semibold text-wagtail-secondary hover:underline"
+    >
+      Translate {locale.language_code}
+    </a>
+  )
+
+
+def ChildRow(child, missing_locales=None, children=None):
+  locales_to_translate = missing_locales or []
   return (
     <tr class="border-b border-gray-200">
       <td class="px-5 py-3.5">
@@ -121,6 +146,14 @@ def ChildRow(child, children=None):
           <IconFolderOpenInverse />
           {child.title}
         </a>
+        {(
+          <div class="mt-1 flex flex-wrap gap-2">
+            {[
+              <TranslateLink child={child} locale={locale} />
+              for locale in locales_to_translate
+            ]}
+          </div>
+        ) if locales_to_translate else None}
       </td>
       <td class="px-5 py-3.5">
         <span class={_status_class(child.live)}>{"Live" if child.live else "Draft"}</span>
@@ -140,11 +173,16 @@ def PageListingPage(
   username: str,
   parent_page,
   children,
-  locale_sections,
+  tree,
+  locales,
+  current_locale,
+  missing_by_child,
   breadcrumbs,
+  parent_missing_locales=None,
   messages=None,
 ):
   parent_id = parent_page.id
+  missing_for_parent = parent_missing_locales or []
   return (
     <AdminLayout
       title={parent_page.title}
@@ -156,7 +194,9 @@ def PageListingPage(
     >
       <div class="flex min-h-screen flex-col md:flex-row">
         <PageExplorer
-          locale_sections={locale_sections}
+          tree={tree}
+          locales={locales}
+          current_locale={current_locale}
           current_page_id={parent_id}
           parent_title="Pages"
         />
@@ -166,10 +206,20 @@ def PageListingPage(
               <Breadcrumbs crumbs={breadcrumbs} />
               <h1 class="text-2xl font-semibold text-gray-900">{parent_page.title}</h1>
             </div>
-            <a href={f"/admin/pages/add/?parent={parent_id}"} class={BTN}>
-              <IconPlus />
-              Add child page
-            </a>
+            <div class="flex flex-wrap items-center gap-3">
+              {(
+                <div class="flex flex-wrap gap-2">
+                  {[
+                    <TranslateLink child={parent_page} locale={locale} />
+                    for locale in missing_for_parent
+                  ]}
+                </div>
+              ) if missing_for_parent else None}
+              <a href={f"/admin/pages/add/?parent={parent_id}"} class={BTN}>
+                <IconPlus />
+                Add child page
+              </a>
+            </div>
           </header>
           <table class="w-full border-collapse text-left">
             <thead>
@@ -182,7 +232,13 @@ def PageListingPage(
             </thead>
             <tbody>
               {(
-                [<ChildRow child={child} /> for child in children]
+                [
+                  <ChildRow
+                    child={child}
+                    missing_locales={missing_by_child.get(child.id, [])}
+                  />
+                  for child in children
+                ]
                 if children
                 else [
                   <tr>
@@ -401,6 +457,74 @@ def PageFormPage(
         {(
           <script type="module" src="/admin/static/richtext.js"></script>
         ) if include_richtext_script else None}
+      </div>
+    </AdminLayout>
+  )
+
+
+def TranslatePageForm(
+  *,
+  username: str,
+  source_page,
+  target_locale,
+  breadcrumbs,
+  action_url: str,
+  error: str | None = None,
+  values=None,
+  children=None,
+):
+  form_values = values or {}
+  return (
+    <AdminLayout
+      title="Translate page"
+      active="pages"
+      username={username}
+      breadcrumbs={[]}
+      body_class="page-editor"
+    >
+      <header class="flex min-h-slim-header flex-col justify-center gap-1 border-b border-gray-200 bg-gray-50 px-5 py-3">
+        <Breadcrumbs crumbs={breadcrumbs} />
+        <h1 class="text-2xl font-semibold text-gray-900">
+          Translate “{source_page.title}” into {target_locale.display_name}
+        </h1>
+      </header>
+      <div class="px-6 py-5">
+        {(
+          <div class="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700" role="status">
+            {error}
+          </div>
+        ) if error else None}
+        <form method="post" action={action_url} class="max-w-xl space-y-4">
+          <div>
+            <label for="id_title" class={LABEL}>Title</label>
+            <input
+              id="id_title"
+              name="title"
+              type="text"
+              class={INPUT}
+              required
+              value={form_values.get("title", "")}
+            />
+          </div>
+          <div>
+            <label for="id_slug" class={LABEL}>Slug</label>
+            <input
+              id="id_slug"
+              name="slug"
+              type="text"
+              class={INPUT}
+              value={form_values.get("slug", "")}
+            />
+          </div>
+          <label class="inline-flex items-center gap-2 font-semibold">
+            <input type="checkbox" name="live" value="1" checked={form_values.get("live")} />
+            Live
+          </label>
+          <div class="flex gap-3 pt-2">
+            <button type="submit" class={BTN}>Create translation</button>
+            <a href={f"/admin/pages/{source_page.id}/"} class={BTN_SECONDARY}>Cancel</a>
+          </div>
+        </form>
       </div>
     </AdminLayout>
   )

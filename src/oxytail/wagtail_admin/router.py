@@ -11,32 +11,44 @@ from fastapi.responses import RedirectResponse
 
 from ..auth import authenticate_user
 from ..menus import create_menu, create_menu_item
-from ..models import Page, User
+from ..models import Locale, Page, User
+from ..pages import create_translation
+from ..routing import get_locale
 from .components.dashboard import DashboardPage
 from .components.locales import LocaleAddPage, LocaleEditPage, LocaleListPage
 from .components.login import LoginPage
 from .components.menus import MenuAddPage, MenuDetailPage, MenuListPage
-from .components.pages import DeletePagePage, PageFormPage, PageListingPage
+from .components.pages import (
+    DeletePagePage,
+    PageFormPage,
+    PageListingPage,
+    TranslatePageForm,
+)
 from .registry import get_page_form_fields, uses_richtext
 from .render import html_response
 from .services import (
-    build_all_locale_trees,
     build_breadcrumbs,
+    build_page_tree,
     create_child_page,
     create_locale,
     delete_page,
     ensure_root_page,
     get_admin_locale,
     get_all_locales,
-    get_locale_or_404,
     get_child_pages,
+    get_locale_or_404,
+    get_locales_missing_translation,
     get_menu_item_or_404,
     get_menu_items,
     get_menu_or_404,
     get_menus_for_locale,
+    get_missing_translations_by_page,
     get_page_locale,
     get_page_or_404,
     get_pages_for_locale,
+    resolve_page_for_admin_locale,
+    resolve_translated_parent,
+    set_admin_locale,
     update_locale,
     update_page,
 )
@@ -134,9 +146,21 @@ def create_admin_router() -> APIRouter:
         request.session.clear()
         return RedirectResponse("/admin/login/", status_code=status.HTTP_303_SEE_OTHER)
 
+    @router.post("/set-locale/")
+    async def set_locale_post(
+        request: Request,
+        user: Annotated[User, Depends(require_user)],
+        language_code: Annotated[str, Form()],
+        next: Annotated[str, Form()] = "/admin/",
+    ):
+        locale = await get_locale(language_code.strip().lower())
+        if locale is not None and locale.is_active:
+            set_admin_locale(request, locale)
+        return RedirectResponse(next or "/admin/", status_code=status.HTTP_303_SEE_OTHER)
+
     @router.get("/")
-    async def dashboard(user: Annotated[User, Depends(require_user)]):
-        locale = await get_admin_locale()
+    async def dashboard(request: Request, user: Annotated[User, Depends(require_user)]):
+        locale = await get_admin_locale(request)
         page_count = len(await Page.objects.filter(locale_id=locale.id).all())
         return html_response(
             DashboardPage,
@@ -235,14 +259,17 @@ def create_admin_router() -> APIRouter:
         return RedirectResponse("/admin/locales/", status_code=status.HTTP_303_SEE_OTHER)
 
     @router.get("/menus/")
-    async def menus_list(user: Annotated[User, Depends(require_user)]):
-        locale = await get_admin_locale()
+    async def menus_list(request: Request, user: Annotated[User, Depends(require_user)]):
+        locale = await get_admin_locale(request)
         menus = await get_menus_for_locale(locale)
+        locales = await get_all_locales()
         return html_response(
             MenuListPage,
             username=user.username,
             menus=menus,
-            locale_name=locale.display_name,
+            locales=locales,
+            current_locale=locale,
+            return_url="/admin/menus/",
         )
 
     @router.get("/menus/add/")
@@ -255,12 +282,13 @@ def create_admin_router() -> APIRouter:
 
     @router.post("/menus/add/")
     async def menus_add_post(
+        request: Request,
         user: Annotated[User, Depends(require_user)],
         name: Annotated[str, Form()],
         slug: Annotated[str, Form()],
         is_active: Annotated[str | None, Form()] = None,
     ):
-        locale = await get_admin_locale()
+        locale = await get_admin_locale(request)
         values = {"name": name, "slug": slug, "is_active": is_active == "1"}
         if not name.strip() or not slug.strip():
             return html_response(
@@ -279,10 +307,10 @@ def create_admin_router() -> APIRouter:
 
     @router.get("/menus/{menu_id}/")
     async def menus_detail(menu_id: int, user: Annotated[User, Depends(require_user)]):
-        locale = await get_admin_locale()
         menu = await get_menu_or_404(menu_id)
+        menu_locale = await get_locale_or_404(menu.locale_id) if menu.locale_id else await get_admin_locale()
         items = await get_menu_items(menu)
-        pages = await get_pages_for_locale(locale)
+        pages = await get_pages_for_locale(menu_locale)
         return html_response(
             MenuDetailPage,
             username=user.username,
@@ -302,7 +330,7 @@ def create_admin_router() -> APIRouter:
         open_in_new_tab: Annotated[str | None, Form()] = None,
     ):
         menu = await get_menu_or_404(menu_id)
-        locale = await get_admin_locale()
+        menu_locale = await get_locale_or_404(menu.locale_id) if menu.locale_id else await get_admin_locale()
         values = {
             "label": label,
             "page_id": page_id,
@@ -316,7 +344,7 @@ def create_admin_router() -> APIRouter:
                 username=user.username,
                 menu=menu,
                 items=await get_menu_items(menu),
-                pages=await get_pages_for_locale(locale),
+                pages=await get_pages_for_locale(menu_locale),
                 values=values,
                 error="Label is required.",
             )
@@ -329,7 +357,7 @@ def create_admin_router() -> APIRouter:
                 username=user.username,
                 menu=menu,
                 items=await get_menu_items(menu),
-                pages=await get_pages_for_locale(locale),
+                pages=await get_pages_for_locale(menu_locale),
                 values=values,
                 error="Choose a page or provide an external URL.",
             )
@@ -351,17 +379,18 @@ def create_admin_router() -> APIRouter:
         return RedirectResponse(f"/admin/menus/{menu_id}/", status_code=status.HTTP_303_SEE_OTHER)
 
     @router.get("/pages/")
-    async def pages_root(user: Annotated[User, Depends(require_user)]):
-        locale = await get_admin_locale()
+    async def pages_root(request: Request, user: Annotated[User, Depends(require_user)]):
+        locale = await get_admin_locale(request)
         root = await ensure_root_page(locale)
         return RedirectResponse(f"/admin/pages/{root.id}/", status_code=status.HTTP_303_SEE_OTHER)
 
     @router.get("/pages/add/")
     async def page_add_get(
+        request: Request,
         user: Annotated[User, Depends(require_user)],
         parent: int | None = None,
     ):
-        default_locale = await get_admin_locale()
+        default_locale = await get_admin_locale(request)
         parent_page = (
             await get_page_or_404(parent)
             if parent
@@ -383,6 +412,7 @@ def create_admin_router() -> APIRouter:
 
     @router.post("/pages/add/")
     async def page_add_post(
+        request: Request,
         user: Annotated[User, Depends(require_user)],
         title: Annotated[str, Form()],
         slug: Annotated[str, Form()] = "",
@@ -393,7 +423,7 @@ def create_admin_router() -> APIRouter:
         show_in_menus: Annotated[str | None, Form()] = None,
         parent: int | None = None,
     ):
-        default_locale = await get_admin_locale()
+        default_locale = await get_admin_locale(request)
         parent_page = (
             await get_page_or_404(parent)
             if parent
@@ -438,18 +468,112 @@ def create_admin_router() -> APIRouter:
         )
         return RedirectResponse(f"/admin/pages/{page.id}/edit/", status_code=status.HTTP_303_SEE_OTHER)
 
+    @router.get("/pages/{page_id}/translate/")
+    async def page_translate_get(
+        page_id: int,
+        user: Annotated[User, Depends(require_user)],
+        language_code: str,
+    ):
+        source_page = await get_page_or_404(page_id)
+        target_locale = await get_locale(language_code.strip().lower())
+        if target_locale is None:
+            raise HTTPException(status_code=404, detail="Locale not found")
+        existing = None
+        if source_page.translation_key:
+            existing = await Page.objects.filter(
+                translation_key=source_page.translation_key,
+                locale_id=target_locale.id,
+            ).first()
+        if existing is not None:
+            return RedirectResponse(f"/admin/pages/{existing.id}/edit/", status_code=status.HTTP_303_SEE_OTHER)
+        breadcrumbs = await build_breadcrumbs(source_page)
+        breadcrumbs.append(type(breadcrumbs[-1])(f"Translate ({target_locale.language_code})", None))
+        return html_response(
+            TranslatePageForm,
+            username=user.username,
+            source_page=source_page,
+            target_locale=target_locale,
+            breadcrumbs=breadcrumbs,
+            action_url=f"/admin/pages/{page_id}/translate/?language_code={target_locale.language_code}",
+            values={"title": source_page.title, "slug": source_page.slug, "live": source_page.live},
+        )
+
+    @router.post("/pages/{page_id}/translate/")
+    async def page_translate_post(
+        page_id: int,
+        user: Annotated[User, Depends(require_user)],
+        language_code: str,
+        title: Annotated[str, Form()],
+        slug: Annotated[str, Form()] = "",
+        live: Annotated[str | None, Form()] = None,
+    ):
+        source_page = await get_page_or_404(page_id)
+        target_locale = await get_locale(language_code.strip().lower())
+        if target_locale is None:
+            raise HTTPException(status_code=404, detail="Locale not found")
+        breadcrumbs = await build_breadcrumbs(source_page)
+        breadcrumbs.append(type(breadcrumbs[-1])(f"Translate ({target_locale.language_code})", None))
+        values = {"title": title, "slug": slug, "live": live == "1"}
+        if not title.strip():
+            return html_response(
+                TranslatePageForm,
+                username=user.username,
+                source_page=source_page,
+                target_locale=target_locale,
+                breadcrumbs=breadcrumbs,
+                action_url=f"/admin/pages/{page_id}/translate/?language_code={target_locale.language_code}",
+                values=values,
+                error="Title is required.",
+            )
+        if source_page.translation_key:
+            existing = await Page.objects.filter(
+                translation_key=source_page.translation_key,
+                locale_id=target_locale.id,
+            ).first()
+            if existing is not None:
+                return RedirectResponse(f"/admin/pages/{existing.id}/edit/", status_code=status.HTTP_303_SEE_OTHER)
+        parent = await resolve_translated_parent(source_page, target_locale)
+        translated = await create_translation(
+            source_page,
+            title=title.strip(),
+            slug=slug,
+            locale=target_locale,
+            parent=parent,
+            live=live == "1",
+            body=source_page.body,
+        )
+        return RedirectResponse(f"/admin/pages/{translated.id}/edit/", status_code=status.HTTP_303_SEE_OTHER)
+
     @router.get("/pages/{page_id}/")
-    async def page_listing(page_id: int, user: Annotated[User, Depends(require_user)]):
+    async def page_listing(
+        request: Request,
+        page_id: int,
+        user: Annotated[User, Depends(require_user)],
+    ):
+        admin_locale = await get_admin_locale(request)
         page = await get_page_or_404(page_id)
+        page_in_locale = await resolve_page_for_admin_locale(page, admin_locale)
+        if page_in_locale.id != page.id:
+            return RedirectResponse(
+                f"/admin/pages/{page_in_locale.id}/",
+                status_code=status.HTTP_303_SEE_OTHER,
+            )
         children = await get_child_pages(page)
-        locale_sections = await build_all_locale_trees()
+        tree = await build_page_tree(admin_locale)
+        locales = await get_all_locales()
         breadcrumbs = await build_breadcrumbs(page)
+        missing_by_child = await get_missing_translations_by_page(children)
+        parent_missing = await get_locales_missing_translation(page)
         return html_response(
             PageListingPage,
             username=user.username,
             parent_page=page,
             children=children,
-            locale_sections=locale_sections,
+            tree=tree,
+            locales=locales,
+            current_locale=admin_locale,
+            missing_by_child=missing_by_child,
+            parent_missing_locales=parent_missing,
             breadcrumbs=breadcrumbs,
         )
 
@@ -533,13 +657,17 @@ def create_admin_router() -> APIRouter:
         )
 
     @router.post("/pages/{page_id}/delete/")
-    async def page_delete_post(page_id: int, user: Annotated[User, Depends(require_user)]):
+    async def page_delete_post(
+        request: Request,
+        page_id: int,
+        user: Annotated[User, Depends(require_user)],
+    ):
         page = await get_page_or_404(page_id)
         parent_id = page.parent_id
         await delete_page(page)
         if parent_id:
             return RedirectResponse(f"/admin/pages/{parent_id}/", status_code=status.HTTP_303_SEE_OTHER)
-        locale = await get_admin_locale()
+        locale = await get_admin_locale(request)
         root = await ensure_root_page(locale)
         return RedirectResponse(f"/admin/pages/{root.id}/", status_code=status.HTTP_303_SEE_OTHER)
 

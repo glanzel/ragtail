@@ -107,6 +107,33 @@ async def test_edit_locale_changes_default(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_menu_admin_locale_switcher(client: AsyncClient) -> None:
+    await _login(client)
+    await client.post(
+        "/admin/locales/add/",
+        data={"language_code": "de", "display_name": "Deutsch"},
+        cookies=client.cookies,
+        follow_redirects=False,
+    )
+    switch = await client.post(
+        "/admin/set-locale/",
+        data={"language_code": "de", "next": "/admin/menus/"},
+        cookies=client.cookies,
+        follow_redirects=False,
+    )
+    assert switch.status_code == 303
+    await client.post(
+        "/admin/menus/add/",
+        data={"name": "Hauptmenue", "slug": "main", "is_active": "1"},
+        cookies=client.cookies,
+        follow_redirects=False,
+    )
+    listing = await client.get("/admin/menus/", cookies=client.cookies)
+    assert listing.status_code == 200
+    assert "Hauptmenue" in listing.text
+
+
+@pytest.mark.asyncio
 async def test_create_menu_and_item(client: AsyncClient) -> None:
     await _login(client)
     create_menu_response = await client.post(

@@ -132,7 +132,7 @@ async def test_admin_page_edit_includes_richtext_editor(client: AsyncClient) -> 
 
 
 @pytest.mark.asyncio
-async def test_admin_page_explorer_shows_all_locales(client: AsyncClient) -> None:
+async def test_admin_page_explorer_has_locale_switcher(client: AsyncClient) -> None:
     login = await client.post(
         "/admin/login/",
         data={"username": "admin", "password": "admin", "next": "/admin/pages/"},
@@ -150,6 +150,54 @@ async def test_admin_page_explorer_shows_all_locales(client: AsyncClient) -> Non
 
     listing = await client.get(f"/admin/pages/{root_id}/", cookies=login.cookies)
     assert listing.status_code == 200
-    assert "English" in listing.text
+    assert 'id="id_explorer_locale"' in listing.text
     assert "Deutsch" in listing.text
     assert "About" in listing.text
+
+    switch = await client.post(
+        "/admin/set-locale/",
+        data={"language_code": "de", "next": f"/admin/pages/{root_id}/"},
+        cookies=login.cookies,
+        follow_redirects=False,
+    )
+    assert switch.status_code == 303
+
+
+@pytest.mark.asyncio
+async def test_admin_translate_page(client: AsyncClient) -> None:
+    from oxytail.models import Locale, Page
+
+    login = await client.post(
+        "/admin/login/",
+        data={"username": "admin", "password": "admin", "next": "/admin/pages/"},
+        follow_redirects=False,
+    )
+    await client.post(
+        "/admin/locales/add/",
+        data={"language_code": "de", "display_name": "Deutsch"},
+        cookies=login.cookies,
+        follow_redirects=False,
+    )
+    en = await Locale.objects.get_or_none(language_code="en")
+    de = await Locale.objects.get_or_none(language_code="de")
+    about = await Page.objects.filter(slug="about").first()
+    assert en is not None and de is not None and about is not None
+
+    form = await client.get(
+        f"/admin/pages/{about.id}/translate/?language_code=de",
+        cookies=login.cookies,
+    )
+    assert form.status_code == 200
+    assert "Translate" in form.text
+
+    create = await client.post(
+        f"/admin/pages/{about.id}/translate/?language_code=de",
+        data={"title": "Ueber uns", "slug": "ueber-uns", "live": "1"},
+        cookies=login.cookies,
+        follow_redirects=False,
+    )
+    assert create.status_code == 303
+
+    translated = await Page.objects.filter(translation_key=about.translation_key, locale_id=de.id).first()
+    assert translated is not None
+    assert translated.slug == "ueber-uns"
