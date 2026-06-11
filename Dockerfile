@@ -1,14 +1,17 @@
 FROM python:3.12-slim
 
+COPY --from=ghcr.io/astral-sh/uv:0.11 /uv /uvx /bin/
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
+    UV_LINK_MODE=copy \
+    UV_NO_DEV=1 \
     OXYTAIL_DATABASE_URL=sqlite:////data/oxytail.db \
     OXYTAIL_SECRET_KEY=change-me-in-production
 
 WORKDIR /app
 
-COPY pyproject.toml README.md package.json package-lock.json ./
+COPY pyproject.toml uv.lock README.md package.json package-lock.json ./
 COPY scripts ./scripts
 COPY styles ./styles
 COPY tailwind.config.js ./
@@ -21,12 +24,12 @@ RUN apt-get update \
     && npm ci \
     && npm run build:css
 
-RUN pip install --upgrade pip \
-    && pip install -e ".[demo]"
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --extra demo --no-editable
 
 RUN mkdir -p /data
 VOLUME ["/data"]
 
 EXPOSE 8000
 
-CMD ["uvicorn", "examples.demo.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "uvicorn", "examples.demo.main:app", "--host", "0.0.0.0", "--port", "8000"]

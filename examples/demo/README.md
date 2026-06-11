@@ -11,15 +11,17 @@ Runnable demo site with:
 ## Run
 
 ```bash
-pip install -e ".[demo]"
+uv sync --locked --extra demo
 npm install && npm run build:css   # only needed after template/CSS changes
-python examples/demo/main.py
+uv run python examples/demo/main.py
 ```
 
-Or with uvicorn:
+Or with make / uvicorn:
 
 ```bash
-uvicorn examples.demo.main:app --reload
+make install
+make dev
+# uv run uvicorn examples.demo.main:app --reload
 ```
 
 - Public site: http://127.0.0.1:8000/

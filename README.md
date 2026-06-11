@@ -15,20 +15,29 @@ permissions are left for later iterations.
 
 ## Installation
 
+This project uses [uv](https://docs.astral.sh/uv/) for Python dependency management.
+
 ```bash
-pip install -e .
+uv sync --locked
 ```
 
 For the legacy oxyde-admin CRUD screens:
 
 ```bash
-pip install -e ".[admin]"
+uv sync --locked --extra admin
 ```
 
-For the demo application:
+For the demo application (includes uvicorn):
 
 ```bash
-pip install -e ".[demo]"
+uv sync --locked --extra demo
+```
+
+Local development (demo + test dependencies):
+
+```bash
+make install
+# or: uv sync --locked --extra demo
 ```
 
 ## Frontend (Tailwind CSS)
@@ -48,7 +57,8 @@ A runnable demo with Wagtail-style admin and PyJSX public templates lives in
 `examples/demo/`:
 
 ```bash
-python examples/demo/main.py
+uv run python examples/demo/main.py
+# or: make dev
 ```
 
 - Public site: http://127.0.0.1:8000/
