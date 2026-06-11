@@ -48,7 +48,7 @@ def create_fastapi_admin(*, title: str = "Oxytail Admin") -> Any:
         from oxyde_admin import FastAPIAdmin
     except ImportError as exc:  # pragma: no cover - depends on optional extra
         raise RuntimeError(
-            "Install the admin extra to use the bundled admin: pip install 'oxytail[admin]'"
+            "Install the admin extra to use the bundled admin: uv sync --extra admin"
         ) from exc
 
     return register_cms_models(FastAPIAdmin(title=title))
