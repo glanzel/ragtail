@@ -73,6 +73,17 @@ class Page(TimestampedModel):
             Index(("translation_key", "locale")),
         ]
 
+    async def pre_save(
+        self,
+        *,
+        is_create: bool,
+        update_fields: set[str] | None = None,
+    ) -> None:
+        from .seo import normalize_search_description
+
+        self.search_description = normalize_search_description(self.search_description)
+        await super().pre_save(is_create=is_create, update_fields=update_fields)
+
     @property
     def url(self) -> str:
         return self.path

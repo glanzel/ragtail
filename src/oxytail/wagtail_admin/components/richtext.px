@@ -1,3 +1,5 @@
+import base64
+
 from pyjsx import jsx
 
 from oxytail.wagtail_admin.components.icons import (
@@ -84,8 +86,9 @@ def RichTextToolbar(children=None):
 
 
 def RichTextField(*, name: str, label: str, value: str = "", field_id: str, children=None):
+  initial_b64 = base64.b64encode((value or "").encode("utf-8")).decode("ascii")
   return (
-    <div class="mb-4" data-richtext>
+    <div class="mb-4" data-richtext data-initial-b64={initial_b64}>
       <label for={field_id} class="mb-1.5 block font-semibold text-gray-800">
         {label}
       </label>
@@ -96,9 +99,7 @@ def RichTextField(*, name: str, label: str, value: str = "", field_id: str, chil
           class="min-h-[16rem] px-3 py-2 prose prose-sm max-w-none"
         />
       </div>
-      <textarea id={field_id} name={name} class="sr-only" tabindex="-1" aria-hidden="true">
-        {value}
-      </textarea>
+      <textarea id={field_id} name={name} class="sr-only" tabindex="-1" aria-hidden="true"></textarea>
       <p class="mt-2 text-xs leading-relaxed text-gray-500">
         Markdown supported: type <code class="rounded bg-gray-100 px-1">**bold**</code>,
         <code class="rounded bg-gray-100 px-1">*italic*</code>,

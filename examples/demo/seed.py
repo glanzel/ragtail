@@ -33,8 +33,10 @@ async def seed_if_empty(
     home = await ensure_root_page(en)
     home.title = "Home"
     home.body = (
-        "<p>Welcome to the <strong>Oxytail</strong> demo site.</p>"
-        "<p>Pages are rendered with PyJSX templates. Edit content in the Wagtail-style admin.</p>"
+        "# Welcome to Oxytail\n\n"
+        "This is the **demo site**. Page bodies are stored as Markdown and rendered to HTML "
+        "on the public site.\n\n"
+        "Edit content in the Wagtail-style admin at `/admin/`."
     )
     home.live = True
     home.show_in_menus = True
@@ -47,7 +49,11 @@ async def seed_if_empty(
         locale=en,
         live=True,
         show_in_menus=True,
-        body="<p>This is the about page. Content is stored in Oxyde and rendered server-side.</p>",
+        body=(
+            "## About this demo\n\n"
+            "Content is stored as **Markdown** in the database and converted to HTML when "
+            "the page is served."
+        ),
     )
 
     await create_page(
@@ -57,7 +63,7 @@ async def seed_if_empty(
         locale=en,
         live=True,
         show_in_menus=True,
-        body="<p>Example blog section. StreamField blocks can come later.</p>",
+        body="## Blog\n\nExample section. StreamField blocks can come later.",
     )
 
     main_menu = await create_menu(name="Main", slug="main", locale=en)

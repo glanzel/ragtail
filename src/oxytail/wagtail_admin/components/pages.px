@@ -12,6 +12,7 @@ from oxytail.wagtail_admin.classes import (
 from oxytail.wagtail_admin.components.icons import IconFolderOpenInverse, IconPlus
 from oxytail.wagtail_admin.components.layout import AdminLayout, Breadcrumbs
 from oxytail.wagtail_admin.components.locale_switcher import LocaleSwitcher
+from oxytail.seo import SEARCH_DESCRIPTION_MAX_LENGTH
 from oxytail.wagtail_admin.components.richtext import RichTextField
 
 
@@ -261,11 +262,14 @@ def PageListingPage(
   )
 
 
-def _field_block(*, label: str, field_id: str, control):
+def _field_block(*, label: str, field_id: str, control, help: str | None = None):
   return (
     <li class="mb-4">
       <label for={field_id} class={LABEL}>{label}</label>
       {control}
+      {(
+        <p class="mt-2 text-xs leading-relaxed text-gray-500">{help}</p>
+      ) if help else None}
     </li>
   )
 
@@ -295,9 +299,7 @@ def ExtraFieldControl(field_def, value: str = "", children=None):
     label=field_def.label,
     field_id=field_id,
     control=(
-      <textarea id={field_id} name={field_def.name} rows="8" class={TEXTAREA}>
-        {value}
-      </textarea>
+      <textarea id={field_id} name={field_def.name} rows="8" class={TEXTAREA}>{value}</textarea>
     ),
   )
 
@@ -403,15 +405,14 @@ def PageFormPage(
               {_field_block(
                 label="Meta description",
                 field_id="id_search_description",
+                help=f"Optional. Used for search engine snippets. Maximum {SEARCH_DESCRIPTION_MAX_LENGTH} characters.",
                 control=(
                   <textarea
                     id="id_search_description"
                     name="search_description"
                     rows="3"
                     class={TEXTAREA}
-                  >
-                    {form_values.get("search_description", "")}
-                  </textarea>
+                  >{form_values.get("search_description", "")}</textarea>
                 ),
               )}
             </ul>
