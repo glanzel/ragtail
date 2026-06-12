@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from fastapi import HTTPException, Request
 
-from ..models import Locale, Menu, MenuItem, Page
+from ..models import Locale, Menu, MenuItem, Page, User
 from ..pages import create_page
 from ..routing import get_default_locale, get_translation, join_page_path, normalize_path
 
@@ -394,3 +394,53 @@ async def get_menu_item_or_404(item_id: int) -> MenuItem:
     if item is None:
         raise HTTPException(status_code=404, detail="Menu item not found")
     return item
+
+
+async def get_all_users() -> list[User]:
+    return await User.objects.order_by("username").all()
+
+
+async def get_user_or_404(user_id: int) -> User:
+    user = await User.objects.get_or_none(id=user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+
+async def get_user_by_email(email: str) -> User | None:
+    from ..auth import normalize_email
+
+    return await User.objects.get_or_none(email=normalize_email(email))
+
+
+async def count_active_staff_users(*, exclude_user_id: int | None = None) -> int:
+    query = User.objects.filter(is_active=True, is_staff=True)
+    if exclude_user_id is not None:
+        query = query.exclude(id=exclude_user_id)
+    return await query.count()
+
+
+async def can_delete_user(*, target: User, actor: User) -> tuple[bool, str | None]:
+    if target.id == actor.id:
+        return False, "You cannot delete your own account."
+    if target.is_active and target.is_staff:
+        remaining = await count_active_staff_users(exclude_user_id=target.id)
+        if remaining == 0:
+            return False, "Cannot delete the last active staff user."
+    return True, None
+
+
+async def validate_user_update(
+    *,
+    target: User,
+    actor: User,
+    is_active: bool,
+    is_staff: bool,
+) -> str | None:
+    if target.id != actor.id:
+        return None
+    if not is_active:
+        return "You cannot deactivate your own account."
+    if not is_staff:
+        return "You cannot remove your own staff access."
+    return None

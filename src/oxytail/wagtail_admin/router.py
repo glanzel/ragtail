@@ -9,7 +9,16 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 
-from ..auth import authenticate_user
+from ..auth import (
+    authenticate_user,
+    change_password_error,
+    create_user,
+    email_error,
+    normalize_email,
+    reset_password_error,
+    reset_user_password,
+    update_user,
+)
 from ..richtext import prepare_body_for_storage
 from ..seo import normalize_search_description, search_description_error
 from ..menus import create_menu, create_menu_item
@@ -19,7 +28,15 @@ from ..routing import get_locale
 from .components.dashboard import DashboardPage
 from .components.locales import LocaleAddPage, LocaleEditPage, LocaleListPage
 from .components.login import LoginPage
+from .components.password_reset import ForgotPasswordPage
 from .components.menus import MenuAddPage, MenuDetailPage, MenuListPage
+from .components.users import (
+    ChangePasswordPage,
+    UserAddPage,
+    UserEditPage,
+    UserListPage,
+    UserResetPasswordPage,
+)
 from .components.pages import (
     DeletePagePage,
     PageFormPage,
@@ -45,6 +62,12 @@ from .services import (
     get_menu_or_404,
     get_menus_for_locale,
     get_missing_translations_by_page,
+    get_all_users,
+    get_user_by_email,
+    get_user_or_404,
+    can_delete_user,
+    count_active_staff_users,
+    validate_user_update,
     get_page_locale,
     get_page_or_404,
     get_pages_for_locale,
@@ -147,6 +170,36 @@ def create_admin_router() -> APIRouter:
     async def logout_post(request: Request):
         request.session.clear()
         return RedirectResponse("/admin/login/", status_code=status.HTTP_303_SEE_OTHER)
+
+    @router.get("/password-reset/")
+    async def password_reset_get():
+        return html_response(ForgotPasswordPage)
+
+    @router.get("/account/password/")
+    async def account_password_get(user: Annotated[User, Depends(require_user)]):
+        return html_response(ChangePasswordPage, username=user.username)
+
+    @router.post("/account/password/")
+    async def account_password_post(
+        user: Annotated[User, Depends(require_user)],
+        current_password: Annotated[str, Form()],
+        password: Annotated[str, Form()],
+        password_confirm: Annotated[str, Form()],
+    ):
+        error = change_password_error(
+            user,
+            current_password=current_password,
+            new_password=password,
+            confirm_password=password_confirm,
+        )
+        if error:
+            return html_response(ChangePasswordPage, username=user.username, error=error)
+        await reset_user_password(user, password=password)
+        return html_response(
+            ChangePasswordPage,
+            username=user.username,
+            success="Your password has been changed.",
+        )
 
     @router.post("/set-locale/")
     async def set_locale_post(
@@ -259,6 +312,225 @@ def create_admin_router() -> APIRouter:
                 error=str(exc),
             )
         return RedirectResponse("/admin/locales/", status_code=status.HTTP_303_SEE_OTHER)
+
+    @router.get("/users/")
+    async def users_list(user: Annotated[User, Depends(require_user)]):
+        users = await get_all_users()
+        return html_response(
+            UserListPage,
+            username=user.username,
+            users=users,
+            current_user_id=user.id,
+        )
+
+    @router.get("/users/add/")
+    async def users_add_get(user: Annotated[User, Depends(require_user)]):
+        return html_response(
+            UserAddPage,
+            username=user.username,
+            values={"is_active": True, "is_staff": True},
+        )
+
+    @router.post("/users/add/")
+    async def users_add_post(
+        user: Annotated[User, Depends(require_user)],
+        username: Annotated[str, Form()],
+        email: Annotated[str, Form()],
+        password: Annotated[str, Form()],
+        is_staff: Annotated[str | None, Form()] = None,
+        is_active: Annotated[str | None, Form()] = None,
+    ):
+        values = {
+            "username": username,
+            "email": email,
+            "is_staff": is_staff == "1",
+            "is_active": is_active == "1",
+        }
+        clean_username = username.strip()
+        if not clean_username or not password:
+            return html_response(
+                UserAddPage,
+                username=user.username,
+                values=values,
+                error="Username and password are required.",
+            )
+        validation_error = email_error(email)
+        if validation_error:
+            return html_response(
+                UserAddPage,
+                username=user.username,
+                values=values,
+                error=validation_error,
+            )
+        existing = await User.objects.get_or_none(username=clean_username)
+        if existing is not None:
+            return html_response(
+                UserAddPage,
+                username=user.username,
+                values=values,
+                error=f"Username '{clean_username}' is already taken.",
+            )
+        existing_email = await get_user_by_email(email)
+        if existing_email is not None:
+            return html_response(
+                UserAddPage,
+                username=user.username,
+                values=values,
+                error=f"Email '{normalize_email(email)}' is already in use.",
+            )
+        await create_user(
+            username=clean_username,
+            email=email,
+            password=password,
+            is_staff=is_staff == "1",
+            is_active=is_active == "1",
+        )
+        return RedirectResponse("/admin/users/", status_code=status.HTTP_303_SEE_OTHER)
+
+    @router.get("/users/{user_id}/edit/")
+    async def users_edit_get(user_id: int, user: Annotated[User, Depends(require_user)]):
+        target = await get_user_or_404(user_id)
+        can_delete, _ = await can_delete_user(target=target, actor=user)
+        return html_response(
+            UserEditPage,
+            username=user.username,
+            user=target,
+            current_user_id=user.id,
+            can_delete=can_delete,
+        )
+
+    @router.get("/users/{user_id}/reset-password/")
+    async def users_reset_password_get(
+        user_id: int,
+        user: Annotated[User, Depends(require_user)],
+    ):
+        target = await get_user_or_404(user_id)
+        return html_response(
+            UserResetPasswordPage,
+            username=user.username,
+            user=target,
+        )
+
+    @router.post("/users/{user_id}/reset-password/")
+    async def users_reset_password_post(
+        user_id: int,
+        user: Annotated[User, Depends(require_user)],
+        password: Annotated[str, Form()],
+        password_confirm: Annotated[str, Form()],
+    ):
+        target = await get_user_or_404(user_id)
+        error = reset_password_error(password=password, confirm_password=password_confirm)
+        if error:
+            return html_response(
+                UserResetPasswordPage,
+                username=user.username,
+                user=target,
+                error=error,
+            )
+        await reset_user_password(target, password=password)
+        return html_response(
+            UserResetPasswordPage,
+            username=user.username,
+            user=target,
+            success=f"Password for '{target.username}' has been reset.",
+        )
+
+    @router.post("/users/{user_id}/edit/")
+    async def users_edit_post(
+        user_id: int,
+        user: Annotated[User, Depends(require_user)],
+        email: Annotated[str, Form()],
+        is_staff: Annotated[str | None, Form()] = None,
+        is_active: Annotated[str | None, Form()] = None,
+    ):
+        target = await get_user_or_404(user_id)
+        is_staff_value = target.is_staff if target.id == user.id else is_staff == "1"
+        is_active_value = target.is_active if target.id == user.id else is_active == "1"
+        values = {
+            "email": email,
+            "is_staff": is_staff_value,
+            "is_active": is_active_value,
+        }
+        email_validation_error = email_error(email)
+        if email_validation_error:
+            can_delete, _ = await can_delete_user(target=target, actor=user)
+            return html_response(
+                UserEditPage,
+                username=user.username,
+                user=target,
+                current_user_id=user.id,
+                values=values,
+                error=email_validation_error,
+                can_delete=can_delete,
+            )
+        existing_email = await get_user_by_email(email)
+        if existing_email is not None and existing_email.id != target.id:
+            can_delete, _ = await can_delete_user(target=target, actor=user)
+            return html_response(
+                UserEditPage,
+                username=user.username,
+                user=target,
+                current_user_id=user.id,
+                values=values,
+                error=f"Email '{normalize_email(email)}' is already in use.",
+                can_delete=can_delete,
+            )
+        validation_error = await validate_user_update(
+            target=target,
+            actor=user,
+            is_active=is_active_value,
+            is_staff=is_staff_value,
+        )
+        if validation_error:
+            can_delete, _ = await can_delete_user(target=target, actor=user)
+            return html_response(
+                UserEditPage,
+                username=user.username,
+                user=target,
+                current_user_id=user.id,
+                values=values,
+                error=validation_error,
+                can_delete=can_delete,
+            )
+        if not is_staff_value and target.is_active and target.is_staff:
+            remaining = await count_active_staff_users(exclude_user_id=target.id)
+            if remaining == 0:
+                can_delete, _ = await can_delete_user(target=target, actor=user)
+                return html_response(
+                    UserEditPage,
+                    username=user.username,
+                    user=target,
+                    current_user_id=user.id,
+                    values=values,
+                    error="At least one active staff user is required.",
+                    can_delete=can_delete,
+                )
+        await update_user(
+            target,
+            email=email,
+            is_active=is_active_value,
+            is_staff=is_staff_value,
+        )
+        return RedirectResponse("/admin/users/", status_code=status.HTTP_303_SEE_OTHER)
+
+    @router.post("/users/{user_id}/delete/")
+    async def users_delete_post(
+        user_id: int,
+        user: Annotated[User, Depends(require_user)],
+    ):
+        target = await get_user_or_404(user_id)
+        can_delete, error = await can_delete_user(target=target, actor=user)
+        if not can_delete:
+            return html_response(
+                UserEditPage,
+                username=user.username,
+                user=target,
+                current_user_id=user.id,
+                error=error,
+                can_delete=False,
+            )
+        await target.delete()
+        return RedirectResponse("/admin/users/", status_code=status.HTTP_303_SEE_OTHER)
 
     @router.get("/menus/")
     async def menus_list(request: Request, user: Annotated[User, Depends(require_user)]):

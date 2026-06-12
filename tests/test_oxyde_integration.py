@@ -11,7 +11,7 @@ from oxytail.routing import resolve_route
 
 @pytest.mark.asyncio
 async def test_pages_routes_and_menus_work_with_oxyde(tmp_path: Path) -> None:
-    database = AsyncDatabase(f"sqlite:///{tmp_path / 'cms.db'}", name="default")
+    database = AsyncDatabase(f"sqlite:////{tmp_path / 'cms.db'}", name="default")
 
     async with database:
         await create_tables(database)

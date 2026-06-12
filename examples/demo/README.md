@@ -3,7 +3,7 @@
 Runnable demo site with:
 
 - **Wagtail-style admin** at `/admin/` (login: `admin` / `admin`)
-- **Locales & menus** management in the admin sidebar
+- **Locales, menus & users** management in the admin sidebar
 - **TipTap rich text** for page content (demo-only `body` field)
 - **PyJSX HTML rendering** for the public site
 - SQLite database at `oxytail.db` (created on first run)
@@ -11,10 +11,28 @@ Runnable demo site with:
 ## Run
 
 ```bash
-uv sync --locked --extra demo
+make install
+make migrate          # apply schema migrations
+make createsuperuser  # first admin user (interactive)
+make dev
+```
+
+Non-interactive (e.g. CI):
+
+```bash
+make createsuperuser USERNAME=admin EMAIL=admin@example.com PASSWORD=secret NOINPUT=1
+```
+
+Or manually:
+
+```bash
+uv sync --locked --extra demo --extra admin
 npm install && npm run build:css   # only needed after template/CSS changes
 uv run python examples/demo/main.py
 ```
+
+The demo still seeds `admin` / `admin` on first run when the users table is empty.
+For production, create users explicitly with `make createsuperuser` and avoid demo defaults.
 
 Or with make / uvicorn:
 

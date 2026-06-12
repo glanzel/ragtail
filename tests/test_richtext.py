@@ -3,10 +3,11 @@ from pathlib import Path
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from oxyde import create_tables, db
+from oxyde import db
 from fastapi.responses import HTMLResponse
 
 from oxytail.auth import ensure_superuser
+from oxytail.db import run_migrations
 from oxytail.fastapi import create_app
 from oxytail.models import Locale, Page
 from oxytail.pages import create_page
@@ -72,11 +73,11 @@ def test_search_description_error_for_too_long_value() -> None:
 
 @pytest_asyncio.fixture
 async def public_client(tmp_path: Path):
-    database_url = f"sqlite:///{tmp_path / 'richtext.db'}"
+    database_url = f"sqlite:////{tmp_path / 'richtext.db'}"
     await db.init(default=database_url)
     try:
         connection = await db.get_connection("default")
-        await create_tables(connection)
+        await run_migrations(connection)
         await ensure_superuser(username="admin", password="admin")
         en = await Locale.objects.create(
             language_code="en",

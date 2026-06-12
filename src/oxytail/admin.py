@@ -5,7 +5,7 @@ from typing import Any
 from .models import Locale, Menu, MenuItem, Page, User
 
 
-def register_cms_models(admin: Any) -> Any:
+def register_cms_models(admin: Any, *, include_users: bool = False) -> Any:
     """Register Oxytail models on an oxyde-admin compatible admin instance."""
 
     admin.register(
@@ -32,16 +32,22 @@ def register_cms_models(admin: Any) -> Any:
         search_fields=["label", "url"],
         list_filter=["menu", "is_active", "open_in_new_tab"],
     )
-    admin.register(
-        User,
-        list_display=["username", "is_active", "is_staff"],
-        search_fields=["username"],
-        list_filter=["is_active", "is_staff"],
-    )
+    if include_users:
+        admin.register(
+            User,
+            list_display=["username", "email", "is_active", "is_staff"],
+            search_fields=["username", "email"],
+            list_filter=["is_active", "is_staff"],
+            readonly_fields=["password_hash"],
+        )
     return admin
 
 
-def create_fastapi_admin(*, title: str = "Oxytail Admin") -> Any:
+def create_fastapi_admin(
+    *,
+    title: str = "Oxytail Admin",
+    include_users: bool = False,
+) -> Any:
     """Create and register a FastAPI oxyde-admin instance."""
 
     try:
@@ -51,4 +57,5 @@ def create_fastapi_admin(*, title: str = "Oxytail Admin") -> Any:
             "Install the admin extra to use the bundled admin: uv sync --extra admin"
         ) from exc
 
-    return register_cms_models(FastAPIAdmin(title=title))
+    admin = FastAPIAdmin(title=title)
+    return register_cms_models(admin, include_users=include_users)
