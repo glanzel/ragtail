@@ -10,6 +10,8 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 
 from ..auth import authenticate_user
+from ..richtext import prepare_body_for_storage
+from ..seo import normalize_search_description, search_description_error
 from ..menus import create_menu, create_menu_item
 from ..models import Locale, Page, User
 from ..pages import create_translation
@@ -109,7 +111,7 @@ def _form_values(page: Page | None = None, **overrides) -> dict:
 def _body_value_for_save(*, page: Page | None, submitted_body: str) -> str | None:
     if "body" not in _registered_field_names():
         return page.body if page is not None else None
-    return submitted_body or None
+    return prepare_body_for_storage(submitted_body)
 
 
 def _page_form_kwargs() -> dict:
@@ -455,6 +457,19 @@ def create_admin_router() -> APIRouter:
                 error="Title is required.",
                 **_page_form_kwargs(),
             )
+        if error := search_description_error(search_description):
+            return html_response(
+                PageFormPage,
+                username=user.username,
+                parent_page=parent_page,
+                breadcrumbs=breadcrumbs,
+                action_url=f"/admin/pages/add/?parent={parent_page.id}",
+                title="Add child page",
+                submit_label="Create page",
+                values=values,
+                error=error,
+                **_page_form_kwargs(),
+            )
         page = await create_child_page(
             parent=parent_page,
             title=title.strip(),
@@ -464,7 +479,7 @@ def create_admin_router() -> APIRouter:
             live=live == "1",
             show_in_menus=show_in_menus == "1",
             seo_title=seo_title or None,
-            search_description=search_description or None,
+            search_description=normalize_search_description(search_description),
         )
         return RedirectResponse(f"/admin/pages/{page.id}/edit/", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -632,6 +647,19 @@ def create_admin_router() -> APIRouter:
                 error="Title is required.",
                 **_page_form_kwargs(),
             )
+        if error := search_description_error(search_description):
+            return html_response(
+                PageFormPage,
+                username=user.username,
+                page=page,
+                breadcrumbs=breadcrumbs,
+                action_url=f"/admin/pages/{page_id}/edit/",
+                title=f"Editing {page.title}",
+                submit_label="Save draft",
+                values=values,
+                error=error,
+                **_page_form_kwargs(),
+            )
         await update_page(
             page,
             title=title.strip(),
@@ -640,7 +668,7 @@ def create_admin_router() -> APIRouter:
             live=live == "1",
             show_in_menus=show_in_menus == "1",
             seo_title=seo_title or None,
-            search_description=search_description or None,
+            search_description=normalize_search_description(search_description),
         )
         return RedirectResponse(f"/admin/pages/{page_id}/", status_code=status.HTTP_303_SEE_OTHER)
 

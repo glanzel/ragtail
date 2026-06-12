@@ -97,6 +97,48 @@ async def test_admin_page_add_route(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_admin_page_edit_body_uses_base64_initial_value(client: AsyncClient) -> None:
+    import importlib
+    import re
+    import sys
+    from pathlib import Path
+
+    from oxytail.models import Page
+    from oxytail.wagtail_admin.registry import clear_page_form_fields
+
+    demo_dir = Path(__file__).resolve().parents[1] / "examples" / "demo"
+    sys.path.insert(0, str(demo_dir))
+    clear_page_form_fields()
+    if "admin_setup" in sys.modules:
+        importlib.reload(sys.modules["admin_setup"])
+    else:
+        importlib.import_module("admin_setup")
+
+    login = await client.post(
+        "/admin/login/",
+        data={"username": "admin", "password": "admin", "next": "/admin/pages/"},
+        follow_redirects=False,
+    )
+    about_page = await Page.objects.filter(slug="about").first()
+    assert about_page is not None
+    about_page.body = "# Title\n\nParagraph with **bold**"
+    await about_page.save()
+
+    edit = await client.get(f"/admin/pages/{about_page.id}/edit/", cookies=login.cookies)
+    assert edit.status_code == 200
+    assert "data-initial-b64=" in edit.text
+    textarea_match = re.search(
+        r'<textarea[^>]*name="body"[^>]*>(.*?)</textarea>',
+        edit.text,
+        re.DOTALL,
+    )
+    assert textarea_match is not None
+    assert textarea_match.group(1).strip() == ""
+
+    clear_page_form_fields()
+
+
+@pytest.mark.asyncio
 async def test_admin_page_edit_includes_richtext_editor(client: AsyncClient) -> None:
     import importlib
     import sys
@@ -107,7 +149,10 @@ async def test_admin_page_edit_includes_richtext_editor(client: AsyncClient) -> 
     demo_dir = Path(__file__).resolve().parents[1] / "examples" / "demo"
     sys.path.insert(0, str(demo_dir))
     clear_page_form_fields()
-    importlib.import_module("admin_setup")
+    if "admin_setup" in sys.modules:
+        importlib.reload(sys.modules["admin_setup"])
+    else:
+        importlib.import_module("admin_setup")
 
     from oxytail.models import Page
 

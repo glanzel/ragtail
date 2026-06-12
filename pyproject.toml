@@ -19,6 +19,8 @@ dependencies = [
   "bcrypt>=4.0",
   "python-jsx>=0.4.0",
   "python-multipart>=0.0.9",
+  "markdown-it-py>=3.0",
+  "bleach>=6.0",
 ]
 
 [project.optional-dependencies]

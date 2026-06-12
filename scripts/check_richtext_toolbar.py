@@ -49,7 +49,7 @@ def setup_db() -> tuple[str, int]:
             parent=home,
             locale=locale,
             live=True,
-            body="<p>Hi</p>",
+            body="Hello **world**",
         )
         assert about.id is not None
         return database_url, about.id
