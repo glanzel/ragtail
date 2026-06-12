@@ -1,6 +1,19 @@
 from .admin import create_fastapi_admin, register_cms_models
-from .db import ensure_tables
-from .auth import authenticate_user, create_user, ensure_superuser, hash_password, verify_password
+from .db import (
+    ensure_tables,
+    init_database,
+    prepare_sqlite_database,
+    resolve_migrations_dir,
+    run_migrations,
+)
+from .auth import (
+    authenticate_user,
+    create_user,
+    ensure_superuser,
+    hash_password,
+    update_user,
+    verify_password,
+)
 from .fastapi import create_api_router, create_app, create_cms_router
 from .menus import (
     MenuItemNode,
@@ -45,7 +58,12 @@ __all__ = [
     "create_fastapi_admin",
     "create_user",
     "ensure_superuser",
+    "update_user",
     "ensure_tables",
+    "init_database",
+    "prepare_sqlite_database",
+    "resolve_migrations_dir",
+    "run_migrations",
     "hash_password",
     "create_menu",
     "create_menu_item",

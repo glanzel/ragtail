@@ -1,7 +1,9 @@
 from pathlib import Path
 
 import pytest
-from oxyde import create_tables, db
+from oxyde import db
+
+from oxytail.db import run_migrations
 
 from oxytail.models import Locale
 from oxytail.pages import create_page, create_translation
@@ -11,11 +13,11 @@ from oxytail.wagtail_admin.services import ensure_root_page
 
 @pytest.mark.asyncio
 async def test_resolve_route_falls_back_to_default_locale_page(tmp_path: Path) -> None:
-    database_url = f"sqlite:///{tmp_path / 'fallback.db'}"
+    database_url = f"sqlite:////{tmp_path / 'fallback.db'}"
     await db.init(default=database_url)
     try:
         connection = await db.get_connection("default")
-        await create_tables(connection)
+        await run_migrations(connection)
         en = await Locale.objects.create(
             language_code="en",
             display_name="English",

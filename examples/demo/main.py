@@ -24,7 +24,7 @@ from seed import seed_if_empty  # noqa: E402
 DEFAULT_DB_PATH = DEMO_DIR / "oxytail.db"
 DATABASE_URL = os.environ.get(
     "OXYTAIL_DATABASE_URL",
-    f"sqlite:///{DEFAULT_DB_PATH}",
+    f"sqlite:////{DEFAULT_DB_PATH}",
 )
 SECRET_KEY = os.environ.get("OXYTAIL_SECRET_KEY", "oxytail-demo-secret-change-me")
 

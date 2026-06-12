@@ -113,6 +113,7 @@ class User(TimestampedModel):
 
     id: int | None = Field(default=None, db_pk=True)
     username: str = Field(max_length=150, db_unique=True, db_index=True)
+    email: str = Field(max_length=254, db_unique=True, db_index=True)
     password_hash: str = Field(max_length=255)
     is_active: bool = Field(default=True, db_index=True)
     is_staff: bool = Field(default=True, db_index=True)

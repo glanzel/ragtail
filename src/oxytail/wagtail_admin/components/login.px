@@ -42,10 +42,13 @@ def LoginPage(*, error: str | None = None, next_url: str = "/admin/", children=N
               <label for="id_password" class={LABEL}>Password</label>
               <input id="id_password" name="password" type="password" class={INPUT} required />
             </div>
-            <footer class="pt-2">
+            <footer class="flex flex-wrap items-center justify-between gap-3 pt-2">
               <button type="submit" class={BTN}>
                 <em class="not-italic">Sign in</em>
               </button>
+              <a href="/admin/password-reset/" class="text-sm text-wagtail-secondary hover:underline">
+                Forgot your password?
+              </a>
             </footer>
           </form>
           <div class="mt-8 text-center">

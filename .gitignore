@@ -4,6 +4,11 @@ __pycache__/
 .pytest_cache/
 .venv/
 oxytail.db
+*.db-shm
+*.db-wal
+freshtest.db
+migrations-test.db
 examples/demo/oxytail.db
+src/oxytail/models.pyi
 examples/demo/oxytail.db-*
 node_modules/

@@ -31,6 +31,10 @@ demo = [
   "uvicorn[standard]>=0.30",
 ]
 
+[project.scripts]
+oxytail-createsuperuser = "oxytail.createsuperuser:main"
+oxytail-initdb = "oxytail.initdb:main"
+
 [dependency-groups]
 dev = [
   "httpx>=0.27",
@@ -47,6 +51,7 @@ packages = ["src/oxytail"]
 [tool.hatch.build.targets.wheel.force-include]
 "src/oxytail/wagtail_admin/static" = "oxytail/wagtail_admin/static"
 "src/oxytail/wagtail_admin/components" = "oxytail/wagtail_admin/components"
+"migrations" = "oxytail/db_migrations"
 
 [tool.pytest.ini_options]
 addopts = "-q"

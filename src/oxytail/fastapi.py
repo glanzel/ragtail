@@ -12,6 +12,7 @@ from oxyde import db
 from starlette.middleware.sessions import SessionMiddleware
 
 from .admin import create_fastapi_admin
+from .db import prepare_sqlite_database
 from .menus import get_menu_tree
 from .models import Page
 from .routing import RouteMatch, resolve_route
@@ -100,6 +101,7 @@ def _build_lifespan(
     database_url: str,
     startup_hook: StartupHook | None,
 ) -> Callable[[FastAPI], AsyncIterator[None]]:
+    prepare_sqlite_database(database_url)
     base_lifespan = db.lifespan(default=database_url)
 
     if startup_hook is None:
@@ -116,7 +118,7 @@ def _build_lifespan(
 
 def create_app(
     *,
-    database_url: str = "sqlite:///oxytail.db",
+    database_url: str = "sqlite://oxytail.db",
     renderer: PageRenderer | None = None,
     mount_admin: bool = False,
     mount_wagtail_admin: bool = False,
@@ -129,7 +131,10 @@ def create_app(
 
     app = FastAPI(
         title=title,
-        lifespan=_build_lifespan(database_url=database_url, startup_hook=startup_hook),
+        lifespan=_build_lifespan(
+            database_url=database_url,
+            startup_hook=startup_hook,
+        ),
     )
     app.include_router(create_api_router())
 
@@ -144,7 +149,7 @@ def create_app(
             return RedirectResponse(_login_url(exc.next_url), status_code=303)
 
     if mount_admin:
-        admin = create_fastapi_admin(title=f"{title} Admin")
+        admin = create_fastapi_admin(title=f"{title} Admin", include_users=True)
         app.mount(admin_path, admin.app)
 
     # Include last so explicit API/admin routes win over the CMS catch-all.

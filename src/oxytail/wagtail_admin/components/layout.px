@@ -6,6 +6,7 @@ from oxytail.wagtail_admin.components.icons import (
     IconGlobe,
     IconHome,
     IconMenu,
+    IconUsers,
     WagtailLogoBird,
 )
 
@@ -55,10 +56,19 @@ def AdminSidebar(active: str = "pages", username: str = "", children=None):
                 <span>Locales</span>
               </a>
             </li>
+            <li>
+              <a href="/admin/users/" class={_sidebar_link_class(active, "users")}>
+                <IconUsers />
+                <span>Users</span>
+              </a>
+            </li>
           </ul>
         </nav>
         <div class="flex flex-col gap-2 border-t border-white/10 p-4">
           <span class="text-sm text-white/85">{username}</span>
+          <a href="/admin/account/password/" class="text-sm text-white/85 hover:text-white hover:underline">
+            Change password
+          </a>
           <form action="/admin/logout/" method="post">
             <button type="submit" class={BTN_SECONDARY + " text-sm"}>
               Sign out

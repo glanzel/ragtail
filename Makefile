@@ -1,4 +1,4 @@
-.PHONY: help install install-python install-node sync lock build watch dev demo test clean docker-build docker-run
+.PHONY: help install install-python install-node sync lock build watch dev demo test clean docker-build docker-run init-db createsuperuser setup makemigrations migrate showmigrations
 
 UV     ?= uv
 NPM    ?= npm
@@ -6,6 +6,13 @@ HOST   ?= 127.0.0.1
 PORT   ?= 8000
 DOCKER_IMAGE ?= oxytail-demo
 DOCKER_VOLUME ?= oxytail-data
+DATABASE_URL ?= sqlite://oxytail.db
+USERNAME ?=
+EMAIL ?=
+PASSWORD ?=
+NOINPUT ?=
+UPDATE ?=
+MIGRATION_NAME ?=
 
 .DEFAULT_GOAL := help
 
@@ -16,6 +23,9 @@ help: ## Show available targets
 
 install: sync install-node build ## Install Python + npm deps and build frontend assets
 	@echo "Installation complete."
+	@echo "Next: make migrate && make createsuperuser && make dev"
+
+setup: install migrate createsuperuser ## First-time install, migrate DB, create admin user
 
 install-python: sync ## Alias for uv sync (demo extra + dev group)
 
@@ -38,6 +48,27 @@ watch: install-node ## Watch CSS sources and rebuild on change
 	npx tailwindcss -i ./styles/site.css -o ./examples/demo/static/site.css --watch & \
 	wait
 
+init-db: migrate ## Alias for migrate (apply schema migrations)
+
+makemigrations: ## Generate Oxyde migration files from model changes (MIGRATION_NAME=optional)
+	OXYTAIL_DATABASE_URL="$(DATABASE_URL)" $(UV) run oxyde makemigrations \
+		$(if $(MIGRATION_NAME),--name "$(MIGRATION_NAME)",)
+
+migrate: ## Create database file (if needed) and apply migrations
+	OXYTAIL_DATABASE_URL="$(DATABASE_URL)" $(UV) run oxytail-initdb --database-url "$(DATABASE_URL)"
+
+showmigrations: ## Show applied and pending Oxyde migrations
+	OXYTAIL_DATABASE_URL="$(DATABASE_URL)" $(UV) run oxyde showmigrations
+
+createsuperuser: ## Create first staff user (interactive; USERNAME/EMAIL/PASSWORD/NOINPUT=1 for scripted)
+	$(UV) run oxytail-createsuperuser \
+		--database-url "$(DATABASE_URL)" \
+		$(if $(USERNAME),--username "$(USERNAME)",) \
+		$(if $(EMAIL),--email "$(EMAIL)",) \
+		$(if $(PASSWORD),--password "$(PASSWORD)",) \
+		$(if $(NOINPUT),--noinput,) \
+		$(if $(UPDATE),--update,)
+
 dev: ## Run demo app with auto-reload (uvicorn)
 	$(UV) run uvicorn examples.demo.main:app --reload --host $(HOST) --port $(PORT)
 
@@ -50,6 +81,7 @@ test: ## Run pytest suite
 clean: ## Remove build artifacts and caches
 	rm -rf .pytest_cache .venv
 	rm -rf node_modules
+	rm -f *.db-shm *.db-wal freshtest.db migrations-test.db
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +
 	find . -type f -name '*.py[co]' -delete
 

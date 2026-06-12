@@ -57,6 +57,17 @@ def IconMenu(children=None) -> HTMLDontEscape:
     )
 
 
+def IconUsers(children=None) -> HTMLDontEscape:
+    return HTMLDontEscape(
+        _ICON.format(
+            body=(
+                '<path fill="currentColor" '
+                'd="M8 8.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3 13.5c0-2.2 2.2-3.5 5-3.5s5 1.3 5 3.5V15H3v-1.5ZM11.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm2.8 1.5c1.5.3 2.7 1.2 2.7 2.7V15h-2.1v-1.3c0-.9-.4-1.7-1.1-2.2Z"/>'
+            )
+        )
+    )
+
+
 _RICHTEXT_ICON = (
     '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
     'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{body}</svg>'
