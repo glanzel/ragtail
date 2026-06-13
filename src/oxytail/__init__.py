@@ -14,6 +14,7 @@ from .auth import (
     update_user,
     verify_password,
 )
+from .cms import FastAPICMS
 from .fastapi import create_api_router, create_app, create_cms_router
 from .menus import (
     MenuItemNode,
@@ -52,6 +53,7 @@ __all__ = [
     "authenticate_user",
     "build_menu_tree",
     "create_admin_router",
+    "FastAPICMS",
     "create_api_router",
     "create_app",
     "create_cms_router",

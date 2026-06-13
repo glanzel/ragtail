@@ -1,27 +1,16 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Awaitable, Callable
-from contextlib import asynccontextmanager
 from inspect import isawaitable
 from typing import Any
 
 from fastapi import APIRouter, FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse, RedirectResponse, Response
-from fastapi.staticfiles import StaticFiles
-from oxyde import db
-from starlette.middleware.sessions import SessionMiddleware
+from fastapi.responses import JSONResponse, Response
 
 from .admin import create_fastapi_admin
-from .db import prepare_sqlite_database
 from .menus import get_menu_tree
 from .models import Page
 from .routing import RouteMatch, resolve_route
-from .wagtail_admin.router import (
-    AdminLoginRequired,
-    STATIC_DIR,
-    _login_url,
-    create_admin_router,
-)
 
 PageRenderer = Callable[[Request, RouteMatch], Response | Awaitable[Response]]
 StartupHook = Callable[[], Awaitable[None]]
@@ -96,26 +85,6 @@ def create_api_router() -> APIRouter:
     return router
 
 
-def _build_lifespan(
-    *,
-    database_url: str,
-    startup_hook: StartupHook | None,
-) -> Callable[[FastAPI], AsyncIterator[None]]:
-    prepare_sqlite_database(database_url)
-    base_lifespan = db.lifespan(default=database_url)
-
-    if startup_hook is None:
-        return base_lifespan
-
-    @asynccontextmanager
-    async def combined_lifespan(app: FastAPI) -> AsyncIterator[None]:
-        async with base_lifespan(app):
-            await startup_hook()
-            yield
-
-    return combined_lifespan
-
-
 def create_app(
     *,
     database_url: str = "sqlite://oxytail.db",
@@ -128,31 +97,27 @@ def create_app(
     startup_hook: StartupHook | None = None,
 ) -> FastAPI:
     """Create a runnable FastAPI app using Oxyde's lifespan integration."""
+    from .cms import FastAPICMS
 
+    cms = FastAPICMS(
+        secret_key=secret_key,
+        title=title,
+        prefix=admin_path,
+        renderer=renderer,
+    )
     app = FastAPI(
         title=title,
-        lifespan=_build_lifespan(
-            database_url=database_url,
-            startup_hook=startup_hook,
-        ),
+        lifespan=cms.lifespan(database_url, startup_hook=startup_hook),
     )
     app.include_router(create_api_router())
 
     if mount_wagtail_admin:
-        app.add_middleware(SessionMiddleware, secret_key=secret_key)
-        static_prefix = f"{admin_path.rstrip('/')}/static"
-        app.mount(static_prefix, StaticFiles(directory=STATIC_DIR), name="oxytail_admin_static")
-        app.include_router(create_admin_router(), prefix=admin_path.rstrip("/"))
-
-        @app.exception_handler(AdminLoginRequired)
-        async def admin_login_redirect(_request: Request, exc: AdminLoginRequired) -> RedirectResponse:
-            return RedirectResponse(_login_url(exc.next_url), status_code=303)
+        app.mount(admin_path.rstrip("/"), cms.app)
 
     if mount_admin:
         admin = create_fastapi_admin(title=f"{title} Admin", include_users=True)
         app.mount(admin_path, admin.app)
 
-    # Include last so explicit API/admin routes win over the CMS catch-all.
     app.include_router(create_cms_router(renderer=renderer))
     return app
 

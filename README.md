@@ -147,10 +147,18 @@ ueber_uns = await create_translation(about, title="Ueber uns", slug="ueber-uns",
 
 ## Integration into an existing app
 
-To mount Oxytail into a running FastAPI/Oxyde project (one process, one database) see
-[docs/integration.md](docs/integration.md).
+```python
+from fastapi import FastAPI
+from oxytail import FastAPICMS
 
-## FastAPI app
+cms = FastAPICMS(secret_key="change-me")
+app = FastAPI(lifespan=cms.lifespan("sqlite://oxytail.db"))
+cms.mount(app)
+```
+
+See [docs/integration.md](docs/integration.md).
+
+## FastAPI app (greenfield)
 
 ```python
 from oxytail.fastapi import create_app
