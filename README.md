@@ -145,6 +145,11 @@ about = await create_page(title="About", slug="about", parent=home, locale=en, l
 ueber_uns = await create_translation(about, title="Ueber uns", slug="ueber-uns", locale=de)
 ```
 
+## Integration into an existing app
+
+To mount Oxytail into a running FastAPI/Oxyde project (one process, one database) see
+[docs/integration.md](docs/integration.md).
+
 ## FastAPI app
 
 ```python
