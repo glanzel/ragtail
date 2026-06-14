@@ -15,10 +15,11 @@ sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(DEMO_DIR))
 
 import admin_setup  # noqa: F401,E402 registers demo rich text field
+import site_setup  # noqa: F401,E402 registers demo page views
 
 from oxytail.fastapi import create_app  # noqa: E402
+from oxytail.templates import PyJsxRenderer  # noqa: E402
 
-from renderer import create_site_renderer  # noqa: E402
 from seed import seed_if_empty  # noqa: E402
 
 DEFAULT_DB_PATH = DEMO_DIR / "oxytail.db"
@@ -30,7 +31,7 @@ SECRET_KEY = os.environ.get("OXYTAIL_SECRET_KEY", "oxytail-demo-secret-change-me
 
 app = create_app(
     database_url=DATABASE_URL,
-    renderer=create_site_renderer(),
+    template_engine=PyJsxRenderer(components_module="site_templates.page"),
     mount_wagtail_admin=True,
     secret_key=SECRET_KEY,
     title="Oxytail Demo",
