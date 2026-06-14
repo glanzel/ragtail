@@ -70,7 +70,7 @@ createsuperuser: ## Create first staff user (interactive; USERNAME/EMAIL/PASSWOR
 		$(if $(UPDATE),--update,)
 
 dev: ## Run demo app with auto-reload (uvicorn)
-	$(UV) run uvicorn examples.demo.main:app --reload --host $(HOST) --port $(PORT)
+	$(UV) run python -m uvicorn examples.demo.main:app --reload --host $(HOST) --port $(PORT)
 
 demo: ## Run demo app without reload
 	$(UV) run python examples/demo/main.py

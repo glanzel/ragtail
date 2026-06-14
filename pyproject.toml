@@ -27,6 +27,9 @@ dependencies = [
 admin = [
   "oxyde-admin>=0.4.0",
 ]
+jinja = [
+  "jinja2>=3.1",
+]
 demo = [
   "uvicorn[standard]>=0.30",
 ]
@@ -38,8 +41,10 @@ oxytail-initdb = "oxytail.initdb:main"
 [dependency-groups]
 dev = [
   "httpx>=0.27",
+  "jinja2>=3.1",
   "pytest>=8.0",
   "pytest-asyncio>=0.23",
+  "uvicorn[standard]>=0.30",
 ]
 
 [tool.uv]

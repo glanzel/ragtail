@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from oxyde import db
 
+from pages import ContentPage  # noqa: F401
 from oxytail.auth import ensure_superuser
 from oxytail.db import ensure_tables
 from oxytail.menus import create_menu, create_menu_item
-from oxytail.models import Locale, Page, User
+from oxytail.models import Locale, User
+from oxytail.page_types import cast_page, persist_page
 from oxytail.pages import create_page
 from oxytail.wagtail_admin.services import ensure_root_page
 
@@ -30,7 +32,7 @@ async def seed_if_empty(
         is_active=True,
     )
 
-    home = await ensure_root_page(en)
+    home = await cast_page(await ensure_root_page(en))
     home.title = "Home"
     home.body = (
         "# Welcome to Oxytail\n\n"
@@ -40,7 +42,7 @@ async def seed_if_empty(
     )
     home.live = True
     home.show_in_menus = True
-    await home.save()
+    await persist_page(home)
 
     about = await create_page(
         title="About",

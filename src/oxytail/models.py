@@ -1,8 +1,14 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any
 
 from oxyde import Field, Index, Model
+
+if TYPE_CHECKING:
+    from fastapi import Request
+
+    from .routing import RouteMatch
 
 
 class TimestampedModel(Model):
@@ -91,6 +97,19 @@ class Page(TimestampedModel):
     @property
     def is_root(self) -> bool:
         return self.parent is None and self.path == "/"
+
+    async def get_context(self, request: Request, route: RouteMatch) -> dict[str, Any]:
+        """Return extra template context (override in Page subclasses)."""
+        _ = request, route
+        return {}
+
+    def get_template_name(self, request: Request, route: RouteMatch) -> str:
+        """Default Wagtail-style template: ``about_page.html`` for ``AboutPage``."""
+        _ = request, route
+        from .page_types import class_to_content_type, get_page_model
+
+        model_cls = get_page_model(self.content_type or "page")
+        return f"{class_to_content_type(model_cls.__name__)}.html"
 
 
 class Menu(TimestampedModel):

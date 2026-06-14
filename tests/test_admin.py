@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 
 import pytest
 import pytest_asyncio
@@ -9,8 +10,14 @@ from oxytail.auth import ensure_superuser
 from oxytail.db import run_migrations
 from oxytail.fastapi import create_app
 from oxytail.models import Locale
+from oxytail.page_types import cast_page
 from oxytail.pages import create_page
 from oxytail.wagtail_admin.services import ensure_root_page
+
+_DEMO_DIR = Path(__file__).resolve().parents[1] / "examples" / "demo"
+if str(_DEMO_DIR) not in sys.path:
+    sys.path.insert(0, str(_DEMO_DIR))
+import pages  # noqa: F401,E402 registers ContentPage
 
 
 @pytest_asyncio.fixture
@@ -34,6 +41,7 @@ async def client(tmp_path: Path):
             parent=home,
             locale=en,
             live=True,
+            body="Placeholder",
         )
 
         app = create_app(
@@ -95,32 +103,59 @@ async def test_admin_page_add_route(client: AsyncClient) -> None:
     )
     assert add_page.status_code == 200
     assert "Add child page" in add_page.text
+    assert "Content page" in add_page.text
+    assert 'name="content_type"' in add_page.text
 
 
 @pytest.mark.asyncio
-async def test_admin_page_edit_body_uses_base64_initial_value(client: AsyncClient) -> None:
-    import importlib
-    import re
-    import sys
-    from pathlib import Path
+async def test_admin_page_add_shows_type_chooser_for_multiple_types(client: AsyncClient) -> None:
+    from oxyde import Field
 
     from oxytail.models import Page
-    from oxytail.wagtail_admin.registry import clear_page_form_fields
+    from oxytail.page_types import clear_page_models, register_page_model
 
-    demo_dir = Path(__file__).resolve().parents[1] / "examples" / "demo"
-    sys.path.insert(0, str(demo_dir))
-    clear_page_form_fields()
-    if "admin_setup" in sys.modules:
-        importlib.reload(sys.modules["admin_setup"])
-    else:
-        importlib.import_module("admin_setup")
+    @register_page_model
+    class BlogPage(Page):
+        intro: str | None = Field(default=None)
 
     login = await client.post(
         "/admin/login/",
         data={"username": "admin", "password": "admin", "next": "/admin/pages/"},
         follow_redirects=False,
     )
-    about_page = await Page.objects.filter(slug="about").first()
+    pages = await client.get("/admin/pages/", cookies=login.cookies, follow_redirects=False)
+    root_id = pages.headers["location"].rstrip("/").rsplit("/", 1)[-1]
+
+    add_page = await client.get(
+        f"/admin/pages/add/?parent={root_id}",
+        cookies=login.cookies,
+    )
+    assert add_page.status_code == 200
+    assert "Choose page type" in add_page.text
+    assert "Content page" in add_page.text
+    assert "Blog page" in add_page.text
+    assert f"content_type=blog_page" in add_page.text
+
+    clear_page_models()
+    import importlib
+
+    import pages as demo_pages
+
+    importlib.reload(demo_pages)
+
+
+@pytest.mark.asyncio
+async def test_admin_page_edit_body_uses_base64_initial_value(client: AsyncClient) -> None:
+    import re
+
+    from oxytail.models import Page
+
+    login = await client.post(
+        "/admin/login/",
+        data={"username": "admin", "password": "admin", "next": "/admin/pages/"},
+        follow_redirects=False,
+    )
+    about_page = await cast_page(await Page.objects.filter(slug="about").first())
     assert about_page is not None
     about_page.body = "# Title\n\nParagraph with **bold**"
     await about_page.save()
@@ -136,25 +171,9 @@ async def test_admin_page_edit_body_uses_base64_initial_value(client: AsyncClien
     assert textarea_match is not None
     assert textarea_match.group(1).strip() == ""
 
-    clear_page_form_fields()
-
 
 @pytest.mark.asyncio
 async def test_admin_page_edit_includes_richtext_editor(client: AsyncClient) -> None:
-    import importlib
-    import sys
-    from pathlib import Path
-
-    from oxytail.wagtail_admin.registry import clear_page_form_fields
-
-    demo_dir = Path(__file__).resolve().parents[1] / "examples" / "demo"
-    sys.path.insert(0, str(demo_dir))
-    clear_page_form_fields()
-    if "admin_setup" in sys.modules:
-        importlib.reload(sys.modules["admin_setup"])
-    else:
-        importlib.import_module("admin_setup")
-
     from oxytail.models import Page
 
     login = await client.post(
@@ -172,9 +191,6 @@ async def test_admin_page_edit_includes_richtext_editor(client: AsyncClient) -> 
     assert "richtext-toolbar-btn" in edit.text
     assert edit.text.count('data-action="') >= 9
     assert "richtext.js" in edit.text
-
-    clear_page_form_fields()
-    importlib.import_module("admin_setup")
 
 
 @pytest.mark.asyncio

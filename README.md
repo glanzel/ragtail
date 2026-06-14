@@ -220,20 +220,21 @@ Features:
 - Menu builder (create menus and add page/URL items)
 - Create / edit / delete pages
 
-### Demo-only rich text (TipTap)
+### Demo rich text (TipTap)
 
-The core page editor intentionally has no body field. The demo registers a
-`body` rich text field (TipTap) similar to Wagtail's `RichTextField`:
+The core `Page` model stores shared table columns. Declare type-specific fields on a
+concrete page subclass (Wagtail-style); the admin picks them up automatically:
 
 ```python
-from oxytail.wagtail_admin.registry import PageFormField, register_page_form_field
+from oxyde import Field
+from oxytail import Page, register_page_model
 
-register_page_form_field(
-    PageFormField(name="body", label="Content", widget="richtext")
-)
+@register_page_model
+class ContentPage(Page):
+    body: str | None = Field(default=None, db_type="TEXT")
 ```
 
-See `examples/demo/admin_setup.py`.
+See `examples/demo/pages.py` and `examples/demo/site_templates/content_page.px`.
 
 The legacy generic `oxyde-admin` CRUD remains available via `mount_admin=True`.
 

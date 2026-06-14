@@ -6,6 +6,7 @@ from uuid import uuid4
 from fastapi import HTTPException, Request
 
 from ..models import Locale, Menu, MenuItem, Page, User
+from ..page_types import cast_page, get_default_page_model, persist_page
 from ..pages import create_page
 from ..routing import get_default_locale, get_translation, join_page_path, normalize_path
 
@@ -207,6 +208,7 @@ async def create_child_page(
     title: str,
     slug: str,
     locale: Locale,
+    page_model: type[Page] | None = None,
     body: str | None = None,
     live: bool = False,
     show_in_menus: bool = False,
@@ -220,6 +222,7 @@ async def create_child_page(
         parent=parent,
         live=live,
         show_in_menus=show_in_menus,
+        page_model=page_model or get_default_page_model(),
         body=body,
         seo_title=seo_title,
         search_description=search_description,
@@ -237,27 +240,29 @@ async def update_page(
     seo_title: str | None,
     search_description: str | None,
 ) -> Page:
+    typed_page = await cast_page(page)
     parent = None
-    if page.parent_id is not None:
-        parent = await Page.objects.get_or_none(id=page.parent_id)
+    if typed_page.parent_id is not None:
+        parent = await Page.objects.get_or_none(id=typed_page.parent_id)
     parent_path = parent.path if parent is not None else "/"
     new_path = (
         "/"
-        if page.parent is None and not slug.strip("/")
+        if typed_page.parent is None and not slug.strip("/")
         else join_page_path(parent_path, slug)
     )
 
-    page.title = title
-    page.slug = slug.strip("/")
-    page.path = new_path
-    page.body = body
-    page.live = live
-    page.show_in_menus = show_in_menus
-    page.seo_title = seo_title
-    page.search_description = search_description
-    await page.save()
-    await _repath_descendants(page)
-    return page
+    typed_page.title = title
+    typed_page.slug = slug.strip("/")
+    typed_page.path = new_path
+    if hasattr(typed_page, "body"):
+        typed_page.body = body
+    typed_page.live = live
+    typed_page.show_in_menus = show_in_menus
+    typed_page.seo_title = seo_title
+    typed_page.search_description = search_description
+    await persist_page(typed_page)
+    await _repath_descendants(await Page.objects.get(id=typed_page.id))
+    return await cast_page(await Page.objects.get(id=typed_page.id))
 
 
 async def _repath_descendants(page: Page) -> None:

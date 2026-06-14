@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator, Awaitable, Callable
 from inspect import isawaitable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
@@ -11,6 +11,9 @@ from .admin import create_fastapi_admin
 from .menus import get_menu_tree
 from .models import Page
 from .routing import RouteMatch, resolve_route
+
+if TYPE_CHECKING:
+    from .templates.base import TemplateEngineInterface
 
 PageRenderer = Callable[[Request, RouteMatch], Response | Awaitable[Response]]
 StartupHook = Callable[[], Awaitable[None]]
@@ -25,7 +28,7 @@ def default_page_payload(route: RouteMatch) -> dict[str, Any]:
         "path": route.public_path,
         "locale": route.locale.language_code,
         "content_type": page.content_type,
-        "body": page.body,
+        "body": getattr(page, "body", None),
         "seo_title": page.seo_title,
         "search_description": page.search_description,
         "is_fallback": route.is_fallback,
@@ -89,6 +92,7 @@ def create_app(
     *,
     database_url: str = "sqlite://oxytail.db",
     renderer: PageRenderer | None = None,
+    template_engine: TemplateEngineInterface | None = None,
     mount_admin: bool = False,
     mount_wagtail_admin: bool = False,
     admin_path: str = "/admin",
@@ -104,6 +108,7 @@ def create_app(
         title=title,
         prefix=admin_path,
         renderer=renderer,
+        template_engine=template_engine,
     )
     app = FastAPI(
         title=title,
@@ -118,7 +123,7 @@ def create_app(
         admin = create_fastapi_admin(title=f"{title} Admin", include_users=True)
         app.mount(admin_path, admin.app)
 
-    app.include_router(create_cms_router(renderer=renderer))
+    app.include_router(create_cms_router(renderer=cms.renderer))
     return app
 
 

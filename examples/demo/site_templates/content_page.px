@@ -11,8 +11,8 @@ class MenuLink:
     self.href = href
 
 
-def SitePage(*, route, menu_items):
-  page = route.page
+def contentPage(*, page, context):
+  menu_items = context.get("menu_items", [])
   menu_links = [MenuLink(label=item.label, href=item.href) for item in menu_items]
   return (
     <SiteLayout title={page.seo_title or page.title} menu_items={menu_links}>

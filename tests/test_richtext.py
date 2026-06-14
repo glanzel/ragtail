@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 
 import pytest
 import pytest_asyncio
@@ -10,6 +11,7 @@ from oxytail.auth import ensure_superuser
 from oxytail.db import run_migrations
 from oxytail.fastapi import create_app
 from oxytail.models import Locale, Page
+from oxytail.page_types import cast_page
 from oxytail.pages import create_page
 from oxytail.richtext import (
     prepare_body_for_storage,
@@ -19,10 +21,18 @@ from oxytail.richtext import (
 from oxytail.seo import normalize_search_description, search_description_error
 from oxytail.wagtail_admin.services import ensure_root_page
 
+_DEMO_DIR = Path(__file__).resolve().parents[1] / "examples" / "demo"
+if str(_DEMO_DIR) not in sys.path:
+    sys.path.insert(0, str(_DEMO_DIR))
+import pages  # noqa: F401,E402 registers ContentPage
+
 
 def test_render_body_converts_markdown_to_html() -> None:
     html = render_body("Hello **world**")
     assert "<strong>world</strong>" in html
+
+
+@pytest_asyncio.fixture
 
 
 def test_render_body_escapes_inline_html_in_markdown() -> None:
@@ -73,6 +83,11 @@ def test_search_description_error_for_too_long_value() -> None:
 
 @pytest_asyncio.fixture
 async def public_client(tmp_path: Path):
+    from oxytail.page_types import get_page_model, register_page_model
+
+    if get_page_model("content_page") is Page:
+        register_page_model(pages.ContentPage)
+
     database_url = f"sqlite:////{tmp_path / 'richtext.db'}"
     await db.init(default=database_url)
     try:
@@ -92,11 +107,13 @@ async def public_client(tmp_path: Path):
             parent=home,
             locale=en,
             live=True,
+            page_model=pages.ContentPage,
             body="Placeholder",
         )
 
         async def render_page(_request, route):
-            return HTMLResponse(render_body(route.page.body))
+            page = await cast_page(route.page)
+            return HTMLResponse(render_body(page.body))
 
         app = create_app(
             database_url=database_url,
@@ -113,7 +130,7 @@ async def public_client(tmp_path: Path):
 
 @pytest.mark.asyncio
 async def test_public_page_renders_stored_markdown_as_html(public_client: AsyncClient) -> None:
-    about_page = await Page.objects.filter(slug="about").first()
+    about_page = await cast_page(await Page.objects.filter(slug="about").first())
     assert about_page is not None
     about_page.body = "Hello **world**"
     await about_page.save()
@@ -126,19 +143,6 @@ async def test_public_page_renders_stored_markdown_as_html(public_client: AsyncC
 
 @pytest.mark.asyncio
 async def test_admin_save_persists_markdown_body(public_client: AsyncClient) -> None:
-    import importlib
-    import sys
-
-    from oxytail.wagtail_admin.registry import clear_page_form_fields
-
-    demo_dir = Path(__file__).resolve().parents[1] / "examples" / "demo"
-    sys.path.insert(0, str(demo_dir))
-    clear_page_form_fields()
-    if "admin_setup" in sys.modules:
-        importlib.reload(sys.modules["admin_setup"])
-    else:
-        importlib.import_module("admin_setup")
-
     login = await public_client.post(
         "/admin/login/",
         data={"username": "admin", "password": "admin", "next": "/admin/pages/"},
@@ -161,7 +165,7 @@ async def test_admin_save_persists_markdown_body(public_client: AsyncClient) -> 
         follow_redirects=False,
     )
 
-    saved = await Page.objects.get(id=about_page.id)
+    saved = await cast_page(await Page.objects.get(id=about_page.id))
     assert saved.body is not None
     assert "## Heading" in saved.body
     assert "**markdown**" in saved.body
@@ -171,5 +175,3 @@ async def test_admin_save_persists_markdown_body(public_client: AsyncClient) -> 
     assert "**markdown**" not in response.text
     assert "<h2>Heading</h2>" in response.text
     assert "<strong>markdown</strong>" in response.text
-
-    clear_page_form_fields()
