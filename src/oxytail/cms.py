@@ -15,6 +15,7 @@ from .wagtail_admin.router import AdminLoginRequired, STATIC_DIR, _login_url, cr
 
 if TYPE_CHECKING:
     from .fastapi import PageRenderer
+    from .templates.base import TemplateEngineInterface
 
 StartupHook = Callable[[], Awaitable[None]]
 
@@ -29,13 +30,20 @@ class FastAPICMS:
         title: str = "Oxytail",
         prefix: str = "/admin",
         renderer: PageRenderer | None = None,
+        template_engine: TemplateEngineInterface | None = None,
         include_unpublished: bool = False,
         prefix_default_language: bool = False,
     ) -> None:
         self.secret_key = secret_key
         self.title = title
         self.prefix = prefix.rstrip("/") or "/admin"
-        self.renderer = renderer
+        if renderer is not None:
+            self.renderer = renderer
+        elif template_engine is not None:
+            self.renderer = template_engine.as_renderer()
+        else:
+            self.renderer = None
+        self.template_engine = template_engine
         self.include_unpublished = include_unpublished
         self.prefix_default_language = prefix_default_language
         self._app: FastAPI | None = None
@@ -78,7 +86,7 @@ class FastAPICMS:
 
         return cms_lifespan
 
-    def mount(self, app: FastAPI, *, pages: bool = True, api: bool = False) -> None:
+    def mount(self, app: FastAPI, *, pages: bool = True, api: bool = True) -> None:
         """Attach the CMS admin (and optionally API + public pages) to an existing app."""
         from .fastapi import create_api_router
 

@@ -10,9 +10,19 @@ uv add oxytail
 
 ```python
 from fastapi import FastAPI
-from oxytail import FastAPICMS
+from oxytail import FastAPICMS, PageView, PyJsxRenderer, register_page_view
 
-cms = FastAPICMS(secret_key="change-me")
+@register_page_view
+class SitePageView(PageView):
+    content_type = "page"
+
+    async def get_context(self, request, page, route):
+        return {}
+
+cms = FastAPICMS(
+    secret_key="change-me",
+    template_engine=PyJsxRenderer(components_module="site_templates.page"),
+)
 app = FastAPI(lifespan=cms.lifespan("sqlite://app.db"))
 cms.mount(app)
 ```
@@ -21,16 +31,27 @@ cms.mount(app)
 uv run oxytail-createsuperuser --username admin --email admin@example.com --password secret --noinput
 ```
 
-Open http://localhost:8000/admin/ for the CMS admin. Public pages are served on `/` from the same app and database.
+Open http://localhost:8000/admin/ for the CMS admin. Public pages are served on `/`, JSON API at `/api/cms/…` — same app and database.
+
+PyJSX component naming: content type `detail_page` → `detailPage(page, context)`.
+
+Jinja2 (optional extra):
+
+```bash
+uv add "oxytail[jinja]"
+```
+
+```python
+from oxytail import Jinja2Renderer
+
+cms = FastAPICMS(
+    secret_key="change-me",
+    template_engine=Jinja2Renderer("templates"),
+)
+```
 
 Admin only (like oxyde-admin):
 
 ```python
 app.mount("/admin", cms.app)
-```
-
-Custom page renderer:
-
-```python
-cms = FastAPICMS(secret_key="change-me", renderer=my_html_renderer)
 ```
