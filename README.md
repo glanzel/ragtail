@@ -1,13 +1,13 @@
-# Oxytail
+# Ragtail
 
-Oxytail is a Wagtail-inspired CMS built on [Oxyde ORM](https://oxyde.fatalyst.dev/)
+Ragtail is a Ragtail CMS built on [Oxyde ORM](https://oxyde.fatalyst.dev/)
 and FastAPI. It ships with:
 
 - hierarchical `Page` model
 - locale-aware pages for multilingual sites
 - named navigation menus with nested menu items
 - FastAPI routing for page delivery (HTML via custom renderer, JSON API optional)
-- **Wagtail-style admin** with login, page explorer, and page editor (PyJSX UI)
+- **Ragtail admin** with login, page explorer, and page editor (PyJSX UI)
 - optional legacy `oxyde-admin` CRUD integration
 
 StreamField-like content blocks, images/documents, workflows and role-based
@@ -51,19 +51,19 @@ make createsuperuser
 # non-interactive:
 make createsuperuser USERNAME=admin EMAIL=admin@example.com PASSWORD=secret NOINPUT=1
 # or:
-uv run oxytail-createsuperuser --username admin --email admin@example.com --password secret --noinput
+uv run ragtail-createsuperuser --username admin --email admin@example.com --password secret --noinput
 ```
 
 Environment variables:
 
-- `OXYTAIL_DATABASE_URL` — database (default: `sqlite://oxytail.db`)
-- `OXYTAIL_SUPERUSER_USERNAME` / `OXYTAIL_SUPERUSER_EMAIL` / `OXYTAIL_SUPERUSER_PASSWORD` — with `--noinput`
+- `RAGTAIL_DATABASE_URL` — database (default: `sqlite://ragtail.db`)
+- `RAGTAIL_SUPERUSER_USERNAME` / `RAGTAIL_SUPERUSER_EMAIL` / `RAGTAIL_SUPERUSER_PASSWORD` — with `--noinput`
 
 Use `--update` (or `make createsuperuser UPDATE=1`) to reset an existing user's password.
 
 ### Database migrations
 
-Oxytail uses [Oxyde migrations](https://oxyde.fatalyst.dev/) (Django-style). Configuration lives in `oxyde_config.py`; migration files are in `migrations/`.
+Ragtail uses [Oxyde migrations](https://oxyde.fatalyst.dev/) (Django-style). Configuration lives in `oxyde_config.py`; migration files are in `migrations/`.
 
 ```bash
 make migrate              # create DB file if needed, apply pending migrations
@@ -74,7 +74,7 @@ make showmigrations       # list applied/pending migrations
 Fresh database:
 
 ```bash
-rm -f oxytail.db
+rm -f ragtail.db
 make migrate
 make createsuperuser
 ```
@@ -92,7 +92,7 @@ npm run build:css
 
 ## Demo application
 
-A runnable demo with Wagtail-style admin and PyJSX public templates lives in
+A runnable demo with Ragtail admin and PyJSX public templates lives in
 `examples/demo/`:
 
 ```bash
@@ -106,7 +106,7 @@ uv run python examples/demo/main.py
 
 ## Models
 
-Oxytail provides Oxyde models in `oxytail.models`:
+Ragtail provides Oxyde models in `ragtail.models`:
 
 - `Locale`: active languages/locales, including the default locale
 - `Page`: tree-structured page with `parent`, `path`, `depth`, `locale` and
@@ -128,9 +128,9 @@ Programmatically:
 
 ```python
 from oxyde import db
-from oxytail.db import run_migrations
+from ragtail.db import run_migrations
 
-await db.init(default="sqlite://oxytail.db")
+await db.init(default="sqlite://ragtail.db")
 await run_migrations()
 ```
 
@@ -138,7 +138,7 @@ Create pages through the helper service so `path`, `depth` and
 `translation_key` are filled consistently:
 
 ```python
-from oxytail.pages import create_page, create_translation
+from ragtail.pages import create_page, create_translation
 
 home = await create_page(title="Home", slug="", locale=en, live=True)
 about = await create_page(title="About", slug="about", parent=home, locale=en, live=True)
@@ -149,10 +149,10 @@ ueber_uns = await create_translation(about, title="Ueber uns", slug="ueber-uns",
 
 ```python
 from fastapi import FastAPI
-from oxytail import FastAPICMS
+from ragtail import FastAPICMS
 
 cms = FastAPICMS(secret_key="change-me")
-app = FastAPI(lifespan=cms.lifespan("sqlite://oxytail.db"))
+app = FastAPI(lifespan=cms.lifespan("sqlite://ragtail.db"))
 cms.mount(app)
 ```
 
@@ -161,18 +161,18 @@ See [docs/integration.md](docs/integration.md).
 ## FastAPI app (greenfield)
 
 ```python
-from oxytail.fastapi import create_app
+from ragtail.fastapi import create_app
 
 app = create_app(
-    database_url="sqlite://oxytail.db",
-    mount_wagtail_admin=True,
+    database_url="sqlite://ragtail.db",
+    mount_ragtail_admin=True,
     secret_key="replace-me",
 )
 ```
 
 This creates:
 
-- `/admin/` Wagtail-style CMS admin (login required)
+- `/admin/` Ragtail CMS admin (login required)
 - `/api/cms/pages/{path}` for JSON page lookup
 - `/api/cms/menus/{slug}` for JSON menu trees
 - a catch-all page route, which should be mounted last
@@ -181,28 +181,28 @@ Pass a renderer to serve HTML templates (for example with PyJSX):
 
 ```python
 from fastapi.responses import HTMLResponse
-from oxytail.fastapi import create_app
+from ragtail.fastapi import create_app
 
 app = create_app(
-    database_url="sqlite://oxytail.db",
+    database_url="sqlite://ragtail.db",
     renderer=my_html_renderer,
-    mount_wagtail_admin=True,
+    mount_ragtail_admin=True,
 )
 ```
 
 See `examples/demo/` for a full PyJSX setup.
 
-## Wagtail-style admin
+## Ragtail admin
 
 Enable the built-in admin with session login:
 
 ```python
-from oxytail.fastapi import create_app
-from oxytail.auth import ensure_superuser
+from ragtail.fastapi import create_app
+from ragtail.auth import ensure_superuser
 
 app = create_app(
-    database_url="sqlite://oxytail.db",
-    mount_wagtail_admin=True,
+    database_url="sqlite://ragtail.db",
+    mount_ragtail_admin=True,
     secret_key="replace-me",
 )
 
@@ -212,7 +212,7 @@ await ensure_superuser(username="admin", password="admin")
 
 Features:
 
-- Sign-in screen styled like Wagtail
+- Sign-in screen styled for Ragtail
 - Sidebar navigation (Dashboard, Pages, Menus, Locales)
 - Page explorer with tree + child listing
 - Page editor (title, slug, SEO, publish settings)
@@ -223,11 +223,11 @@ Features:
 ### Demo rich text (TipTap)
 
 The core `Page` model stores shared table columns. Declare type-specific fields on a
-concrete page subclass (Wagtail-style); the admin picks them up automatically:
+concrete page subclass; the admin picks them up automatically:
 
 ```python
 from oxyde import Field
-from oxytail import Page, register_page_model
+from ragtail import Page, register_page_model
 
 @register_page_model
 class ContentPage(Page):
@@ -240,12 +240,12 @@ The legacy generic `oxyde-admin` CRUD remains available via `mount_admin=True`.
 
 ## Routing and multilingual URLs
 
-Oxytail stores page paths without a locale prefix, for example `/about/`. The
+Ragtail stores page paths without a locale prefix, for example `/about/`. The
 request resolver accepts locale-prefixed URLs such as `/de/ueber-uns/` and maps
 them to the matching `Locale`.
 
 ```python
-from oxytail.routing import join_page_path, localized_path, resolve_route
+from ragtail.routing import join_page_path, localized_path, resolve_route
 
 path = join_page_path("/", "about")  # "/about/"
 public = localized_path(path, "de", default_language_code="en")  # "/de/about/"
@@ -260,7 +260,7 @@ Menus can be maintained through the admin or created with Oxyde directly. A menu
 tree can be fetched as serializable nodes:
 
 ```python
-from oxytail.menus import create_menu, create_menu_item, get_menu_tree
+from ragtail.menus import create_menu, create_menu_item, get_menu_tree
 
 main = await create_menu(name="Main", slug="main", locale=en)
 await create_menu_item(menu=main, label="About", page=about)

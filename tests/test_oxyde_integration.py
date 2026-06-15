@@ -3,10 +3,10 @@ from pathlib import Path
 import pytest
 from oxyde import AsyncDatabase, create_tables
 
-from oxytail.menus import create_menu, create_menu_item, get_menu_tree
-from oxytail.models import Locale
-from oxytail.pages import create_page, create_translation
-from oxytail.routing import resolve_route
+from ragtail.menus import create_menu, create_menu_item, get_menu_tree
+from ragtail.models import Locale
+from ragtail.pages import create_page, create_translation
+from ragtail.routing import resolve_route
 
 
 @pytest.mark.asyncio

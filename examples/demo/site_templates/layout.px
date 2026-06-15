@@ -11,10 +11,10 @@ def SiteLayout(*, title: str, menu_items, children):
         <link rel="stylesheet" href="/static/site.css" />
       </head>
       <body class="min-h-screen bg-white">
-        <header class="bg-wagtail-primary text-white">
+        <header class="bg-ragtail-primary text-white">
           <div class="mx-auto flex max-w-content items-center justify-between gap-4 px-6 py-4">
             <a href="/" class="text-lg font-bold text-white no-underline hover:text-white">
-              Oxytail Demo
+              Ragtail Demo
             </a>
             <nav aria-label="Main">
               <ul class="flex list-none gap-4 p-0">
@@ -32,7 +32,7 @@ def SiteLayout(*, title: str, menu_items, children):
         </header>
         <main class="mx-auto max-w-content px-6 py-8">{children}</main>
         <footer class="border-t border-gray-200 bg-gray-50 py-6 text-center text-sm text-gray-500">
-          <p>Rendered with PyJSX · Powered by Oxytail</p>
+          <p>Rendered with PyJSX · Powered by Ragtail</p>
         </footer>
       </body>
     </html>

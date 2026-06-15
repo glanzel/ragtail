@@ -3,12 +3,12 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 .venv/
-oxytail.db
+ragtail.db
 *.db-shm
 *.db-wal
 freshtest.db
 migrations-test.db
-examples/demo/oxytail.db
-src/oxytail/models.pyi
-examples/demo/oxytail.db-*
+examples/demo/ragtail.db
+src/ragtail/models.pyi
+examples/demo/ragtail.db-*
 node_modules/

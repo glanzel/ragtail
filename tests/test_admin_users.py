@@ -5,11 +5,11 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from oxyde import db
 
-from oxytail.auth import ensure_superuser, verify_password
-from oxytail.db import run_migrations
-from oxytail.fastapi import create_app
-from oxytail.models import Locale, User
-from oxytail.wagtail_admin.services import ensure_root_page
+from ragtail.auth import ensure_superuser, verify_password
+from ragtail.db import run_migrations
+from ragtail.fastapi import create_app
+from ragtail.models import Locale, User
+from ragtail.ragtail_admin.services import ensure_root_page
 
 @pytest_asyncio.fixture
 async def client(tmp_path: Path):
@@ -29,7 +29,7 @@ async def client(tmp_path: Path):
 
         app = create_app(
             database_url=database_url,
-            mount_wagtail_admin=True,
+            mount_ragtail_admin=True,
             secret_key="test-secret",
         )
         transport = ASGITransport(app=app)

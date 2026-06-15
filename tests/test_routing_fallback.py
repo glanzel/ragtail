@@ -3,12 +3,12 @@ from pathlib import Path
 import pytest
 from oxyde import db
 
-from oxytail.db import run_migrations
+from ragtail.db import run_migrations
 
-from oxytail.models import Locale
-from oxytail.pages import create_page, create_translation
-from oxytail.routing import resolve_route
-from oxytail.wagtail_admin.services import ensure_root_page
+from ragtail.models import Locale
+from ragtail.pages import create_page, create_translation
+from ragtail.routing import resolve_route
+from ragtail.ragtail_admin.services import ensure_root_page
 
 
 @pytest.mark.asyncio

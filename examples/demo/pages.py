@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from oxyde import Field
 
-from oxytail.menus import get_menu_tree
-from oxytail.models import Page
-from oxytail.page_types import register_page_model
-from oxytail.routing import RouteMatch
+from ragtail.menus import get_menu_tree
+from ragtail.models import Page
+from ragtail.page_types import register_page_model
+from ragtail.routing import RouteMatch
 
 
 @register_page_model

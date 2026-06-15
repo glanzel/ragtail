@@ -4,8 +4,8 @@ import pytest
 import pytest_asyncio
 from oxyde import db
 
-from oxytail.db import ensure_tables, run_migrations
-from oxytail.models import User
+from ragtail.db import ensure_tables, run_migrations
+from ragtail.models import User
 
 
 @pytest_asyncio.fixture

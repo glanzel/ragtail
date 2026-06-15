@@ -1,0 +1,60 @@
+from pyjsx import jsx
+
+from ragtail.ragtail_admin.classes import BTN, INPUT, LABEL
+from ragtail.ragtail_admin.components.icons import RagtailLogoWordmark
+
+
+def LoginError(error, children=None):
+  if not error:
+    return None
+  return (
+    <ul>
+      <li class="border-b border-red-100 bg-red-50 px-4 py-3 text-red-700">{error}</li>
+    </ul>
+  )
+
+
+def LoginPage(*, error: str | None = None, next_url: str = "/admin/", children=None):
+  return (
+    <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Sign in - Ragtail</title>
+        <link rel="stylesheet" href="/admin/static/ragtail-admin.css" />
+      </head>
+      <body class="min-h-screen bg-gray-50">
+        <main
+          class="mx-auto mt-16 max-w-login rounded border border-gray-200 bg-white p-8 shadow-sm"
+          id="main"
+        >
+          <h1 class="mb-6 text-2xl font-semibold text-gray-900">Sign in to Ragtail</h1>
+          <div role="status">
+            <LoginError error={error} />
+          </div>
+          <form class="mt-4 space-y-4" action="/admin/login/" method="post" autocomplete="off">
+            <input type="hidden" name="next" value={next_url} />
+            <div>
+              <label for="id_username" class={LABEL}>Username</label>
+              <input id="id_username" name="username" type="text" class={INPUT} required />
+            </div>
+            <div>
+              <label for="id_password" class={LABEL}>Password</label>
+              <input id="id_password" name="password" type="password" class={INPUT} required />
+            </div>
+            <footer class="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <button type="submit" class={BTN}>
+                <em class="not-italic">Sign in</em>
+              </button>
+              <a href="/admin/password-reset/" class="text-sm text-ragtail-secondary hover:underline">
+                Forgot your password?
+              </a>
+            </footer>
+          </form>
+          <div class="mt-8">
+            <RagtailLogoWordmark />
+          </div>
+        </main>
+      </body>
+    </html>
+  )

@@ -1,7 +1,7 @@
 from pyjsx import jsx
 from pyjsx.jsx import HTMLDontEscape
 
-from oxytail.richtext import render_body
+from ragtail.richtext import render_body
 from site_templates.layout import SiteLayout
 
 

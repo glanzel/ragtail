@@ -9,7 +9,7 @@ def test_demo_registers_richtext_body_field() -> None:
     demo_dir = Path(__file__).resolve().parents[1] / "examples" / "demo"
     sys.path.insert(0, str(demo_dir))
 
-    from oxytail.page_types import clear_page_models, get_page_form_fields_for
+    from ragtail.page_types import clear_page_models, get_page_form_fields_for
 
     clear_page_models()
     pages = importlib.import_module("pages")

@@ -3,7 +3,7 @@
 ## Installation
 
 ```bash
-uv add oxytail
+uv add ragtail
 ```
 
 ## Quick start
@@ -11,7 +11,7 @@ uv add oxytail
 ```python
 from fastapi import FastAPI
 from oxyde import Field
-from oxytail import FastAPICMS, Page, PyJsxRenderer, register_page_model
+from ragtail import FastAPICMS, Page, PyJsxRenderer, register_page_model
 
 @register_page_model
 class ContentPage(Page):
@@ -31,7 +31,7 @@ cms.mount(app)
 `ContentPage` maps to template `content_page.html` (Jinja2) or PyJSX component `contentPage(page, context)`.
 
 ```bash
-uv run oxytail-createsuperuser --username admin --email admin@example.com --password secret --noinput
+uv run ragtail-createsuperuser --username admin --email admin@example.com --password secret --noinput
 ```
 
 Open http://localhost:8000/admin/ for the CMS admin. Public pages are served on `/`, JSON API at `/api/cms/…` — same app and database.
@@ -39,11 +39,11 @@ Open http://localhost:8000/admin/ for the CMS admin. Public pages are served on 
 Jinja2 (optional extra):
 
 ```bash
-uv add "oxytail[jinja]"
+uv add "ragtail[jinja]"
 ```
 
 ```python
-from oxytail import Jinja2Renderer
+from ragtail import Jinja2Renderer
 
 cms = FastAPICMS(
     secret_key="change-me",

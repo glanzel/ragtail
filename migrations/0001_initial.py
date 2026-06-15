@@ -9,7 +9,7 @@ depends_on = None
 def upgrade(ctx):
     """Apply migration."""
     ctx.create_table(
-        "oxytail_users",
+        "ragtail_users",
         fields=[
             {
                 'name': 'created_at',
@@ -118,7 +118,7 @@ def upgrade(ctx):
         ],
     )
     ctx.create_table(
-        "oxytail_locales",
+        "ragtail_locales",
         fields=[
             {
                 'name': 'created_at',
@@ -227,7 +227,7 @@ def upgrade(ctx):
         ],
     )
     ctx.create_table(
-        "oxytail_menus",
+        "ragtail_menus",
         fields=[
             {
                 'name': 'created_at',
@@ -323,11 +323,11 @@ def upgrade(ctx):
         ],
         foreign_keys=[
             {
-                'name': 'fk_oxytail_menus_locale_id',
+                'name': 'fk_ragtail_menus_locale_id',
                 'columns': [
                     'locale_id'
                 ],
-                'ref_table': 'oxytail_locales',
+                'ref_table': 'ragtail_locales',
                 'ref_columns': [
                     'id'
                 ],
@@ -337,7 +337,7 @@ def upgrade(ctx):
         ],
     )
     ctx.create_table(
-        "oxytail_pages",
+        "ragtail_pages",
         fields=[
             {
                 'name': 'created_at',
@@ -589,7 +589,7 @@ def upgrade(ctx):
         ],
         indexes=[
             {
-                'name': 'oxytail_pages_locale_slug_idx',
+                'name': 'ragtail_pages_locale_slug_idx',
                 'fields': [
                     'locale',
                     'slug'
@@ -598,7 +598,7 @@ def upgrade(ctx):
                 'method': None
             },
             {
-                'name': 'oxytail_pages_parent_sort_order_idx',
+                'name': 'ragtail_pages_parent_sort_order_idx',
                 'fields': [
                     'parent',
                     'sort_order'
@@ -607,7 +607,7 @@ def upgrade(ctx):
                 'method': None
             },
             {
-                'name': 'oxytail_pages_translation_key_locale_idx',
+                'name': 'ragtail_pages_translation_key_locale_idx',
                 'fields': [
                     'translation_key',
                     'locale'
@@ -618,11 +618,11 @@ def upgrade(ctx):
         ],
         foreign_keys=[
             {
-                'name': 'fk_oxytail_pages_locale_id',
+                'name': 'fk_ragtail_pages_locale_id',
                 'columns': [
                     'locale_id'
                 ],
-                'ref_table': 'oxytail_locales',
+                'ref_table': 'ragtail_locales',
                 'ref_columns': [
                     'id'
                 ],
@@ -630,11 +630,11 @@ def upgrade(ctx):
                 'on_update': 'CASCADE'
             },
             {
-                'name': 'fk_oxytail_pages_parent_id',
+                'name': 'fk_ragtail_pages_parent_id',
                 'columns': [
                     'parent_id'
                 ],
-                'ref_table': 'oxytail_pages',
+                'ref_table': 'ragtail_pages',
                 'ref_columns': [
                     'id'
                 ],
@@ -644,7 +644,7 @@ def upgrade(ctx):
         ],
     )
     ctx.create_table(
-        "oxytail_menu_items",
+        "ragtail_menu_items",
         fields=[
             {
                 'name': 'created_at',
@@ -792,7 +792,7 @@ def upgrade(ctx):
         ],
         indexes=[
             {
-                'name': 'oxytail_menu_items_menu_parent_sort_order_idx',
+                'name': 'ragtail_menu_items_menu_parent_sort_order_idx',
                 'fields': [
                     'menu',
                     'parent',
@@ -804,11 +804,11 @@ def upgrade(ctx):
         ],
         foreign_keys=[
             {
-                'name': 'fk_oxytail_menu_items_menu_id',
+                'name': 'fk_ragtail_menu_items_menu_id',
                 'columns': [
                     'menu_id'
                 ],
-                'ref_table': 'oxytail_menus',
+                'ref_table': 'ragtail_menus',
                 'ref_columns': [
                     'id'
                 ],
@@ -816,11 +816,11 @@ def upgrade(ctx):
                 'on_update': 'CASCADE'
             },
             {
-                'name': 'fk_oxytail_menu_items_parent_id',
+                'name': 'fk_ragtail_menu_items_parent_id',
                 'columns': [
                     'parent_id'
                 ],
-                'ref_table': 'oxytail_menu_items',
+                'ref_table': 'ragtail_menu_items',
                 'ref_columns': [
                     'id'
                 ],
@@ -828,11 +828,11 @@ def upgrade(ctx):
                 'on_update': 'CASCADE'
             },
             {
-                'name': 'fk_oxytail_menu_items_page_id',
+                'name': 'fk_ragtail_menu_items_page_id',
                 'columns': [
                     'page_id'
                 ],
-                'ref_table': 'oxytail_pages',
+                'ref_table': 'ragtail_pages',
                 'ref_columns': [
                     'id'
                 ],
@@ -845,8 +845,8 @@ def upgrade(ctx):
 
 def downgrade(ctx):
     """Revert migration."""
-    ctx.drop_table("oxytail_menu_items")
-    ctx.drop_table("oxytail_pages")
-    ctx.drop_table("oxytail_menus")
-    ctx.drop_table("oxytail_locales")
-    ctx.drop_table("oxytail_users")
+    ctx.drop_table("ragtail_menu_items")
+    ctx.drop_table("ragtail_pages")
+    ctx.drop_table("ragtail_menus")
+    ctx.drop_table("ragtail_locales")
+    ctx.drop_table("ragtail_users")

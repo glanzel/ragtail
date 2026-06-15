@@ -7,19 +7,19 @@ from httpx import ASGITransport, AsyncClient
 from oxyde import db
 from fastapi.responses import HTMLResponse
 
-from oxytail.auth import ensure_superuser
-from oxytail.db import run_migrations
-from oxytail.fastapi import create_app
-from oxytail.models import Locale, Page
-from oxytail.page_types import cast_page
-from oxytail.pages import create_page
-from oxytail.richtext import (
+from ragtail.auth import ensure_superuser
+from ragtail.db import run_migrations
+from ragtail.fastapi import create_app
+from ragtail.models import Locale, Page
+from ragtail.page_types import cast_page
+from ragtail.pages import create_page
+from ragtail.richtext import (
     prepare_body_for_storage,
     render_body,
     sanitize_stored_body,
 )
-from oxytail.seo import normalize_search_description, search_description_error
-from oxytail.wagtail_admin.services import ensure_root_page
+from ragtail.seo import normalize_search_description, search_description_error
+from ragtail.ragtail_admin.services import ensure_root_page
 
 _DEMO_DIR = Path(__file__).resolve().parents[1] / "examples" / "demo"
 if str(_DEMO_DIR) not in sys.path:
@@ -83,7 +83,7 @@ def test_search_description_error_for_too_long_value() -> None:
 
 @pytest_asyncio.fixture
 async def public_client(tmp_path: Path):
-    from oxytail.page_types import get_page_model, register_page_model
+    from ragtail.page_types import get_page_model, register_page_model
 
     if get_page_model("content_page") is Page:
         register_page_model(pages.ContentPage)
@@ -117,7 +117,7 @@ async def public_client(tmp_path: Path):
 
         app = create_app(
             database_url=database_url,
-            mount_wagtail_admin=True,
+            mount_ragtail_admin=True,
             secret_key="test-secret",
             renderer=render_page,
         )

@@ -1,0 +1,112 @@
+import base64
+
+from pyjsx import jsx
+
+from ragtail.ragtail_admin.components.icons import (
+    RichtextIconBlockquote,
+    RichtextIconBold,
+    RichtextIconBulletList,
+    RichtextIconItalic,
+    RichtextIconOrderedList,
+    RichtextIconRedo,
+    RichtextIconStrike,
+    RichtextIconUndo,
+)
+
+
+def RichTextToolbarButton(*, action: str, title: str, children=None):
+  return (
+    <button
+      type="button"
+      class="richtext-toolbar-btn"
+      data-action={action}
+      title={title}
+      aria-label={title}
+    >
+      {children}
+    </button>
+  )
+
+
+def RichTextToolbarTextButton(*, action: str, title: str, label: str, children=None):
+  return (
+    <button
+      type="button"
+      class="richtext-toolbar-btn richtext-toolbar-btn--text"
+      data-action={action}
+      title={title}
+      aria-label={title}
+    >
+      {label}
+    </button>
+  )
+
+
+def RichTextToolbar(children=None):
+  return (
+    <div data-richtext-toolbar class="richtext-toolbar" role="toolbar" aria-label="Formatting">
+      <div class="richtext-toolbar-group">
+        <RichTextToolbarButton action="bold" title="Bold">
+          <RichtextIconBold />
+        </RichTextToolbarButton>
+        <RichTextToolbarButton action="italic" title="Italic">
+          <RichtextIconItalic />
+        </RichTextToolbarButton>
+        <RichTextToolbarButton action="strike" title="Strikethrough">
+          <RichtextIconStrike />
+        </RichTextToolbarButton>
+      </div>
+      <span class="richtext-toolbar-separator" aria-hidden="true" />
+      <div class="richtext-toolbar-group">
+        <RichTextToolbarTextButton action="heading2" title="Heading 2" label="H2" />
+      </div>
+      <span class="richtext-toolbar-separator" aria-hidden="true" />
+      <div class="richtext-toolbar-group">
+        <RichTextToolbarButton action="bulletList" title="Bullet list">
+          <RichtextIconBulletList />
+        </RichTextToolbarButton>
+        <RichTextToolbarButton action="orderedList" title="Numbered list">
+          <RichtextIconOrderedList />
+        </RichTextToolbarButton>
+        <RichTextToolbarButton action="blockquote" title="Blockquote">
+          <RichtextIconBlockquote />
+        </RichTextToolbarButton>
+      </div>
+      <span class="richtext-toolbar-separator" aria-hidden="true" />
+      <div class="richtext-toolbar-group">
+        <RichTextToolbarButton action="undo" title="Undo">
+          <RichtextIconUndo />
+        </RichTextToolbarButton>
+        <RichTextToolbarButton action="redo" title="Redo">
+          <RichtextIconRedo />
+        </RichTextToolbarButton>
+      </div>
+    </div>
+  )
+
+
+def RichTextField(*, name: str, label: str, value: str = "", field_id: str, children=None):
+  initial_b64 = base64.b64encode((value or "").encode("utf-8")).decode("ascii")
+  return (
+    <div class="mb-4" data-richtext data-initial-b64={initial_b64}>
+      <label for={field_id} class="mb-1.5 block font-semibold text-gray-800">
+        {label}
+      </label>
+      <div class="overflow-hidden rounded border border-gray-200 bg-white focus-within:border-ragtail-secondary focus-within:outline focus-within:outline-[3px] focus-within:outline-ragtail-focus">
+        <RichTextToolbar />
+        <div
+          data-richtext-mount
+          class="min-h-[16rem] px-3 py-2 prose prose-sm max-w-none"
+        />
+      </div>
+      <textarea id={field_id} name={name} class="sr-only" tabindex="-1" aria-hidden="true"></textarea>
+      <p class="mt-2 text-xs leading-relaxed text-gray-500">
+        Markdown supported: type <code class="rounded bg-gray-100 px-1">**bold**</code>,
+        <code class="rounded bg-gray-100 px-1">*italic*</code>,
+        <code class="rounded bg-gray-100 px-1">## heading</code>,
+        <code class="rounded bg-gray-100 px-1">- list</code>,
+        <code class="rounded bg-gray-100 px-1">&gt; quote</code>
+        — or paste Markdown to convert automatically.
+      </p>
+    </div>
+  )

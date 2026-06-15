@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from oxytail.menus import build_menu_tree
+from ragtail.menus import build_menu_tree
 
 
 @dataclass

@@ -6,5 +6,5 @@ __pycache__
 *.egg-info
 .venv
 node_modules
-examples/demo/oxytail.db
-examples/demo/oxytail.db-*
+examples/demo/ragtail.db
+examples/demo/ragtail.db-*

@@ -3,13 +3,13 @@ from __future__ import annotations
 from oxyde import db
 
 from pages import ContentPage  # noqa: F401
-from oxytail.auth import ensure_superuser
-from oxytail.db import ensure_tables
-from oxytail.menus import create_menu, create_menu_item
-from oxytail.models import Locale, User
-from oxytail.page_types import cast_page, persist_page
-from oxytail.pages import create_page
-from oxytail.wagtail_admin.services import ensure_root_page
+from ragtail.auth import ensure_superuser
+from ragtail.db import ensure_tables
+from ragtail.menus import create_menu, create_menu_item
+from ragtail.models import Locale, User
+from ragtail.page_types import cast_page, persist_page
+from ragtail.pages import create_page
+from ragtail.ragtail_admin.services import ensure_root_page
 
 
 async def seed_if_empty(
@@ -35,10 +35,10 @@ async def seed_if_empty(
     home = await cast_page(await ensure_root_page(en))
     home.title = "Home"
     home.body = (
-        "# Welcome to Oxytail\n\n"
+        "# Welcome to Ragtail\n\n"
         "This is the **demo site**. Page bodies are stored as Markdown and rendered to HTML "
         "on the public site.\n\n"
-        "Edit content in the Wagtail-style admin at `/admin/`."
+        "Edit content in the Ragtail admin at `/admin/`."
     )
     home.live = True
     home.show_in_menus = True

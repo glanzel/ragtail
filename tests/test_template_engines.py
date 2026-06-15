@@ -6,11 +6,11 @@ from fastapi import FastAPI, Request
 from httpx import ASGITransport, AsyncClient
 from oxyde import Field, db
 
-from oxytail.auth import ensure_superuser
-from oxytail.cms import FastAPICMS
-from oxytail.db import run_migrations
-from oxytail.models import Locale, Page
-from oxytail.page_types import (
+from ragtail.auth import ensure_superuser
+from ragtail.cms import FastAPICMS
+from ragtail.db import run_migrations
+from ragtail.models import Locale, Page
+from ragtail.page_types import (
     cast_page,
     class_to_content_type,
     clear_page_models,
@@ -18,10 +18,10 @@ from oxytail.page_types import (
     get_page_model,
     register_page_model,
 )
-from oxytail.pages import create_page
-from oxytail.routing import RouteMatch
-from oxytail.templates import PyJsxRenderer, clear_pyjsx_components, register_pyjsx_component
-from oxytail.wagtail_admin.services import ensure_root_page
+from ragtail.pages import create_page
+from ragtail.routing import RouteMatch
+from ragtail.templates import PyJsxRenderer, clear_pyjsx_components, register_pyjsx_component
+from ragtail.ragtail_admin.services import ensure_root_page
 
 
 def test_class_to_content_type() -> None:
@@ -90,7 +90,7 @@ async def test_jinja2_renderer_serves_template(tmp_path: Path) -> None:
         async def get_context(self, request, route):
             return {"note": "from-context"}
 
-    from oxytail.templates import Jinja2Renderer
+    from ragtail.templates import Jinja2Renderer
 
     page = StoryPage(title="Story", slug="story", path="/story/", content_type="story_page")
     locale = Locale(language_code="en", display_name="English")
