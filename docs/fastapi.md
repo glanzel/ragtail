@@ -31,7 +31,7 @@ Create a staff user:
 uv run ragtail-createsuperuser --username admin --email admin@example.com --password secret --noinput
 ```
 
-Open `/admin/` for the CMS admin. Public pages are served on `/`, JSON API at `/api/cms/…`.
+Open `/admin/` for the CMS admin. The JSON API at `/api/cms/…` is mounted by default (`cms.mount(app)`); pass `api=False` to disable it. Public pages are served on `/`.
 
 PyJSX component naming: content type `detail_page` → `detailPage(page, context)`.
 
