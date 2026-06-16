@@ -90,7 +90,7 @@ def create_api_router() -> APIRouter:
 
 def create_app(
     *,
-    database_url: str = "sqlite://oxytail.db",
+    database_url: str = "sqlite://ragtail.db",
     renderer: PageRenderer | None = None,
     template_engine: TemplateEngineInterface | None = None,
     mount_admin: bool = False,

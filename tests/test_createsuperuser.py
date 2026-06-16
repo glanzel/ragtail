@@ -3,9 +3,9 @@ from pathlib import Path
 
 from oxyde import db
 
-from oxytail.auth import verify_password
-from oxytail.createsuperuser import main
-from oxytail.models import User
+from ragtail.auth import verify_password
+from ragtail.createsuperuser import main
+from ragtail.models import User
 
 
 async def _get_user(database_url: str, username: str) -> User | None:

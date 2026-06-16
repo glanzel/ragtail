@@ -10,7 +10,7 @@ def test_demo_registers_richtext_body_field() -> None:
     sys.path.insert(0, str(demo_dir))
     sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-    from oxytail.wagtail_admin.registry import clear_page_form_fields, get_page_form_fields
+    from ragtail.wagtail_admin.registry import clear_page_form_fields, get_page_form_fields
 
     clear_page_form_fields()
     admin_setup = importlib.import_module("admin_setup")

@@ -3,11 +3,11 @@
 Enable the built-in admin with session login:
 
 ```python
-from oxytail.fastapi import create_app
-from oxytail.auth import ensure_superuser
+from ragtail.fastapi import create_app
+from ragtail.auth import ensure_superuser
 
 app = create_app(
-    database_url="sqlite://oxytail.db",
+    database_url="sqlite://ragtail.db",
     mount_wagtail_admin=True,
     secret_key="replace-me",
 )
@@ -16,7 +16,7 @@ app = create_app(
 await ensure_superuser(username="admin", password="admin")
 ```
 
-For production, prefer `make createsuperuser` or `oxytail-createsuperuser` instead of hard-coded credentials.
+For production, prefer `make createsuperuser` or `ragtail-createsuperuser` instead of hard-coded credentials.
 
 ## Features
 
@@ -33,7 +33,7 @@ For production, prefer `make createsuperuser` or `oxytail-createsuperuser` inste
 The core page editor intentionally has no body field. The demo registers a `body` rich text field (TipTap) similar to Wagtail's `RichTextField`:
 
 ```python
-from oxytail.wagtail_admin.registry import PageFormField, register_page_form_field
+from ragtail.wagtail_admin.registry import PageFormField, register_page_form_field
 
 register_page_form_field(
     PageFormField(name="body", label="Content", widget="richtext")

@@ -1,8 +1,8 @@
 from pyjsx import jsx
 
-from oxytail.wagtail_admin.classes import BTN, BTN_DANGER, BTN_SECONDARY, BTN_SM, INPUT, LABEL, TEXTAREA
-from oxytail.wagtail_admin.components.layout import AdminLayout
-from oxytail.wagtail_admin.components.locale_switcher import LocaleSwitcher
+from ragtail.wagtail_admin.classes import BTN, BTN_DANGER, BTN_SECONDARY, BTN_SM, INPUT, LABEL, TEXTAREA
+from ragtail.wagtail_admin.components.layout import AdminLayout
+from ragtail.wagtail_admin.components.locale_switcher import LocaleSwitcher
 
 
 def MenuRow(menu, children=None):

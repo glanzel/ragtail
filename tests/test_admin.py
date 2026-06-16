@@ -5,12 +5,12 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from oxyde import db
 
-from oxytail.auth import ensure_superuser
-from oxytail.db import run_migrations
-from oxytail.fastapi import create_app
-from oxytail.models import Locale
-from oxytail.pages import create_page
-from oxytail.wagtail_admin.services import ensure_root_page
+from ragtail.auth import ensure_superuser
+from ragtail.db import run_migrations
+from ragtail.fastapi import create_app
+from ragtail.models import Locale
+from ragtail.pages import create_page
+from ragtail.wagtail_admin.services import ensure_root_page
 
 
 @pytest_asyncio.fixture
@@ -104,8 +104,8 @@ async def test_admin_page_edit_body_uses_base64_initial_value(client: AsyncClien
     import sys
     from pathlib import Path
 
-    from oxytail.models import Page
-    from oxytail.wagtail_admin.registry import clear_page_form_fields
+    from ragtail.models import Page
+    from ragtail.wagtail_admin.registry import clear_page_form_fields
 
     demo_dir = Path(__file__).resolve().parents[1] / "examples" / "demo"
     sys.path.insert(0, str(demo_dir))
@@ -145,7 +145,7 @@ async def test_admin_page_edit_includes_richtext_editor(client: AsyncClient) -> 
     import sys
     from pathlib import Path
 
-    from oxytail.wagtail_admin.registry import clear_page_form_fields
+    from ragtail.wagtail_admin.registry import clear_page_form_fields
 
     demo_dir = Path(__file__).resolve().parents[1] / "examples" / "demo"
     sys.path.insert(0, str(demo_dir))
@@ -155,7 +155,7 @@ async def test_admin_page_edit_includes_richtext_editor(client: AsyncClient) -> 
     else:
         importlib.import_module("admin_setup")
 
-    from oxytail.models import Page
+    from ragtail.models import Page
 
     login = await client.post(
         "/admin/login/",
@@ -211,7 +211,7 @@ async def test_admin_page_explorer_has_locale_switcher(client: AsyncClient) -> N
 
 @pytest.mark.asyncio
 async def test_admin_translate_page(client: AsyncClient) -> None:
-    from oxytail.models import Locale, Page
+    from ragtail.models import Locale, Page
 
     login = await client.post(
         "/admin/login/",

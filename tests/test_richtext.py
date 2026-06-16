@@ -6,18 +6,18 @@ from httpx import ASGITransport, AsyncClient
 from oxyde import db
 from fastapi.responses import HTMLResponse
 
-from oxytail.auth import ensure_superuser
-from oxytail.db import run_migrations
-from oxytail.fastapi import create_app
-from oxytail.models import Locale, Page
-from oxytail.pages import create_page
-from oxytail.richtext import (
+from ragtail.auth import ensure_superuser
+from ragtail.db import run_migrations
+from ragtail.fastapi import create_app
+from ragtail.models import Locale, Page
+from ragtail.pages import create_page
+from ragtail.richtext import (
     prepare_body_for_storage,
     render_body,
     sanitize_stored_body,
 )
-from oxytail.seo import normalize_search_description, search_description_error
-from oxytail.wagtail_admin.services import ensure_root_page
+from ragtail.seo import normalize_search_description, search_description_error
+from ragtail.wagtail_admin.services import ensure_root_page
 
 
 def test_render_body_converts_markdown_to_html() -> None:
@@ -129,7 +129,7 @@ async def test_admin_save_persists_markdown_body(public_client: AsyncClient) -> 
     import importlib
     import sys
 
-    from oxytail.wagtail_admin.registry import clear_page_form_fields
+    from ragtail.wagtail_admin.registry import clear_page_form_fields
 
     demo_dir = Path(__file__).resolve().parents[1] / "examples" / "demo"
     sys.path.insert(0, str(demo_dir))

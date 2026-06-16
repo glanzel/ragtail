@@ -6,11 +6,11 @@ import os
 
 from oxyde.migrations.utils import detect_dialect
 
-DATABASE_URL = os.environ.get("OXYTAIL_DATABASE_URL", "sqlite://oxytail.db")
+DATABASE_URL = os.environ.get("RAGTAIL_DATABASE_URL", "sqlite://ragtail.db")
 
-MODELS = ["oxytail.models"]
+MODELS = ["ragtail.models"]
 
-MIGRATIONS_DIR = "migrations"
+MIGRATIONS_DIR = "src/ragtail/migrations"
 
 DIALECT = detect_dialect(DATABASE_URL)
 

@@ -6,7 +6,7 @@ Runnable demo site with:
 - **Locales, menus & users** management in the admin sidebar
 - **TipTap rich text** for page content (demo-only `body` field)
 - **PyJSX HTML rendering** for the public site
-- SQLite database at `oxytail.db` (created on first run)
+- SQLite database at `ragtail.db` (created on first run)
 
 ## Run
 
@@ -14,7 +14,7 @@ Runnable demo site with:
 make install
 make migrate          # apply schema migrations
 make createsuperuser  # first admin user (interactive)
-make dev
+make run-demo
 ```
 
 Non-interactive (e.g. CI):
@@ -38,7 +38,7 @@ Or with make / uvicorn:
 
 ```bash
 make install
-make dev
+make run-demo
 # uv run uvicorn examples.demo.main:app --reload
 ```
 
@@ -50,12 +50,12 @@ make dev
 From the repository root:
 
 ```bash
-docker build -t oxytail-demo .
-docker run --rm -p 8000:8000 -v oxytail-data:/data oxytail-demo
+docker build -t ragtail-demo .
+docker run --rm -p 8000:8000 -v ragtail-data:/data ragtail-demo
 ```
 
-The SQLite database is stored in `/data/oxytail.db` inside the container.
+The SQLite database is stored in `/data/ragtail.db` inside the container.
 Override optional environment variables:
 
-- `OXYTAIL_DATABASE_URL` (default: `sqlite:////data/oxytail.db`)
-- `OXYTAIL_SECRET_KEY` (admin session secret)
+- `RAGTAIL_DATABASE_URL` (default: `sqlite:////data/ragtail.db`)
+- `RAGTAIL_SECRET_KEY` (admin session secret)

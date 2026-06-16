@@ -5,12 +5,12 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from oxyde import db
 
-from oxytail.auth import ensure_superuser
-from oxytail.db import run_migrations
-from oxytail.fastapi import create_app
-from oxytail.models import Locale, Menu, Page
-from oxytail.pages import create_page
-from oxytail.wagtail_admin.services import ensure_root_page
+from ragtail.auth import ensure_superuser
+from ragtail.db import run_migrations
+from ragtail.fastapi import create_app
+from ragtail.models import Locale, Menu, Page
+from ragtail.pages import create_page
+from ragtail.wagtail_admin.services import ensure_root_page
 
 
 @pytest_asyncio.fixture

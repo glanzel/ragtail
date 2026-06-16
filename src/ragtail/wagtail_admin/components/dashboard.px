@@ -1,7 +1,7 @@
 from pyjsx import jsx
 
-from oxytail.wagtail_admin.classes import BTN_SECONDARY
-from oxytail.wagtail_admin.components.layout import AdminLayout
+from ragtail.wagtail_admin.classes import BTN_SECONDARY
+from ragtail.wagtail_admin.components.layout import AdminLayout
 
 
 def DashboardPage(*, username: str, page_count: int, locale_name: str, children=None):

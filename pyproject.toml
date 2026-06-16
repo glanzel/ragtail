@@ -3,14 +3,14 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "oxytail"
+name = "ragtail"
 version = "0.1.0"
 description = "A tiny Wagtail-inspired CMS MVP built on Oxyde ORM."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
-  { name = "Oxytail Contributors" }
+  { name = "Ragtail Contributors" }
 ]
 dependencies = [
   "fastapi>=0.115",
@@ -35,8 +35,8 @@ demo = [
 ]
 
 [project.scripts]
-oxytail-createsuperuser = "oxytail.createsuperuser:main"
-oxytail-initdb = "oxytail.initdb:main"
+ragtail-createsuperuser = "ragtail.createsuperuser:main"
+ragtail-initdb = "ragtail.initdb:main"
 
 [dependency-groups]
 dev = [
@@ -50,12 +50,11 @@ dev = [
 default-groups = ["dev"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/oxytail"]
+packages = ["src/ragtail"]
 
 [tool.hatch.build.targets.wheel.force-include]
-"src/oxytail/wagtail_admin/static" = "oxytail/wagtail_admin/static"
-"src/oxytail/wagtail_admin/components" = "oxytail/wagtail_admin/components"
-"migrations" = "oxytail/db_migrations"
+"src/ragtail/wagtail_admin/static" = "ragtail/wagtail_admin/static"
+"src/ragtail/wagtail_admin/components" = "ragtail/wagtail_admin/components"
 
 [tool.pytest.ini_options]
 addopts = "-q"

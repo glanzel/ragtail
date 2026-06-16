@@ -6,8 +6,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_LINK_MODE=copy \
     UV_NO_DEV=1 \
-    OXYTAIL_DATABASE_URL=sqlite:////data/oxytail.db \
-    OXYTAIL_SECRET_KEY=change-me-in-production
+    RAGTAIL_DATABASE_URL=sqlite:////data/ragtail.db \
+    RAGTAIL_SECRET_KEY=change-me-in-production
 
 WORKDIR /app
 

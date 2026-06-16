@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from oxyde import db
 
-from oxytail.auth import ensure_superuser
-from oxytail.db import ensure_tables
-from oxytail.menus import create_menu, create_menu_item
-from oxytail.models import Locale, Page, User
-from oxytail.pages import create_page
-from oxytail.wagtail_admin.services import ensure_root_page
+from ragtail.auth import ensure_superuser
+from ragtail.db import ensure_tables
+from ragtail.menus import create_menu, create_menu_item
+from ragtail.models import Locale, Page, User
+from ragtail.pages import create_page
+from ragtail.wagtail_admin.services import ensure_root_page
 
 
 async def seed_if_empty(

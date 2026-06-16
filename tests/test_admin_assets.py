@@ -5,7 +5,7 @@ def test_admin_css_includes_richtext_toolbar_styles() -> None:
     css_path = (
         Path(__file__).resolve().parents[1]
         / "src"
-        / "oxytail"
+        / "ragtail"
         / "wagtail_admin"
         / "static"
         / "wagtail-admin.css"
@@ -19,7 +19,7 @@ def test_richtext_bundle_is_self_contained() -> None:
     js_path = (
         Path(__file__).resolve().parents[1]
         / "src"
-        / "oxytail"
+        / "ragtail"
         / "wagtail_admin"
         / "static"
         / "richtext.js"

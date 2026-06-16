@@ -1,10 +1,12 @@
-# FastAPI integration
+# FastAPI
+
+Assumes Ragtail is mounted into a FastAPI app with an Oxyde database connection. For database / ORM setup scenarios see [Integrations](integrations.md).
 
 ## Mount into an existing app
 
 ```python
 from fastapi import FastAPI
-from oxytail import FastAPICMS, PageView, PyJsxRenderer, register_page_view
+from ragtail import FastAPICMS, PageView, PyJsxRenderer, register_page_view
 
 @register_page_view
 class SitePageView(PageView):
@@ -21,14 +23,13 @@ app = FastAPI(lifespan=cms.lifespan("sqlite://app.db"))
 cms.mount(app)
 ```
 
-After `make migrate` (or `uv run oxytail-initdb`), create a staff user:
+Create a staff user:
 
 ```bash
-make createsuperuser
-# or: uv run oxytail-createsuperuser --username admin --email admin@example.com --password secret --noinput
+uv run ragtail-createsuperuser --username admin --email admin@example.com --password secret --noinput
 ```
 
-Open http://localhost:8000/admin/ for the CMS admin. Public pages are served on `/`, JSON API at `/api/cms/…` — same app and database.
+Open `/admin/` for the CMS admin. Public pages are served on `/`, JSON API at `/api/cms/…`.
 
 PyJSX component naming: content type `detail_page` → `detailPage(page, context)`.
 
@@ -38,13 +39,15 @@ PyJSX component naming: content type `detail_page` → `detailPage(page, context
 app.mount("/admin", cms.app)
 ```
 
+Mount the admin sub-app without public page routes or JSON API (`cms.mount(app, pages=False, api=False)` is equivalent when you wire `cms.app` yourself).
+
 ## Greenfield app
 
 ```python
-from oxytail.fastapi import create_app
+from ragtail.fastapi import create_app
 
 app = create_app(
-    database_url="sqlite://oxytail.db",
+    database_url="sqlite://ragtail.db",
     mount_wagtail_admin=True,
     secret_key="replace-me",
 )
@@ -60,10 +63,10 @@ This creates:
 Pass a renderer to serve HTML templates (for example with PyJSX):
 
 ```python
-from oxytail.fastapi import create_app
+from ragtail.fastapi import create_app
 
 app = create_app(
-    database_url="sqlite://oxytail.db",
+    database_url="sqlite://ragtail.db",
     renderer=my_html_renderer,
     mount_wagtail_admin=True,
 )
@@ -74,11 +77,11 @@ See [Demo application](demo.md) for a full PyJSX setup.
 ## Jinja2 templates
 
 ```bash
-uv add "oxytail[jinja]"
+uv add "ragtail[jinja]"
 ```
 
 ```python
-from oxytail import FastAPICMS, Jinja2Renderer
+from ragtail import FastAPICMS, Jinja2Renderer
 
 cms = FastAPICMS(
     secret_key="change-me",

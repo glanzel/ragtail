@@ -1,7 +1,7 @@
 from pyjsx import jsx
 
-from oxytail.wagtail_admin.classes import BTN, BTN_SECONDARY, BTN_SM, INPUT, LABEL
-from oxytail.wagtail_admin.components.layout import AdminLayout
+from ragtail.wagtail_admin.classes import BTN, BTN_SECONDARY, BTN_SM, INPUT, LABEL
+from ragtail.wagtail_admin.components.layout import AdminLayout
 
 
 def LocaleRow(locale, children=None):

@@ -1,6 +1,6 @@
 from pyjsx import jsx
 
-from oxytail.wagtail_admin.classes import (
+from ragtail.wagtail_admin.classes import (
     BTN,
     BTN_DANGER,
     BTN_SECONDARY,
@@ -9,11 +9,11 @@ from oxytail.wagtail_admin.classes import (
     LABEL,
     TEXTAREA,
 )
-from oxytail.wagtail_admin.components.icons import IconFolderOpenInverse, IconPlus
-from oxytail.wagtail_admin.components.layout import AdminLayout, Breadcrumbs
-from oxytail.wagtail_admin.components.locale_switcher import LocaleSwitcher
-from oxytail.seo import SEARCH_DESCRIPTION_MAX_LENGTH
-from oxytail.wagtail_admin.components.richtext import RichTextField
+from ragtail.wagtail_admin.components.icons import IconFolderOpenInverse, IconPlus
+from ragtail.wagtail_admin.components.layout import AdminLayout, Breadcrumbs
+from ragtail.wagtail_admin.components.locale_switcher import LocaleSwitcher
+from ragtail.seo import SEARCH_DESCRIPTION_MAX_LENGTH
+from ragtail.wagtail_admin.components.richtext import RichTextField
 
 
 def _explorer_link_class(page_id, current_page_id) -> str:

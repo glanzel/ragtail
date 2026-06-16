@@ -1,4 +1,4 @@
-from oxytail.routing import (
+from ragtail.routing import (
     join_page_path,
     localized_path,
     normalize_path,
