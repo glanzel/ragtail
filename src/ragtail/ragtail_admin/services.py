@@ -10,7 +10,7 @@ from ..page_types import cast_page, get_default_page_model, persist_page
 from ..pages import create_page
 from ..routing import get_default_locale, get_translation, join_page_path, normalize_path
 
-ADMIN_LOCALE_SESSION_KEY = "oxytail_admin_locale"
+ADMIN_LOCALE_SESSION_KEY = "ragtail_admin_locale"
 
 
 @dataclass(frozen=True)

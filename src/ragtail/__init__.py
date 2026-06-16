@@ -41,7 +41,7 @@ from .menus import (
     get_menu_tree,
 )
 from .models import Locale, Menu, MenuItem, Page, User
-from .wagtail_admin import PageFormField, create_admin_router, register_page_form_field
+from .ragtail_admin import PageFormField, create_admin_router, register_page_form_field
 from .pages import create_page, create_translation
 from .routing import (
     RouteMatch,

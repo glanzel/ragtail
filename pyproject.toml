@@ -53,8 +53,8 @@ default-groups = ["dev"]
 packages = ["src/ragtail"]
 
 [tool.hatch.build.targets.wheel.force-include]
-"src/ragtail/wagtail_admin/static" = "ragtail/wagtail_admin/static"
-"src/ragtail/wagtail_admin/components" = "ragtail/wagtail_admin/components"
+"src/ragtail/ragtail_admin/static" = "ragtail/ragtail_admin/static"
+"src/ragtail/ragtail_admin/components" = "ragtail/ragtail_admin/components"
 
 [tool.pytest.ini_options]
 addopts = "-q"

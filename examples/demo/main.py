@@ -31,7 +31,7 @@ SECRET_KEY = os.environ.get("RAGTAIL_SECRET_KEY", "ragtail-demo-secret-change-me
 app = create_app(
     database_url=DATABASE_URL,
     template_engine=PyJsxRenderer(components_module="site_templates.content_page"),
-    mount_wagtail_admin=True,
+    mount_ragtail_admin=True,
     secret_key=SECRET_KEY,
     title="Oxytail Demo",
     startup_hook=seed_if_empty,

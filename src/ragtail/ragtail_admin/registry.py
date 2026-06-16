@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    pass
 
 WidgetType = Literal["text", "textarea", "richtext"]
 
 
 @dataclass(frozen=True)
 class PageFormField:
-    """Extra page editor field, comparable to a Wagtail FieldPanel."""
+    """Extra page editor field, comparable to a Ragtail FieldPanel."""
 
     name: str
     label: str

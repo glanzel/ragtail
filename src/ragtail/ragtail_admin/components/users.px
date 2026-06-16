@@ -1,13 +1,13 @@
 from pyjsx import jsx
 
-from ragtail.wagtail_admin.classes import BTN, BTN_SECONDARY, BTN_SM, INPUT, LABEL
-from ragtail.wagtail_admin.components.layout import AdminLayout
+from ragtail.ragtail_admin.classes import BTN, BTN_SECONDARY, BTN_SM, INPUT, LABEL
+from ragtail.ragtail_admin.components.layout import AdminLayout
 
 
 def UserStatusBadge(*, active: bool, children=None):
   if active:
     return (
-      <span class="inline-block rounded bg-teal-50 px-2 py-0.5 text-xs font-semibold text-wagtail-secondary">
+      <span class="inline-block rounded bg-teal-50 px-2 py-0.5 text-xs font-semibold text-ragtail-secondary">
         Active
       </span>
     )
@@ -27,7 +27,7 @@ def UserRow(user, *, current_user_id: int, children=None):
     else None
   )
   you_badge = (
-    <span class="ml-2 inline-block rounded bg-teal-50 px-2 py-0.5 text-xs font-semibold text-wagtail-secondary">
+    <span class="ml-2 inline-block rounded bg-teal-50 px-2 py-0.5 text-xs font-semibold text-ragtail-secondary">
       You
     </span>
     if user.id == current_user_id
@@ -226,7 +226,7 @@ def UserEditPage(
           <p class="text-sm text-gray-500">
             To set a new password, use
             {" "}
-            <a href={f"/admin/users/{user.id}/reset-password/"} class="text-wagtail-secondary hover:underline">
+            <a href={f"/admin/users/{user.id}/reset-password/"} class="text-ragtail-secondary hover:underline">
               reset password
             </a>
             .

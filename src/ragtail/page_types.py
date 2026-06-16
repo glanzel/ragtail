@@ -9,7 +9,7 @@ from pydantic.fields import FieldInfo
 
 from .models import Page
 from .routing import RouteMatch
-from .wagtail_admin.registry import PageFormField, infer_widget_for_field
+from .ragtail_admin.registry import PageFormField, infer_widget_for_field
 
 T = TypeVar("T", bound=type[Page])
 

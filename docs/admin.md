@@ -8,7 +8,7 @@ from ragtail.auth import ensure_superuser
 
 app = create_app(
     database_url="sqlite://ragtail.db",
-    mount_wagtail_admin=True,
+    mount_ragtail_admin=True,
     secret_key="replace-me",
 )
 

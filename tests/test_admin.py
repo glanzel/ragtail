@@ -11,7 +11,7 @@ from ragtail.fastapi import create_app
 from ragtail.models import Locale
 from ragtail.page_types import clear_page_models
 from ragtail.pages import create_page
-from ragtail.wagtail_admin.services import ensure_root_page
+from ragtail.ragtail_admin.services import ensure_root_page
 
 
 @pytest_asyncio.fixture
@@ -50,7 +50,7 @@ async def client(tmp_path: Path):
 
         app = create_app(
             database_url=database_url,
-            mount_wagtail_admin=True,
+            mount_ragtail_admin=True,
             secret_key="test-secret",
         )
         transport = ASGITransport(app=app)
@@ -80,7 +80,7 @@ async def test_admin_login_and_page_explorer(client: AsyncClient) -> None:
 
     dashboard = await client.get("/admin/", cookies=login.cookies)
     assert dashboard.status_code == 200
-    assert "Welcome to the Wagtail CMS" in dashboard.text
+    assert "Welcome to Ragtail CMS" in dashboard.text
 
     pages = await client.get("/admin/pages/", cookies=login.cookies, follow_redirects=False)
     assert pages.status_code == 303

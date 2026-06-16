@@ -1,6 +1,6 @@
 from pyjsx import jsx
 
-from ragtail.wagtail_admin.classes import (
+from ragtail.ragtail_admin.classes import (
     BTN,
     BTN_DANGER,
     BTN_SECONDARY,
@@ -9,11 +9,11 @@ from ragtail.wagtail_admin.classes import (
     LABEL,
     TEXTAREA,
 )
-from ragtail.wagtail_admin.components.icons import IconFolderOpenInverse, IconPlus
-from ragtail.wagtail_admin.components.layout import AdminLayout, Breadcrumbs
-from ragtail.wagtail_admin.components.locale_switcher import LocaleSwitcher
+from ragtail.ragtail_admin.components.icons import IconFolderOpenInverse, IconPlus
+from ragtail.ragtail_admin.components.layout import AdminLayout, Breadcrumbs
+from ragtail.ragtail_admin.components.locale_switcher import LocaleSwitcher
 from ragtail.seo import SEARCH_DESCRIPTION_MAX_LENGTH
-from ragtail.wagtail_admin.components.richtext import RichTextField
+from ragtail.ragtail_admin.components.richtext import RichTextField
 
 
 def _explorer_link_class(page_id, current_page_id) -> str:
@@ -87,7 +87,7 @@ def PageExplorer(
 ):
   return (
     <aside
-      class="flex w-full shrink-0 flex-col border-r border-white/10 bg-wagtail-primary-dark text-white md:sticky md:top-0 md:h-screen md:w-explorer"
+      class="flex w-full shrink-0 flex-col border-r border-white/10 bg-ragtail-primary-dark text-white md:sticky md:top-0 md:h-screen md:w-explorer"
       aria-label="Page explorer"
     >
       <div class="shrink-0 border-b border-white/10">
@@ -120,7 +120,7 @@ def PageExplorer(
 
 def _status_class(live: bool) -> str:
   if live:
-    return "inline-block rounded px-2 py-0.5 text-xs font-semibold bg-teal-50 text-wagtail-secondary"
+    return "inline-block rounded px-2 py-0.5 text-xs font-semibold bg-teal-50 text-ragtail-secondary"
   return "inline-block rounded px-2 py-0.5 text-xs font-semibold bg-gray-100 text-gray-500"
 
 
@@ -128,7 +128,7 @@ def TranslateLink(child, locale, children=None):
   return (
     <a
       href={f"/admin/pages/{child.id}/translate/?language_code={locale.language_code}"}
-      class="text-xs font-semibold text-wagtail-secondary hover:underline"
+      class="text-xs font-semibold text-ragtail-secondary hover:underline"
     >
       Translate {locale.language_code}
     </a>
@@ -142,7 +142,7 @@ def ChildRow(child, missing_locales=None, children=None):
       <td class="px-5 py-3.5">
         <a
           href={f"/admin/pages/{child.id}/"}
-          class="inline-flex items-center gap-2 font-semibold text-gray-900 hover:text-wagtail-secondary"
+          class="inline-flex items-center gap-2 font-semibold text-gray-900 hover:text-ragtail-secondary"
         >
           <IconFolderOpenInverse />
           {child.title}
@@ -334,7 +334,7 @@ def PageTypeChooserPage(
             <li>
               <a
                 href={f"/admin/pages/add/?parent={parent_id}&content_type={content_type}"}
-                class="flex h-full flex-col rounded-lg border border-gray-200 bg-white p-5 no-underline shadow-sm transition hover:border-wagtail-secondary hover:shadow-md"
+                class="flex h-full flex-col rounded-lg border border-gray-200 bg-white p-5 no-underline shadow-sm transition hover:border-ragtail-secondary hover:shadow-md"
               >
                 <span class="text-lg font-semibold text-gray-900">{label}</span>
                 <span class="mt-1 text-sm text-gray-500">{content_type}</span>

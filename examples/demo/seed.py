@@ -8,7 +8,7 @@ from ragtail.menus import create_menu, create_menu_item
 from ragtail.models import Locale, Page, User
 from ragtail.page_types import cast_page, get_content_type, get_default_page_model, persist_page
 from ragtail.pages import create_page
-from ragtail.wagtail_admin.services import ensure_root_page
+from ragtail.ragtail_admin.services import ensure_root_page
 
 from pages import ContentPage
 

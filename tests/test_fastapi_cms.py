@@ -10,7 +10,7 @@ from ragtail.auth import ensure_superuser
 from ragtail.cms import FastAPICMS
 from ragtail.db import run_migrations
 from ragtail.models import Locale
-from ragtail.wagtail_admin.services import ensure_root_page
+from ragtail.ragtail_admin.services import ensure_root_page
 
 
 @pytest_asyncio.fixture
@@ -44,7 +44,7 @@ async def client(tmp_path: Path):
 async def test_fastapi_cms_mount_serves_admin_login(client: AsyncClient) -> None:
     response = await client.get("/admin/login/")
     assert response.status_code == 200
-    assert "Sign in to Wagtail" in response.text
+    assert "Sign in to Ragtail" in response.text
 
 
 @pytest.mark.asyncio

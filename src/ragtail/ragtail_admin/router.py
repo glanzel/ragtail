@@ -24,17 +24,6 @@ from ..seo import normalize_search_description, search_description_error
 from ..menus import create_menu, create_menu_item
 from ..models import Locale, Page, User
 from ..pages import create_translation
-from ..page_types import (
-    cast_page,
-    content_type_to_label,
-    get_content_type,
-    get_default_page_model,
-    get_page_form_fields_for,
-    get_page_model,
-    get_page_model_or_404,
-    get_page_type_choices,
-    uses_richtext_for,
-)
 from ..routing import get_locale
 from .components.dashboard import DashboardPage
 from .components.locales import LocaleAddPage, LocaleEditPage, LocaleListPage
@@ -54,6 +43,17 @@ from .components.pages import (
     PageListingPage,
     PageTypeChooserPage,
     TranslatePageForm,
+)
+from ..page_types import (
+    cast_page,
+    content_type_to_label,
+    get_content_type,
+    get_default_page_model,
+    get_page_form_fields_for,
+    get_page_model,
+    get_page_model_or_404,
+    get_page_type_choices,
+    uses_richtext_for,
 )
 from .registry import PageFormField, get_page_form_fields, uses_richtext
 from .render import html_response
@@ -91,7 +91,7 @@ from .services import (
 )
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
-SESSION_USER_KEY = "oxytail_user_id"
+SESSION_USER_KEY = "ragtail_user_id"
 
 
 class AdminLoginRequired(Exception):

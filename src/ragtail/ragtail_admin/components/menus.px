@@ -1,8 +1,8 @@
 from pyjsx import jsx
 
-from ragtail.wagtail_admin.classes import BTN, BTN_DANGER, BTN_SECONDARY, BTN_SM, INPUT, LABEL, TEXTAREA
-from ragtail.wagtail_admin.components.layout import AdminLayout
-from ragtail.wagtail_admin.components.locale_switcher import LocaleSwitcher
+from ragtail.ragtail_admin.classes import BTN, BTN_DANGER, BTN_SECONDARY, BTN_SM, INPUT, LABEL, TEXTAREA
+from ragtail.ragtail_admin.components.layout import AdminLayout
+from ragtail.ragtail_admin.components.locale_switcher import LocaleSwitcher
 
 
 def MenuRow(menu, children=None):
@@ -11,7 +11,7 @@ def MenuRow(menu, children=None):
       <td class="px-5 py-3.5">
         <a
           href={f"/admin/menus/{menu.id}/"}
-          class="font-semibold text-gray-900 hover:text-wagtail-secondary"
+          class="font-semibold text-gray-900 hover:text-ragtail-secondary"
         >
           {menu.name}
         </a>
@@ -19,7 +19,7 @@ def MenuRow(menu, children=None):
       <td class="px-5 py-3.5 text-gray-600">{menu.slug}</td>
       <td class="px-5 py-3.5">
         {(
-          <span class="inline-block rounded bg-teal-50 px-2 py-0.5 text-xs font-semibold text-wagtail-secondary">
+          <span class="inline-block rounded bg-teal-50 px-2 py-0.5 text-xs font-semibold text-ragtail-secondary">
             Active
           </span>
           if menu.is_active

@@ -21,7 +21,7 @@ from ragtail.page_types import (
 from ragtail.pages import create_page
 from ragtail.routing import RouteMatch
 from ragtail.templates import PyJsxRenderer, clear_pyjsx_components, register_pyjsx_component
-from ragtail.wagtail_admin.services import ensure_root_page
+from ragtail.ragtail_admin.services import ensure_root_page
 
 
 def test_class_to_content_type() -> None:

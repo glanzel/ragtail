@@ -17,7 +17,7 @@ from ragtail.richtext import (
     sanitize_stored_body,
 )
 from ragtail.seo import normalize_search_description, search_description_error
-from ragtail.wagtail_admin.services import ensure_root_page
+from ragtail.ragtail_admin.services import ensure_root_page
 
 
 def test_render_body_converts_markdown_to_html() -> None:
@@ -111,7 +111,7 @@ async def public_client(tmp_path: Path):
 
         app = create_app(
             database_url=database_url,
-            mount_wagtail_admin=True,
+            mount_ragtail_admin=True,
             secret_key="test-secret",
             renderer=render_page,
         )

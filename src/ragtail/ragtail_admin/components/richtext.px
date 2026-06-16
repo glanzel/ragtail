@@ -2,7 +2,7 @@ import base64
 
 from pyjsx import jsx
 
-from ragtail.wagtail_admin.components.icons import (
+from ragtail.ragtail_admin.components.icons import (
     RichtextIconBlockquote,
     RichtextIconBold,
     RichtextIconBulletList,
@@ -92,7 +92,7 @@ def RichTextField(*, name: str, label: str, value: str = "", field_id: str, chil
       <label for={field_id} class="mb-1.5 block font-semibold text-gray-800">
         {label}
       </label>
-      <div class="overflow-hidden rounded border border-gray-200 bg-white focus-within:border-wagtail-secondary focus-within:outline focus-within:outline-[3px] focus-within:outline-wagtail-focus">
+      <div class="overflow-hidden rounded border border-gray-200 bg-white focus-within:border-ragtail-secondary focus-within:outline focus-within:outline-[3px] focus-within:outline-ragtail-focus">
         <RichTextToolbar />
         <div
           data-richtext-mount
