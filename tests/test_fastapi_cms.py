@@ -48,6 +48,15 @@ async def test_fastapi_cms_mount_serves_admin_login(client: AsyncClient) -> None
 
 
 @pytest.mark.asyncio
+async def test_fastapi_cms_mount_serves_json_api(client: AsyncClient) -> None:
+    response = await client.get("/api/cms/pages/")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["title"]
+    assert payload["path"] == "/"
+
+
+@pytest.mark.asyncio
 async def test_fastapi_cms_mount_admin_requires_login(client: AsyncClient) -> None:
     response = await client.get("/admin/pages/", follow_redirects=False)
     assert response.status_code == 303
