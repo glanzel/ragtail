@@ -24,6 +24,17 @@ from ..seo import normalize_search_description, search_description_error
 from ..menus import create_menu, create_menu_item
 from ..models import Locale, Page, User
 from ..pages import create_translation
+from ..page_types import (
+    cast_page,
+    content_type_to_label,
+    get_content_type,
+    get_default_page_model,
+    get_page_form_fields_for,
+    get_page_model,
+    get_page_model_or_404,
+    get_page_type_choices,
+    uses_richtext_for,
+)
 from ..routing import get_locale
 from .components.dashboard import DashboardPage
 from .components.locales import LocaleAddPage, LocaleEditPage, LocaleListPage
@@ -41,9 +52,10 @@ from .components.pages import (
     DeletePagePage,
     PageFormPage,
     PageListingPage,
+    PageTypeChooserPage,
     TranslatePageForm,
 )
-from .registry import get_page_form_fields, uses_richtext
+from .registry import PageFormField, get_page_form_fields, uses_richtext
 from .render import html_response
 from .services import (
     build_breadcrumbs,
@@ -111,11 +123,50 @@ async def require_user(request: Request) -> User:
     return user
 
 
-def _registered_field_names() -> set[str]:
-    return {field.name for field in get_page_form_fields()}
+def _resolved_content_type(
+    page: Page | None = None,
+    *,
+    content_type: str | None = None,
+) -> str:
+    if content_type:
+        return content_type
+    if page is not None and page.content_type:
+        return page.content_type
+    page_types = get_page_type_choices()
+    if page_types:
+        return page_types[0][0]
+    return get_content_type(get_default_page_model())
 
 
-def _form_values(page: Page | None = None, **overrides) -> dict:
+def _form_fields_for(
+    page: Page | None = None,
+    *,
+    content_type: str | None = None,
+) -> list[PageFormField]:
+    resolved = _resolved_content_type(page, content_type=content_type)
+    model_fields = get_page_form_fields_for(resolved) if get_page_model(resolved) is not Page else []
+    manual_fields = get_page_form_fields()
+    if not model_fields:
+        return manual_fields
+    names = {field.name for field in model_fields}
+    return model_fields + [field for field in manual_fields if field.name not in names]
+
+
+def _registered_field_names(
+    page: Page | None = None,
+    *,
+    content_type: str | None = None,
+) -> set[str]:
+    return {field.name for field in _form_fields_for(page, content_type=content_type)}
+
+
+def _form_values(
+    page: Page | None = None,
+    *,
+    content_type: str | None = None,
+    **overrides,
+) -> dict:
+    resolved = _resolved_content_type(page, content_type=content_type)
     values = {
         "title": page.title if page else "",
         "slug": page.slug if page else "",
@@ -124,23 +175,63 @@ def _form_values(page: Page | None = None, **overrides) -> dict:
         "live": page.live if page else False,
         "show_in_menus": page.show_in_menus if page else False,
     }
-    for field in get_page_form_fields():
+    for field in _form_fields_for(page, content_type=resolved):
         attr_value = getattr(page, field.name, None) if page is not None else None
         values[field.name] = attr_value or ""
     values.update(overrides)
     return values
 
 
-def _body_value_for_save(*, page: Page | None, submitted_body: str) -> str | None:
-    if "body" not in _registered_field_names():
-        return page.body if page is not None else None
+def _field_value_for_save(
+    field: PageFormField,
+    raw_value: str,
+    *,
+    page: Page | None,
+) -> object:
+    if field.widget == "richtext":
+        return prepare_body_for_storage(raw_value)
+    if field.name == "body" and field.name not in _registered_field_names(page):
+        return getattr(page, "body", None) if page is not None else None
+    return raw_value or None
+
+
+def _extra_fields_from_form(
+    form_data,
+    *,
+    page: Page | None = None,
+    content_type: str | None = None,
+) -> dict[str, object]:
+    values: dict[str, object] = {}
+    for field in _form_fields_for(page, content_type=content_type):
+        raw_value = str(form_data.get(field.name, ""))
+        values[field.name] = _field_value_for_save(field, raw_value, page=page)
+    return values
+
+
+def _body_value_for_save(
+    *,
+    page: Page | None,
+    submitted_body: str,
+    content_type: str | None = None,
+) -> str | None:
+    if "body" not in _registered_field_names(page, content_type=content_type):
+        return getattr(page, "body", None) if page is not None else None
     return prepare_body_for_storage(submitted_body)
 
 
-def _page_form_kwargs() -> dict:
+def _page_form_kwargs(
+    page: Page | None = None,
+    *,
+    content_type: str | None = None,
+) -> dict:
+    resolved = _resolved_content_type(page, content_type=content_type)
+    page_model = get_page_model(resolved)
+    show_type = page_model is not Page
     return {
-        "extra_fields": get_page_form_fields(),
-        "include_richtext_script": uses_richtext(),
+        "extra_fields": _form_fields_for(page, content_type=resolved),
+        "include_richtext_script": uses_richtext_for(resolved) or uses_richtext(),
+        "selected_content_type": resolved if show_type else None,
+        "content_type_label": content_type_to_label(page_model) if show_type else None,
     }
 
 
@@ -663,6 +754,7 @@ def create_admin_router() -> APIRouter:
         request: Request,
         user: Annotated[User, Depends(require_user)],
         parent: int | None = None,
+        content_type: str | None = None,
     ):
         default_locale = await get_admin_locale(request)
         parent_page = (
@@ -672,6 +764,26 @@ def create_admin_router() -> APIRouter:
         )
         breadcrumbs = await build_breadcrumbs(parent_page)
         breadcrumbs.append(type(breadcrumbs[-1])("Add child page", None))
+
+        page_types = get_page_type_choices()
+        if page_types and content_type is None:
+            if len(page_types) == 1:
+                content_type = page_types[0][0]
+            else:
+                breadcrumbs[-1] = type(breadcrumbs[-1])("Choose page type", None)
+                return html_response(
+                    PageTypeChooserPage,
+                    username=user.username,
+                    parent_page=parent_page,
+                    breadcrumbs=breadcrumbs,
+                    page_types=page_types,
+                )
+
+        resolved_content_type = _resolved_content_type(content_type=content_type)
+        page_model = get_page_model(resolved_content_type)
+        if page_types and page_model is Page:
+            raise HTTPException(status_code=404, detail=f"Page type '{resolved_content_type}' is not registered")
+
         return html_response(
             PageFormPage,
             username=user.username,
@@ -680,23 +792,25 @@ def create_admin_router() -> APIRouter:
             action_url=f"/admin/pages/add/?parent={parent_page.id}",
             title="Add child page",
             submit_label="Create page",
-            values=_form_values(),
-            **_page_form_kwargs(),
+            values=_form_values(content_type=resolved_content_type),
+            **_page_form_kwargs(content_type=resolved_content_type),
         )
 
     @router.post("/pages/add/")
     async def page_add_post(
         request: Request,
         user: Annotated[User, Depends(require_user)],
-        title: Annotated[str, Form()],
-        slug: Annotated[str, Form()] = "",
-        body: Annotated[str, Form()] = "",
-        seo_title: Annotated[str, Form()] = "",
-        search_description: Annotated[str, Form()] = "",
-        live: Annotated[str | None, Form()] = None,
-        show_in_menus: Annotated[str | None, Form()] = None,
         parent: int | None = None,
     ):
+        form = await request.form()
+        title = str(form.get("title", ""))
+        slug = str(form.get("slug", ""))
+        seo_title = str(form.get("seo_title", ""))
+        search_description = str(form.get("search_description", ""))
+        live = form.get("live")
+        show_in_menus = form.get("show_in_menus")
+        content_type = str(form.get("content_type", "") or _resolved_content_type())
+
         default_locale = await get_admin_locale(request)
         parent_page = (
             await get_page_or_404(parent)
@@ -704,18 +818,33 @@ def create_admin_router() -> APIRouter:
             else await ensure_root_page(default_locale)
         )
         locale = await get_page_locale(parent_page)
+        page_types = get_page_type_choices()
+        try:
+            page_model = (
+                get_page_model_or_404(content_type)
+                if page_types
+                else get_default_page_model()
+            )
+        except LookupError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
         breadcrumbs = await build_breadcrumbs(parent_page)
         breadcrumbs.append(type(breadcrumbs[-1])("Add child page", None))
+        extra_fields = _extra_fields_from_form(form, content_type=content_type)
         values = _form_values(
             None,
+            content_type=content_type,
             title=title,
             slug=slug,
-            body=body,
             seo_title=seo_title,
             search_description=search_description,
             live=live == "1",
             show_in_menus=show_in_menus == "1",
+            **{name: value or "" for name, value in extra_fields.items()},
         )
+        form_kwargs = {
+            **_page_form_kwargs(content_type=content_type),
+        }
         if not title.strip():
             return html_response(
                 PageFormPage,
@@ -727,7 +856,7 @@ def create_admin_router() -> APIRouter:
                 submit_label="Create page",
                 values=values,
                 error="Title is required.",
-                **_page_form_kwargs(),
+                **form_kwargs,
             )
         if error := search_description_error(search_description):
             return html_response(
@@ -740,18 +869,19 @@ def create_admin_router() -> APIRouter:
                 submit_label="Create page",
                 values=values,
                 error=error,
-                **_page_form_kwargs(),
+                **form_kwargs,
             )
         page = await create_child_page(
             parent=parent_page,
             title=title.strip(),
             slug=slug,
             locale=locale,
-            body=_body_value_for_save(page=None, submitted_body=body),
+            page_model=page_model if page_types else None,
             live=live == "1",
             show_in_menus=show_in_menus == "1",
             seo_title=seo_title or None,
             search_description=normalize_search_description(search_description),
+            **extra_fields,
         )
         return RedirectResponse(f"/admin/pages/{page.id}/edit/", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -827,7 +957,6 @@ def create_admin_router() -> APIRouter:
             locale=target_locale,
             parent=parent,
             live=live == "1",
-            body=source_page.body,
         )
         return RedirectResponse(f"/admin/pages/{translated.id}/edit/", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -866,7 +995,7 @@ def create_admin_router() -> APIRouter:
 
     @router.get("/pages/{page_id}/edit/")
     async def page_edit_get(page_id: int, user: Annotated[User, Depends(require_user)]):
-        page = await get_page_or_404(page_id)
+        page = await cast_page(await get_page_or_404(page_id))
         breadcrumbs = await build_breadcrumbs(page)
         breadcrumbs.append(type(breadcrumbs[-1])("Edit", None))
         return html_response(
@@ -878,34 +1007,38 @@ def create_admin_router() -> APIRouter:
             title=f"Editing {page.title}",
             submit_label="Save draft",
             values=_form_values(page),
-            **_page_form_kwargs(),
+            **_page_form_kwargs(page),
         )
 
     @router.post("/pages/{page_id}/edit/")
     async def page_edit_post(
+        request: Request,
         page_id: int,
         user: Annotated[User, Depends(require_user)],
-        title: Annotated[str, Form()],
-        slug: Annotated[str, Form()] = "",
-        body: Annotated[str, Form()] = "",
-        seo_title: Annotated[str, Form()] = "",
-        search_description: Annotated[str, Form()] = "",
-        live: Annotated[str | None, Form()] = None,
-        show_in_menus: Annotated[str | None, Form()] = None,
     ):
-        page = await get_page_or_404(page_id)
+        form = await request.form()
+        title = str(form.get("title", ""))
+        slug = str(form.get("slug", ""))
+        seo_title = str(form.get("seo_title", ""))
+        search_description = str(form.get("search_description", ""))
+        live = form.get("live")
+        show_in_menus = form.get("show_in_menus")
+
+        page = await cast_page(await get_page_or_404(page_id))
         breadcrumbs = await build_breadcrumbs(page)
         breadcrumbs.append(type(breadcrumbs[-1])("Edit", None))
+        extra_fields = _extra_fields_from_form(form, page=page)
         values = _form_values(
             page,
             title=title,
             slug=slug,
-            body=body,
             seo_title=seo_title,
             search_description=search_description,
             live=live == "1",
             show_in_menus=show_in_menus == "1",
+            **{name: value or "" for name, value in extra_fields.items()},
         )
+        form_kwargs = _page_form_kwargs(page)
         if not title.strip():
             return html_response(
                 PageFormPage,
@@ -917,7 +1050,7 @@ def create_admin_router() -> APIRouter:
                 submit_label="Save draft",
                 values=values,
                 error="Title is required.",
-                **_page_form_kwargs(),
+                **form_kwargs,
             )
         if error := search_description_error(search_description):
             return html_response(
@@ -930,17 +1063,17 @@ def create_admin_router() -> APIRouter:
                 submit_label="Save draft",
                 values=values,
                 error=error,
-                **_page_form_kwargs(),
+                **form_kwargs,
             )
         await update_page(
             page,
             title=title.strip(),
             slug=slug,
-            body=_body_value_for_save(page=page, submitted_body=body),
             live=live == "1",
             show_in_menus=show_in_menus == "1",
             seo_title=seo_title or None,
             search_description=normalize_search_description(search_description),
+            **extra_fields,
         )
         return RedirectResponse(f"/admin/pages/{page_id}/", status_code=status.HTTP_303_SEE_OTHER)
 

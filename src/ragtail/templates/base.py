@@ -6,28 +6,19 @@ from typing import Any, Protocol
 from fastapi import Request
 from fastapi.responses import HTMLResponse, Response
 
+from ..page_types import cast_page, content_type_to_component_name
 from ..routing import RouteMatch
-from .registry import get_page_view
 
 PageRenderer = Callable[[Request, RouteMatch], Response | Awaitable[Response]]
 
 
-def content_type_to_component_name(content_type: str) -> str:
-    """Map ``detail_page`` to ``detailPage`` for PyJSX component lookup."""
-    parts = content_type.strip("_").split("_")
-    if not parts or not parts[0]:
-        return content_type
-    head, *tail = parts
-    return head.lower() + "".join(part.capitalize() for part in tail)
-
-
-async def resolve_view_and_context(
+async def resolve_page_and_context(
     request: Request,
     route: RouteMatch,
 ) -> tuple[Any, dict[str, Any]]:
-    view = get_page_view(route.page.content_type or "page")
-    context = await view.get_context(request, route.page, route)
-    return view, context
+    page = await cast_page(route.page)
+    context = await page.get_context(request, route)
+    return page, context
 
 
 class TemplateEngineInterface(Protocol):
@@ -48,3 +39,12 @@ class BaseTemplateEngine:
             return HTMLResponse(html)
 
         return render_page
+
+
+__all__ = [
+    "BaseTemplateEngine",
+    "PageRenderer",
+    "TemplateEngineInterface",
+    "content_type_to_component_name",
+    "resolve_page_and_context",
+]

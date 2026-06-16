@@ -304,6 +304,55 @@ def ExtraFieldControl(field_def, value: str = "", children=None):
   )
 
 
+def PageTypeChooserPage(
+  *,
+  username: str,
+  parent_page,
+  breadcrumbs,
+  page_types,
+  children=None,
+):
+  parent_id = parent_page.id
+  return (
+    <AdminLayout
+      title="Choose page type"
+      active="pages"
+      username={username}
+      breadcrumbs={[]}
+      body_class="page-type-chooser"
+    >
+      <header class="flex min-h-slim-header flex-col justify-center gap-1 border-b border-gray-200 bg-gray-50 px-5 py-3">
+        <Breadcrumbs crumbs={breadcrumbs} />
+        <h1 class="text-2xl font-semibold text-gray-900">Choose page type</h1>
+        <p class="text-sm text-gray-600">
+          Add a child page under <strong class="text-gray-900">{parent_page.title}</strong>
+        </p>
+      </header>
+      <div class="px-6 py-8">
+        <ul class="grid max-w-3xl gap-4 sm:grid-cols-2">
+          {[
+            <li>
+              <a
+                href={f"/admin/pages/add/?parent={parent_id}&content_type={content_type}"}
+                class="flex h-full flex-col rounded-lg border border-gray-200 bg-white p-5 no-underline shadow-sm transition hover:border-wagtail-secondary hover:shadow-md"
+              >
+                <span class="text-lg font-semibold text-gray-900">{label}</span>
+                <span class="mt-1 text-sm text-gray-500">{content_type}</span>
+              </a>
+            </li>
+            for content_type, label in page_types
+          ]}
+        </ul>
+        <div class="mt-8">
+          <a href={f"/admin/pages/{parent_id}/"} class={BTN_SECONDARY}>
+            Cancel
+          </a>
+        </div>
+      </div>
+    </AdminLayout>
+  )
+
+
 def PageFormPage(
   *,
   username: str,
@@ -318,6 +367,8 @@ def PageFormPage(
   values=None,
   extra_fields=None,
   include_richtext_script=False,
+  selected_content_type: str | None = None,
+  content_type_label: str | None = None,
 ):
   form_values = values or {}
   extra_field_defs = extra_fields or []
@@ -347,9 +398,28 @@ def PageFormPage(
           </div>
         ) if error else None}
         <form method="post" action={action_url} class="max-w-3xl space-y-8">
+          {(
+            <input type="hidden" name="content_type" value={selected_content_type} />
+          ) if selected_content_type else None}
           <fieldset>
             <legend class="mb-4 text-lg font-semibold text-gray-900">Content</legend>
             <ul>
+              {(
+                _field_block(
+                  label="Page type",
+                  field_id="id_page_type",
+                  control=(
+                    <input
+                      id="id_page_type"
+                      type="text"
+                      class={INPUT + " bg-gray-50"}
+                      value={content_type_label or selected_content_type}
+                      readonly
+                      tabindex="-1"
+                    />
+                  ),
+                )
+              ) if selected_content_type else None}
               {_field_block(
                 label="Title",
                 field_id="id_title",

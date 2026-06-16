@@ -15,6 +15,15 @@ class PageFormField:
     widget: WidgetType = "textarea"
 
 
+def infer_widget_for_field(name: str, meta: object) -> WidgetType:
+    if name == "body":
+        return "richtext"
+    python_type = getattr(meta, "python_type", None)
+    if python_type is str and getattr(meta, "db_type", None) == "TEXT":
+        return "textarea"
+    return "text"
+
+
 _page_form_fields: list[PageFormField] = []
 
 

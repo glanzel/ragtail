@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi import Request
 
 from ..routing import RouteMatch
-from .base import BaseTemplateEngine, resolve_view_and_context
+from .base import BaseTemplateEngine, resolve_page_and_context
 
 
 class Jinja2Renderer(BaseTemplateEngine):
@@ -25,11 +25,11 @@ class Jinja2Renderer(BaseTemplateEngine):
         )
 
     async def serve(self, request: Request, route: RouteMatch) -> str:
-        view, context = await resolve_view_and_context(request, route)
-        template_name = view.get_template_name(request, route.page, route)
+        page, context = await resolve_page_and_context(request, route)
+        template_name = page.get_template_name(request, route)
         template = self._environment.get_template(template_name)
         return template.render(
-            page=route.page,
+            page=page,
             route=route,
             request=request,
             **context,

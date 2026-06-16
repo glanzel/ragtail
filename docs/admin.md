@@ -28,18 +28,19 @@ For production, prefer `make createsuperuser` or `ragtail-createsuperuser` inste
 - Menu builder (create menus and add page/URL items)
 - Create / edit / delete pages
 
-## Demo-only rich text (TipTap)
+## Rich text body on `ContentPage`
 
-The core page editor intentionally has no body field. The demo registers a `body` rich text field (TipTap) similar to Wagtail's `RichTextField`:
+Register a page model with a `body` field. Fields named `body` automatically use the TipTap rich text widget in the admin:
 
 ```python
-from ragtail.wagtail_admin.registry import PageFormField, register_page_form_field
+from oxyde import Field
+from ragtail import Page, register_page_model
 
-register_page_form_field(
-    PageFormField(name="body", label="Content", widget="richtext")
-)
+@register_page_model
+class ContentPage(Page):
+    body: str | None = Field(default=None, db_type="TEXT")
 ```
 
-See `examples/demo/admin_setup.py`.
+See `examples/demo/pages.py`.
 
 The legacy generic `oxyde-admin` CRUD remains available via `mount_admin=True` on `create_app` or the `[admin]` extra.

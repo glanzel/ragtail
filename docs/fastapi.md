@@ -6,18 +6,20 @@ Assumes Ragtail is mounted into a FastAPI app with an Oxyde database connection.
 
 ```python
 from fastapi import FastAPI
-from ragtail import FastAPICMS, PageView, PyJsxRenderer, register_page_view
+from oxyde import Field
 
-@register_page_view
-class SitePageView(PageView):
-    content_type = "page"
+from ragtail import FastAPICMS, Page, PyJsxRenderer, register_page_model
 
-    async def get_context(self, request, page, route):
+@register_page_model
+class ContentPage(Page):
+    body: str | None = Field(default=None, db_type="TEXT")
+
+    async def get_context(self, request, route):
         return {}
 
 cms = FastAPICMS(
     secret_key="change-me",
-    template_engine=PyJsxRenderer(components_module="site_templates.page"),
+    template_engine=PyJsxRenderer(components_module="site_templates.content_page"),
 )
 app = FastAPI(lifespan=cms.lifespan("sqlite://app.db"))
 cms.mount(app)

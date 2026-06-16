@@ -20,5 +20,5 @@ def test_prepare_sqlite_database_creates_parent_directory(tmp_path: Path) -> Non
 async def test_init_database_creates_file_and_applies_migrations(tmp_path: Path) -> None:
     database_url = f"sqlite:////{tmp_path / 'nested' / 'fresh.db'}"
     applied = await init_database(database_url)
-    assert applied == ["0001_ragtail_initial"]
+    assert applied == ["0001_ragtail_initial", "0002_page_data"]
     assert (tmp_path / "nested" / "fresh.db").is_file()

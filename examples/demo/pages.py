@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-from fastapi import Request
+from oxyde import Field
 
 from ragtail.menus import get_menu_tree
 from ragtail.models import Page
+from ragtail.page_types import register_page_model
 from ragtail.routing import RouteMatch
-from ragtail.templates import PageView, register_page_view
 
 
-@register_page_view
-class SitePageView(PageView):
-    content_type = "page"
+@register_page_model
+class ContentPage(Page):
+    body: str | None = Field(default=None, db_type="TEXT")
 
-    async def get_context(self, request: Request, page: Page, route: RouteMatch) -> dict:
+    async def get_context(self, request, route: RouteMatch) -> dict:
+        _ = request
         menu_items = await get_menu_tree("main", language_code=route.locale.language_code)
         return {"menu_items": menu_items}

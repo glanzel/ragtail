@@ -6,8 +6,25 @@ from ragtail.auth import ensure_superuser
 from ragtail.db import ensure_tables
 from ragtail.menus import create_menu, create_menu_item
 from ragtail.models import Locale, Page, User
+from ragtail.page_types import cast_page, get_content_type, get_default_page_model, persist_page
 from ragtail.pages import create_page
 from ragtail.wagtail_admin.services import ensure_root_page
+
+from pages import ContentPage
+
+
+async def _normalize_legacy_page_content_types() -> None:
+    """Upgrade rows still using the generic ``page`` content type."""
+    default_model = get_default_page_model()
+    if default_model is Page:
+        return
+
+    target_content_type = get_content_type(default_model)
+    legacy_pages = await Page.objects.filter(content_type="page").all()
+    for row in legacy_pages:
+        typed = await cast_page(row)
+        typed.content_type = target_content_type
+        await persist_page(typed)
 
 
 async def seed_if_empty(
@@ -17,6 +34,7 @@ async def seed_if_empty(
 ) -> None:
     database = await db.get_connection("default")
     await ensure_tables(database)
+    await _normalize_legacy_page_content_types()
 
     if await User.objects.first() is not None:
         return
@@ -40,7 +58,7 @@ async def seed_if_empty(
     )
     home.live = True
     home.show_in_menus = True
-    await home.save()
+    await persist_page(home)
 
     about = await create_page(
         title="About",
@@ -49,6 +67,7 @@ async def seed_if_empty(
         locale=en,
         live=True,
         show_in_menus=True,
+        page_model=ContentPage,
         body=(
             "## About this demo\n\n"
             "Content is stored as **Markdown** in the database and converted to HTML when "
@@ -63,6 +82,7 @@ async def seed_if_empty(
         locale=en,
         live=True,
         show_in_menus=True,
+        page_model=ContentPage,
         body="## Blog\n\nExample section. StreamField blocks can come later.",
     )
 

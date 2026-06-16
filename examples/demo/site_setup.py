@@ -1,3 +1,3 @@
-"""Register demo page views for the public site."""
+"""Register demo page models and public site configuration."""
 
-import views  # noqa: F401
+import pages  # noqa: F401
