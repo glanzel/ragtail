@@ -16,7 +16,7 @@ class Jinja2Renderer(BaseTemplateEngine):
             from jinja2 import Environment, FileSystemLoader, select_autoescape
         except ImportError as exc:  # pragma: no cover - depends on optional extra
             raise ImportError(
-                "Install the jinja extra to use Jinja2Renderer: uv add 'oxytail[jinja]'"
+                "Install the jinja extra to use Jinja2Renderer: uv add 'ragtail[jinja]'"
             ) from exc
 
         self._environment = Environment(

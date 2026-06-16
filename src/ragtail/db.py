@@ -10,24 +10,16 @@ from oxyde.migrations import apply_migrations
 from oxyde.db.pool import AsyncDatabase
 
 
+def ragtail_migrations_dir() -> Path:
+    """Bundled Ragtail migrations (``ragtail/migrations`` in the installed package)."""
+    return Path(__file__).resolve().parent / "migrations"
+
+
 def resolve_migrations_dir() -> Path:
-    """Return the directory containing numbered Oxyde migration files."""
-    if configured := os.environ.get("OXYTAIL_MIGRATIONS_DIR"):
+    """Return the directory containing Ragtail's Oxyde migration files."""
+    if configured := os.environ.get("RAGTAIL_MIGRATIONS_DIR"):
         return Path(configured)
-
-    cwd_dir = Path.cwd() / "migrations"
-    if any(cwd_dir.glob("[0-9]*.py")):
-        return cwd_dir
-
-    repo_dir = Path(__file__).resolve().parents[2] / "migrations"
-    if any(repo_dir.glob("[0-9]*.py")):
-        return repo_dir
-
-    bundled_dir = Path(__file__).resolve().parent / "db_migrations"
-    if any(bundled_dir.glob("[0-9]*.py")):
-        return bundled_dir
-
-    return cwd_dir
+    return ragtail_migrations_dir()
 
 
 def sqlite_database_path(database_url: str) -> Path | None:
@@ -63,7 +55,7 @@ async def run_migrations(
     db_alias: str = "default",
 ) -> list[str]:
     """Apply pending Oxyde migrations."""
-    import oxytail.models  # noqa: F401
+    import ragtail.models  # noqa: F401
 
     _ = database
     directory = Path(migrations_dir) if migrations_dir is not None else resolve_migrations_dir()

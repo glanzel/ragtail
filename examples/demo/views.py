@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from fastapi import Request
 
-from oxytail.menus import get_menu_tree
-from oxytail.models import Page
-from oxytail.routing import RouteMatch
-from oxytail.templates import PageView, register_page_view
+from ragtail.menus import get_menu_tree
+from ragtail.models import Page
+from ragtail.routing import RouteMatch
+from ragtail.templates import PageView, register_page_view
 
 
 @register_page_view

@@ -17,17 +17,17 @@ sys.path.insert(0, str(DEMO_DIR))
 import admin_setup  # noqa: F401,E402 registers demo rich text field
 import site_setup  # noqa: F401,E402 registers demo page views
 
-from oxytail.fastapi import create_app  # noqa: E402
-from oxytail.templates import PyJsxRenderer  # noqa: E402
+from ragtail.fastapi import create_app  # noqa: E402
+from ragtail.templates import PyJsxRenderer  # noqa: E402
 
 from seed import seed_if_empty  # noqa: E402
 
-DEFAULT_DB_PATH = DEMO_DIR / "oxytail.db"
+DEFAULT_DB_PATH = DEMO_DIR / "ragtail.db"
 DATABASE_URL = os.environ.get(
-    "OXYTAIL_DATABASE_URL",
+    "RAGTAIL_DATABASE_URL",
     f"sqlite:////{DEFAULT_DB_PATH}",
 )
-SECRET_KEY = os.environ.get("OXYTAIL_SECRET_KEY", "oxytail-demo-secret-change-me")
+SECRET_KEY = os.environ.get("RAGTAIL_SECRET_KEY", "ragtail-demo-secret-change-me")
 
 app = create_app(
     database_url=DATABASE_URL,

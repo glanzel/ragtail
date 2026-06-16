@@ -6,11 +6,11 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from oxyde import db
 
-from oxytail.auth import ensure_superuser
-from oxytail.cms import FastAPICMS
-from oxytail.db import run_migrations
-from oxytail.models import Locale
-from oxytail.wagtail_admin.services import ensure_root_page
+from ragtail.auth import ensure_superuser
+from ragtail.cms import FastAPICMS
+from ragtail.db import run_migrations
+from ragtail.models import Locale
+from ragtail.wagtail_admin.services import ensure_root_page
 
 
 @pytest_asyncio.fixture

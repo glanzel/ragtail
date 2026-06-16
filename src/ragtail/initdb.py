@@ -10,12 +10,12 @@ from .db import init_database
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Create the database (if needed) and apply Oxytail migrations.",
+        description="Create the database (if needed) and apply Ragtail migrations.",
     )
     parser.add_argument(
         "--database-url",
-        default=os.environ.get("OXYTAIL_DATABASE_URL", "sqlite://oxytail.db"),
-        help="Database URL (default: OXYTAIL_DATABASE_URL or sqlite://oxytail.db)",
+        default=os.environ.get("RAGTAIL_DATABASE_URL", "sqlite://ragtail.db"),
+        help="Database URL (default: RAGTAIL_DATABASE_URL or sqlite://ragtail.db)",
     )
     return parser
 

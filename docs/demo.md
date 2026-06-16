@@ -6,7 +6,7 @@ A runnable demo with Wagtail-style admin and PyJSX public templates lives in `ex
 make install
 make migrate
 make createsuperuser
-make dev
+make run-demo
 ```
 
 - Public site: http://127.0.0.1:8000/
@@ -22,10 +22,10 @@ From the repository root:
 make docker-build
 make docker-run
 # or:
-docker build -t oxytail-demo .
-docker run --rm -p 8000:8000 -v oxytail-data:/data oxytail-demo
+docker build -t ragtail-demo .
+docker run --rm -p 8000:8000 -v ragtail-data:/data ragtail-demo
 ```
 
-The SQLite database is stored in `/data/oxytail.db` inside the container.
+The SQLite database is stored in `/data/ragtail.db` inside the container.
 
 See also `examples/demo/README.md` for demo-specific details.

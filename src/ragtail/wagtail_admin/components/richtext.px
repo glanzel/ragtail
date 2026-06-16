@@ -2,7 +2,7 @@ import base64
 
 from pyjsx import jsx
 
-from oxytail.wagtail_admin.components.icons import (
+from ragtail.wagtail_admin.components.icons import (
     RichtextIconBlockquote,
     RichtextIconBold,
     RichtextIconBulletList,

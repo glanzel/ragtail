@@ -15,12 +15,12 @@ from .models import User
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Create an Oxytail CMS staff user (like Django's createsuperuser).",
+        description="Create a Ragtail CMS staff user (like Django's createsuperuser).",
     )
     parser.add_argument(
         "--database-url",
-        default=os.environ.get("OXYTAIL_DATABASE_URL", "sqlite://oxytail.db"),
-        help="Database URL (default: OXYTAIL_DATABASE_URL or sqlite://oxytail.db)",
+        default=os.environ.get("RAGTAIL_DATABASE_URL", "sqlite://ragtail.db"),
+        help="Database URL (default: RAGTAIL_DATABASE_URL or sqlite://ragtail.db)",
     )
     parser.add_argument("--username", help="Staff username")
     parser.add_argument("--email", help="Staff email address")
@@ -70,16 +70,16 @@ def _prompt_password() -> str:
 
 
 def _resolve_credentials(args: argparse.Namespace) -> tuple[str, str, str]:
-    username = (args.username or os.environ.get("OXYTAIL_SUPERUSER_USERNAME", "")).strip()
-    email = (args.email or os.environ.get("OXYTAIL_SUPERUSER_EMAIL", "")).strip()
-    password = args.password or os.environ.get("OXYTAIL_SUPERUSER_PASSWORD", "")
+    username = (args.username or os.environ.get("RAGTAIL_SUPERUSER_USERNAME", "")).strip()
+    email = (args.email or os.environ.get("RAGTAIL_SUPERUSER_EMAIL", "")).strip()
+    password = args.password or os.environ.get("RAGTAIL_SUPERUSER_PASSWORD", "")
 
     if args.noinput:
         if not username or not email or not password:
             raise SystemExit(
                 "Non-interactive mode requires --username, --email and --password "
-                "(or OXYTAIL_SUPERUSER_USERNAME, OXYTAIL_SUPERUSER_EMAIL and "
-                "OXYTAIL_SUPERUSER_PASSWORD)."
+                "(or RAGTAIL_SUPERUSER_USERNAME, RAGTAIL_SUPERUSER_EMAIL and "
+                "RAGTAIL_SUPERUSER_PASSWORD)."
             )
         validation_error = email_error(email)
         if validation_error:

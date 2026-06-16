@@ -1,6 +1,6 @@
 # Models
 
-Ragtail provides Oxyde models in `oxytail.models`:
+Ragtail provides Oxyde models in `ragtail.models`:
 
 - `Locale`: active languages/locales, including the default locale
 - `Page`: tree-structured page with `parent`, `path`, `depth`, `locale` and `translation_key`
@@ -15,7 +15,7 @@ After model changes, generate and apply migrations — see [Installation](instal
 Use the helper service so `path`, `depth` and `translation_key` are filled consistently:
 
 ```python
-from oxytail.pages import create_page, create_translation
+from ragtail.pages import create_page, create_translation
 
 home = await create_page(title="Home", slug="", locale=en, live=True)
 about = await create_page(title="About", slug="about", parent=home, locale=en, live=True)

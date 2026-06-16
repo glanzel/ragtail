@@ -1,8 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./src/oxytail/wagtail_admin/components/**/*.{px,py}",
-    "./src/oxytail/wagtail_admin/classes.py",
+    "./src/ragtail/wagtail_admin/components/**/*.{px,py}",
+    "./src/ragtail/wagtail_admin/classes.py",
     "./examples/demo/site_templates/**/*.px",
   ],
   safelist: [

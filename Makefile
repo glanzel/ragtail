@@ -1,12 +1,12 @@
-.PHONY: help install install-python install-node sync lock build watch dev demo test clean docker-build docker-run init-db createsuperuser setup makemigrations migrate showmigrations
+.PHONY: help install install-python install-node sync lock build watch run-demo demo test clean docker-build docker-run init-db createsuperuser setup makemigrations migrate showmigrations
 
 UV     ?= uv
 NPM    ?= npm
 HOST   ?= 127.0.0.1
 PORT   ?= 8000
-DOCKER_IMAGE ?= oxytail-demo
-DOCKER_VOLUME ?= oxytail-data
-DATABASE_URL ?= sqlite://oxytail.db
+DOCKER_IMAGE ?= ragtail-demo
+DOCKER_VOLUME ?= ragtail-data
+DATABASE_URL ?= sqlite://ragtail.db
 USERNAME ?=
 EMAIL ?=
 PASSWORD ?=
@@ -23,7 +23,7 @@ help: ## Show available targets
 
 install: sync install-node build ## Install Python + npm deps and build frontend assets
 	@echo "Installation complete."
-	@echo "Next: make migrate && make createsuperuser && make dev"
+	@echo "Next: make migrate && make createsuperuser && make run-demo"
 
 setup: install migrate createsuperuser ## First-time install, migrate DB, create admin user
 
@@ -51,17 +51,17 @@ watch: install-node ## Watch CSS sources and rebuild on change
 init-db: migrate ## Alias for migrate (apply schema migrations)
 
 makemigrations: ## Generate Oxyde migration files from model changes (MIGRATION_NAME=optional)
-	OXYTAIL_DATABASE_URL="$(DATABASE_URL)" $(UV) run oxyde makemigrations \
+	RAGTAIL_DATABASE_URL="$(DATABASE_URL)" $(UV) run oxyde makemigrations \
 		$(if $(MIGRATION_NAME),--name "$(MIGRATION_NAME)",)
 
 migrate: ## Create database file (if needed) and apply migrations
-	OXYTAIL_DATABASE_URL="$(DATABASE_URL)" $(UV) run oxytail-initdb --database-url "$(DATABASE_URL)"
+	RAGTAIL_DATABASE_URL="$(DATABASE_URL)" $(UV) run ragtail-initdb --database-url "$(DATABASE_URL)"
 
 showmigrations: ## Show applied and pending Oxyde migrations
-	OXYTAIL_DATABASE_URL="$(DATABASE_URL)" $(UV) run oxyde showmigrations
+	RAGTAIL_DATABASE_URL="$(DATABASE_URL)" $(UV) run oxyde showmigrations
 
 createsuperuser: ## Create first staff user (interactive; USERNAME/EMAIL/PASSWORD/NOINPUT=1 for scripted)
-	$(UV) run oxytail-createsuperuser \
+	$(UV) run ragtail-createsuperuser \
 		--database-url "$(DATABASE_URL)" \
 		$(if $(USERNAME),--username "$(USERNAME)",) \
 		$(if $(EMAIL),--email "$(EMAIL)",) \
@@ -69,7 +69,7 @@ createsuperuser: ## Create first staff user (interactive; USERNAME/EMAIL/PASSWOR
 		$(if $(NOINPUT),--noinput,) \
 		$(if $(UPDATE),--update,)
 
-dev: ## Run demo app with auto-reload (uvicorn)
+run-demo: ## Run demo app with auto-reload (uvicorn)
 	$(UV) run uvicorn examples.demo.main:app --reload --host $(HOST) --port $(PORT)
 
 demo: ## Run demo app without reload

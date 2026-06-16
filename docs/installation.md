@@ -3,14 +3,14 @@
 ## As a library
 
 ```bash
-uv add oxytail
+uv add ragtail
 ```
 
 Optional extras:
 
 ```bash
-uv add "oxytail[jinja]"   # Jinja2 templates
-uv add "oxytail[admin]"   # legacy oxyde-admin CRUD
+uv add "ragtail[jinja]"   # Jinja2 templates
+uv add "ragtail[admin]"   # legacy oxyde-admin CRUD
 ```
 
 ## Local development (this repository)
@@ -21,7 +21,7 @@ This project uses [uv](https://docs.astral.sh/uv/) for Python dependency managem
 make install              # Python + npm deps, build CSS
 make migrate              # create DB and apply migrations
 make createsuperuser      # first CMS staff user
-make dev                  # demo app with reload
+make run-demo             # demo app with reload
 ```
 
 Equivalent without make:
@@ -29,8 +29,8 @@ Equivalent without make:
 ```bash
 uv sync --locked --extra demo
 npm install && npm run build:css
-uv run oxytail-initdb --database-url sqlite://oxytail.db
-uv run oxytail-createsuperuser
+uv run ragtail-initdb --database-url sqlite://ragtail.db
+uv run ragtail-createsuperuser
 uv run uvicorn examples.demo.main:app --reload
 ```
 
@@ -57,20 +57,20 @@ make createsuperuser USERNAME=admin EMAIL=admin@example.com PASSWORD=secret NOIN
 Or directly:
 
 ```bash
-uv run oxytail-createsuperuser --username admin --email admin@example.com --password secret --noinput
+uv run ragtail-createsuperuser --username admin --email admin@example.com --password secret --noinput
 ```
 
 Use `--update` (or `make createsuperuser UPDATE=1`) to reset an existing user's password.
 
 Environment variables for scripted runs:
 
-- `OXYTAIL_SUPERUSER_USERNAME`
-- `OXYTAIL_SUPERUSER_EMAIL`
-- `OXYTAIL_SUPERUSER_PASSWORD`
+- `RAGTAIL_SUPERUSER_USERNAME`
+- `RAGTAIL_SUPERUSER_EMAIL`
+- `RAGTAIL_SUPERUSER_PASSWORD`
 
 ## Database migrations
 
-Ragtail uses [Oxyde migrations](https://oxyde.fatalyst.dev/) (Django-style). Configuration lives in `oxyde_config.py`; migration files are in `migrations/`.
+Ragtail uses [Oxyde migrations](https://oxyde.fatalyst.dev/) (Django-style). On app startup, `cms.lifespan` applies pending migrations automatically. For offline/CI use:
 
 ```bash
 make migrate              # create DB file if needed, apply pending migrations
@@ -81,7 +81,7 @@ make showmigrations       # list applied/pending migrations
 Fresh database:
 
 ```bash
-rm -f oxytail.db
+rm -f ragtail.db
 make migrate
 make createsuperuser
 ```
@@ -90,16 +90,16 @@ Programmatically:
 
 ```python
 from oxyde import db
-from oxytail.db import run_migrations
+from ragtail.db import run_migrations
 
-await db.init(default="sqlite://oxytail.db")
+await db.init(default="sqlite://ragtail.db")
 await run_migrations()
 ```
 
 ## Environment variables
 
-- `OXYTAIL_DATABASE_URL` — database (default: `sqlite://oxytail.db`)
-- `OXYTAIL_SECRET_KEY` — admin session secret
+- `RAGTAIL_DATABASE_URL` — database (default: `sqlite://ragtail.db`)
+- `RAGTAIL_SECRET_KEY` — admin session secret
 
 ## Frontend assets (Tailwind CSS)
 

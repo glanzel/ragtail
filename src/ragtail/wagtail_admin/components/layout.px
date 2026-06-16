@@ -1,7 +1,7 @@
 from pyjsx import jsx
 
-from oxytail.wagtail_admin.classes import BTN_SECONDARY, SIDEBAR_LINK, SIDEBAR_LINK_ACTIVE
-from oxytail.wagtail_admin.components.icons import (
+from ragtail.wagtail_admin.classes import BTN_SECONDARY, SIDEBAR_LINK, SIDEBAR_LINK_ACTIVE
+from ragtail.wagtail_admin.components.icons import (
     IconDocEmptyInverse,
     IconGlobe,
     IconHome,
