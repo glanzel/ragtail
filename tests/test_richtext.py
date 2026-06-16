@@ -17,7 +17,7 @@ from ragtail.richtext import (
     sanitize_stored_body,
 )
 from ragtail.seo import normalize_search_description, search_description_error
-from ragtail.wagtail_admin.services import ensure_root_page
+from ragtail.ragtail_admin.services import ensure_root_page
 
 
 def test_render_body_converts_markdown_to_html() -> None:
@@ -73,6 +73,16 @@ def test_search_description_error_for_too_long_value() -> None:
 
 @pytest_asyncio.fixture
 async def public_client(tmp_path: Path):
+    from oxyde import Field
+
+    from ragtail.page_types import clear_page_models, register_page_model
+
+    clear_page_models()
+
+    @register_page_model
+    class ContentPage(Page):
+        body: str | None = Field(default=None, db_type="TEXT")
+
     database_url = f"sqlite:////{tmp_path / 'richtext.db'}"
     await db.init(default=database_url)
     try:
@@ -92,6 +102,7 @@ async def public_client(tmp_path: Path):
             parent=home,
             locale=en,
             live=True,
+            page_model=ContentPage,
             body="Placeholder",
         )
 
@@ -100,7 +111,7 @@ async def public_client(tmp_path: Path):
 
         app = create_app(
             database_url=database_url,
-            mount_wagtail_admin=True,
+            mount_ragtail_admin=True,
             secret_key="test-secret",
             renderer=render_page,
         )
@@ -109,6 +120,7 @@ async def public_client(tmp_path: Path):
             yield http_client
     finally:
         await db.close()
+        clear_page_models()
 
 
 @pytest.mark.asyncio
@@ -126,18 +138,8 @@ async def test_public_page_renders_stored_markdown_as_html(public_client: AsyncC
 
 @pytest.mark.asyncio
 async def test_admin_save_persists_markdown_body(public_client: AsyncClient) -> None:
-    import importlib
-    import sys
-
-    from ragtail.wagtail_admin.registry import clear_page_form_fields
-
-    demo_dir = Path(__file__).resolve().parents[1] / "examples" / "demo"
-    sys.path.insert(0, str(demo_dir))
-    clear_page_form_fields()
-    if "admin_setup" in sys.modules:
-        importlib.reload(sys.modules["admin_setup"])
-    else:
-        importlib.import_module("admin_setup")
+    from ragtail.models import Page
+    from ragtail.page_types import cast_page
 
     login = await public_client.post(
         "/admin/login/",
@@ -171,5 +173,3 @@ async def test_admin_save_persists_markdown_body(public_client: AsyncClient) -> 
     assert "**markdown**" not in response.text
     assert "<h2>Heading</h2>" in response.text
     assert "<strong>markdown</strong>" in response.text
-
-    clear_page_form_fields()

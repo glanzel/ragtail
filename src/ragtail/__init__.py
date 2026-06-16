@@ -15,13 +15,20 @@ from .auth import (
     verify_password,
 )
 from .cms import FastAPICMS
+from .page_types import (
+    cast_page,
+    class_to_content_type,
+    clear_page_models,
+    get_all_page_models,
+    get_content_type,
+    get_default_page_model,
+    get_page_model,
+    register_page_model,
+)
 from .templates import (
     Jinja2Renderer,
-    PageView,
     PyJsxRenderer,
     TemplateEngineInterface,
-    get_page_view,
-    register_page_view,
     register_pyjsx_component,
 )
 from .fastapi import create_api_router, create_app, create_cms_router
@@ -34,7 +41,7 @@ from .menus import (
     get_menu_tree,
 )
 from .models import Locale, Menu, MenuItem, Page, User
-from .wagtail_admin import PageFormField, create_admin_router, register_page_form_field
+from .ragtail_admin import PageFormField, create_admin_router, register_page_form_field
 from .pages import create_page, create_translation
 from .routing import (
     RouteMatch,
@@ -64,7 +71,6 @@ __all__ = [
     "create_admin_router",
     "FastAPICMS",
     "Jinja2Renderer",
-    "PageView",
     "PyJsxRenderer",
     "TemplateEngineInterface",
     "create_api_router",
@@ -79,8 +85,14 @@ __all__ = [
     "prepare_sqlite_database",
     "resolve_migrations_dir",
     "run_migrations",
-    "get_page_view",
-    "register_page_view",
+    "cast_page",
+    "class_to_content_type",
+    "clear_page_models",
+    "get_all_page_models",
+    "get_content_type",
+    "get_default_page_model",
+    "get_page_model",
+    "register_page_model",
     "register_pyjsx_component",
     "hash_password",
     "create_menu",

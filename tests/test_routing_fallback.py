@@ -8,7 +8,7 @@ from ragtail.db import run_migrations
 from ragtail.models import Locale
 from ragtail.pages import create_page, create_translation
 from ragtail.routing import resolve_route
-from ragtail.wagtail_admin.services import ensure_root_page
+from ragtail.ragtail_admin.services import ensure_root_page
 
 
 @pytest.mark.asyncio

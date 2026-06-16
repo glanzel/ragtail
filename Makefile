@@ -69,11 +69,11 @@ createsuperuser: ## Create first staff user (interactive; USERNAME/EMAIL/PASSWOR
 		$(if $(NOINPUT),--noinput,) \
 		$(if $(UPDATE),--update,)
 
-run-demo: ## Run demo app with auto-reload (uvicorn)
-	$(UV) run uvicorn examples.demo.main:app --reload --host $(HOST) --port $(PORT)
+run-demo: sync ## Run demo app with auto-reload (uvicorn)
+	$(UV) run --extra demo uvicorn examples.demo.main:app --reload --host $(HOST) --port $(PORT)
 
-demo: ## Run demo app without reload
-	$(UV) run python examples/demo/main.py
+demo: sync ## Run demo app without reload
+	$(UV) run --extra demo python examples/demo/main.py
 
 test: ## Run pytest suite
 	$(UV) run pytest

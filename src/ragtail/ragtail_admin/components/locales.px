@@ -1,19 +1,19 @@
 from pyjsx import jsx
 
-from ragtail.wagtail_admin.classes import BTN, BTN_SECONDARY, BTN_SM, INPUT, LABEL
-from ragtail.wagtail_admin.components.layout import AdminLayout
+from ragtail.ragtail_admin.classes import BTN, BTN_SECONDARY, BTN_SM, INPUT, LABEL
+from ragtail.ragtail_admin.components.layout import AdminLayout
 
 
 def LocaleRow(locale, children=None):
   default_badge = (
-    <span class="ml-2 inline-block rounded bg-teal-50 px-2 py-0.5 text-xs font-semibold text-wagtail-secondary">
+    <span class="ml-2 inline-block rounded bg-teal-50 px-2 py-0.5 text-xs font-semibold text-ragtail-secondary">
       Default
     </span>
     if locale.is_default
     else None
   )
   status = (
-    <span class="inline-block rounded bg-teal-50 px-2 py-0.5 text-xs font-semibold text-wagtail-secondary">
+    <span class="inline-block rounded bg-teal-50 px-2 py-0.5 text-xs font-semibold text-ragtail-secondary">
       Active
     </span>
     if locale.is_active

@@ -34,7 +34,7 @@
   }
 
   .ProseMirror a {
-    @apply text-wagtail-secondary underline;
+    @apply text-ragtail-secondary underline;
   }
 
   .richtext-toolbar {
@@ -62,7 +62,7 @@
   }
 
   .richtext-toolbar-btn.is-active {
-    @apply border-wagtail-secondary bg-wagtail-secondary text-white hover:border-wagtail-secondary hover:bg-wagtail-secondary;
+    @apply border-ragtail-secondary bg-ragtail-secondary text-white hover:border-ragtail-secondary hover:bg-ragtail-secondary;
   }
 
   .ProseMirror blockquote {

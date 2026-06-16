@@ -3,10 +3,10 @@
   "private": true,
   "scripts": {
     "build:css": "npm run build:admin && npm run build:site && npm run build:richtext",
-    "build:admin": "tailwindcss -i ./styles/admin.css -o ./src/ragtail/wagtail_admin/static/wagtail-admin.css --minify",
+    "build:admin": "tailwindcss -i ./styles/admin.css -o ./src/ragtail/ragtail_admin/static/ragtail-admin.css --minify",
     "build:site": "tailwindcss -i ./styles/site.css -o ./examples/demo/static/site.css --minify",
-    "build:richtext": "esbuild scripts/richtext-src.mjs --bundle --format=esm --outfile=src/ragtail/wagtail_admin/static/richtext.js --minify",
-    "watch:css": "tailwindcss -i ./styles/admin.css -o ./src/ragtail/wagtail_admin/static/wagtail-admin.css --watch"
+    "build:richtext": "esbuild scripts/richtext-src.mjs --bundle --format=esm --outfile=src/ragtail/ragtail_admin/static/richtext.js --minify",
+    "watch:css": "tailwindcss -i ./styles/admin.css -o ./src/ragtail/ragtail_admin/static/ragtail-admin.css --watch"
   },
   "dependencies": {
     "@tiptap/core": "2.11.5",

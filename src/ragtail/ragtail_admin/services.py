@@ -6,10 +6,11 @@ from uuid import uuid4
 from fastapi import HTTPException, Request
 
 from ..models import Locale, Menu, MenuItem, Page, User
+from ..page_types import cast_page, get_default_page_model, persist_page
 from ..pages import create_page
 from ..routing import get_default_locale, get_translation, join_page_path, normalize_path
 
-ADMIN_LOCALE_SESSION_KEY = "oxytail_admin_locale"
+ADMIN_LOCALE_SESSION_KEY = "ragtail_admin_locale"
 
 
 @dataclass(frozen=True)
@@ -207,11 +208,12 @@ async def create_child_page(
     title: str,
     slug: str,
     locale: Locale,
-    body: str | None = None,
+    page_model: type[Page] | None = None,
     live: bool = False,
     show_in_menus: bool = False,
     seo_title: str | None = None,
     search_description: str | None = None,
+    **extra_fields: object,
 ) -> Page:
     return await create_page(
         title=title,
@@ -220,9 +222,10 @@ async def create_child_page(
         parent=parent,
         live=live,
         show_in_menus=show_in_menus,
-        body=body,
+        page_model=page_model or get_default_page_model(),
         seo_title=seo_title,
         search_description=search_description,
+        **extra_fields,
     )
 
 
@@ -231,33 +234,35 @@ async def update_page(
     *,
     title: str,
     slug: str,
-    body: str | None,
     live: bool,
     show_in_menus: bool,
     seo_title: str | None,
     search_description: str | None,
+    **extra_fields: object,
 ) -> Page:
+    typed_page = await cast_page(page)
     parent = None
-    if page.parent_id is not None:
-        parent = await Page.objects.get_or_none(id=page.parent_id)
+    if typed_page.parent_id is not None:
+        parent = await Page.objects.get_or_none(id=typed_page.parent_id)
     parent_path = parent.path if parent is not None else "/"
     new_path = (
         "/"
-        if page.parent is None and not slug.strip("/")
+        if typed_page.parent is None and not slug.strip("/")
         else join_page_path(parent_path, slug)
     )
 
-    page.title = title
-    page.slug = slug.strip("/")
-    page.path = new_path
-    page.body = body
-    page.live = live
-    page.show_in_menus = show_in_menus
-    page.seo_title = seo_title
-    page.search_description = search_description
-    await page.save()
-    await _repath_descendants(page)
-    return page
+    typed_page.title = title
+    typed_page.slug = slug.strip("/")
+    typed_page.path = new_path
+    typed_page.live = live
+    typed_page.show_in_menus = show_in_menus
+    typed_page.seo_title = seo_title
+    typed_page.search_description = search_description
+    for name, value in extra_fields.items():
+        setattr(typed_page, name, value)
+    await persist_page(typed_page)
+    await _repath_descendants(await Page.objects.get(id=typed_page.id))
+    return await cast_page(await Page.objects.get(id=typed_page.id))
 
 
 async def _repath_descendants(page: Page) -> None:
@@ -279,8 +284,15 @@ async def delete_page(page: Page) -> None:
 async def ensure_root_page(locale: Locale) -> Page:
     roots = await get_root_pages(locale)
     if roots:
-        return roots[0]
-    return await create_page(title="Root", slug="", locale=locale, live=True, show_in_menus=True)
+        return await cast_page(roots[0])
+    return await create_page(
+        title="Root",
+        slug="",
+        locale=locale,
+        live=True,
+        show_in_menus=True,
+        page_model=get_default_page_model(),
+    )
 
 
 async def get_locale_or_404(locale_id: int) -> Locale:

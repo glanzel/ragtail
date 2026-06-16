@@ -94,10 +94,10 @@ def create_app(
     renderer: PageRenderer | None = None,
     template_engine: TemplateEngineInterface | None = None,
     mount_admin: bool = False,
-    mount_wagtail_admin: bool = False,
+    mount_ragtail_admin: bool = False,
     admin_path: str = "/admin",
     secret_key: str = "change-me-in-production",
-    title: str = "Oxytail CMS",
+    title: str = "Ragtail CMS",
     startup_hook: StartupHook | None = None,
 ) -> FastAPI:
     """Create a runnable FastAPI app using Oxyde's lifespan integration."""
@@ -116,7 +116,7 @@ def create_app(
     )
     app.include_router(create_api_router())
 
-    if mount_wagtail_admin:
+    if mount_ragtail_admin:
         app.mount(admin_path.rstrip("/"), cms.app)
 
     if mount_admin:

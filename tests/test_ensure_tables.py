@@ -40,7 +40,7 @@ async def database(tmp_path: Path):
 async def test_run_migrations_creates_tables(database):
     applied = await run_migrations(database)
 
-    assert applied == ["0001_ragtail_initial"]
+    assert applied == ["0001_ragtail_initial", "0002_page_data"]
     assert await User.objects.first() is None
 
 
@@ -49,7 +49,7 @@ async def test_run_migrations_is_idempotent(database):
     first = await run_migrations(database)
     second = await run_migrations(database)
 
-    assert first == ["0001_ragtail_initial"]
+    assert first == ["0001_ragtail_initial", "0002_page_data"]
     assert second == []
 
 
@@ -60,5 +60,5 @@ async def test_run_migrations_not_blocked_by_host_0001_initial(database) -> None
 
     applied = await run_migrations(database)
 
-    assert applied == ["0001_ragtail_initial"]
+    assert applied == ["0001_ragtail_initial", "0002_page_data"]
     assert await User.objects.first() is None

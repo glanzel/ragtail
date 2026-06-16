@@ -6,9 +6,9 @@ def test_admin_css_includes_richtext_toolbar_styles() -> None:
         Path(__file__).resolve().parents[1]
         / "src"
         / "ragtail"
-        / "wagtail_admin"
+        / "ragtail_admin"
         / "static"
-        / "wagtail-admin.css"
+        / "ragtail-admin.css"
     )
     css = css_path.read_text(encoding="utf-8")
     assert ".richtext-toolbar-btn" in css
@@ -20,7 +20,7 @@ def test_richtext_bundle_is_self_contained() -> None:
         Path(__file__).resolve().parents[1]
         / "src"
         / "ragtail"
-        / "wagtail_admin"
+        / "ragtail_admin"
         / "static"
         / "richtext.js"
     )

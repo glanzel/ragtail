@@ -11,7 +11,7 @@ from oxyde import db
 from starlette.middleware.sessions import SessionMiddleware
 
 from .db import prepare_sqlite_database, run_migrations
-from .wagtail_admin.router import AdminLoginRequired, STATIC_DIR, _login_url, create_admin_router
+from .ragtail_admin.router import AdminLoginRequired, STATIC_DIR, _login_url, create_admin_router
 
 if TYPE_CHECKING:
     from .fastapi import PageRenderer
@@ -21,13 +21,13 @@ StartupHook = Callable[[], Awaitable[None]]
 
 
 class FastAPICMS:
-    """FastAPI adapter for Oxytail — mount like oxyde-admin's ``FastAPIAdmin``."""
+    """FastAPI adapter for Ragtail — mount like oxyde-admin's ``FastAPIAdmin``."""
 
     def __init__(
         self,
         *,
         secret_key: str = "change-me-in-production",
-        title: str = "Oxytail",
+        title: str = "Ragtail",
         prefix: str = "/admin",
         renderer: PageRenderer | None = None,
         template_engine: TemplateEngineInterface | None = None,
@@ -50,7 +50,7 @@ class FastAPICMS:
 
     @property
     def app(self) -> FastAPI:
-        """Wagtail-style admin sub-application (mount at ``prefix``)."""
+        """Ragtail admin sub-application (mount at ``prefix``)."""
         if self._app is None:
             self._app = self._build_admin_app()
         return self._app
@@ -72,7 +72,7 @@ class FastAPICMS:
         *,
         startup_hook: StartupHook | None = None,
     ) -> Callable[[FastAPI], AsyncIterator[None]]:
-        """Return a FastAPI lifespan that opens the DB and applies Oxytail migrations."""
+        """Return a FastAPI lifespan that opens the DB and applies Ragtail migrations."""
         prepare_sqlite_database(database_url)
         base_lifespan = db.lifespan(default=database_url)
 
@@ -103,7 +103,7 @@ class FastAPICMS:
             redoc_url=None,
         )
         admin.add_middleware(SessionMiddleware, secret_key=self.secret_key)
-        admin.mount("/static", StaticFiles(directory=STATIC_DIR), name="oxytail_admin_static")
+        admin.mount("/static", StaticFiles(directory=STATIC_DIR), name="ragtail_admin_static")
         admin.include_router(create_admin_router())
 
         @admin.exception_handler(AdminLoginRequired)

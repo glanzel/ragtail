@@ -66,7 +66,7 @@ from ragtail.fastapi import create_app
 
 app = create_app(
     database_url="sqlite://ragtail.db",
-    mount_wagtail_admin=True,
+    mount_ragtail_admin=True,
     secret_key="replace-me",
 )
 ```

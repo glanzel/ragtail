@@ -14,8 +14,7 @@ ROOT = DEMO_DIR.parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(DEMO_DIR))
 
-import admin_setup  # noqa: F401,E402 registers demo rich text field
-import site_setup  # noqa: F401,E402 registers demo page views
+import site_setup  # noqa: F401,E402 registers ContentPage and demo configuration
 
 from ragtail.fastapi import create_app  # noqa: E402
 from ragtail.templates import PyJsxRenderer  # noqa: E402
@@ -31,8 +30,8 @@ SECRET_KEY = os.environ.get("RAGTAIL_SECRET_KEY", "ragtail-demo-secret-change-me
 
 app = create_app(
     database_url=DATABASE_URL,
-    template_engine=PyJsxRenderer(components_module="site_templates.page"),
-    mount_wagtail_admin=True,
+    template_engine=PyJsxRenderer(components_module="site_templates.content_page"),
+    mount_ragtail_admin=True,
     secret_key=SECRET_KEY,
     title="Oxytail Demo",
     startup_hook=seed_if_empty,

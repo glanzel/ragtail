@@ -1,13 +1,13 @@
 from pyjsx import jsx
 
-from ragtail.wagtail_admin.classes import BTN_SECONDARY, SIDEBAR_LINK, SIDEBAR_LINK_ACTIVE
-from ragtail.wagtail_admin.components.icons import (
+from ragtail.ragtail_admin.classes import BTN_SECONDARY, SIDEBAR_LINK, SIDEBAR_LINK_ACTIVE
+from ragtail.ragtail_admin.components.icons import (
     IconDocEmptyInverse,
     IconGlobe,
     IconHome,
     IconMenu,
     IconUsers,
-    WagtailLogoBird,
+    RagtailLogoBird,
 )
 
 
@@ -20,14 +20,14 @@ def _sidebar_link_class(active: str, name: str) -> str:
 def AdminSidebar(active: str = "pages", username: str = "", children=None):
   return (
     <aside
-      id="wagtail-sidebar"
-      class="sticky top-0 z-[110] h-screen w-sidebar shrink-0 bg-wagtail-primary text-white"
+      id="ragtail-sidebar"
+      class="sticky top-0 z-[110] h-screen w-sidebar shrink-0 bg-ragtail-primary text-white"
       aria-label="Sidebar"
     >
       <div class="flex h-full flex-col">
-        <div class="flex h-slim-header items-center justify-center border-b border-white/10">
-          <a href="/admin/" class="flex items-center justify-center p-2" aria-label="Dashboard">
-            <WagtailLogoBird />
+        <div class="flex h-slim-header items-start border-b border-white/10">
+          <a href="/admin/" class="flex items-center" aria-label="Dashboard">
+            <RagtailLogoBird />
           </a>
         </div>
         <nav class="flex-1 overflow-y-auto py-2" aria-label="Main menu">
@@ -82,7 +82,7 @@ def AdminSidebar(active: str = "pages", username: str = "", children=None):
 
 def BreadcrumbItem(crumb, children=None):
   if crumb.url:
-    return <a href={crumb.url} class="text-wagtail-secondary hover:underline">{crumb.title}</a>
+    return <a href={crumb.url} class="text-ragtail-secondary hover:underline">{crumb.title}</a>
   return <span aria-current="page" class="text-gray-600">{crumb.title}</span>
 
 
@@ -138,8 +138,8 @@ def AdminLayout(
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>{title} - Wagtail</title>
-        <link rel="stylesheet" href="/admin/static/wagtail-admin.css" />
+        <title>{title} - Ragtail</title>
+        <link rel="stylesheet" href="/admin/static/ragtail-admin.css" />
       </head>
       <body class={"min-h-screen bg-white " + body_class}>
         <div class="flex min-h-screen">

@@ -1,8 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./src/ragtail/wagtail_admin/components/**/*.{px,py}",
-    "./src/ragtail/wagtail_admin/classes.py",
+    "./src/ragtail/ragtail_admin/components/**/*.{px,py}",
+    "./src/ragtail/ragtail_admin/classes.py",
     "./examples/demo/site_templates/**/*.px",
   ],
   safelist: [
@@ -16,7 +16,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        wagtail: {
+        ragtail: {
           primary: "#2e1f5e",
           "primary-dark": "#261a4e",
           secondary: "#007d7e",

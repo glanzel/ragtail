@@ -9,12 +9,24 @@ from ragtail.auth import ensure_superuser
 from ragtail.db import run_migrations
 from ragtail.fastapi import create_app
 from ragtail.models import Locale
+from ragtail.page_types import clear_page_models
 from ragtail.pages import create_page
-from ragtail.wagtail_admin.services import ensure_root_page
+from ragtail.ragtail_admin.services import ensure_root_page
 
 
 @pytest_asyncio.fixture
 async def client(tmp_path: Path):
+    import importlib
+    import sys
+
+    clear_page_models()
+    demo_dir = Path(__file__).resolve().parents[1] / "examples" / "demo"
+    sys.path.insert(0, str(demo_dir))
+    if "pages" in sys.modules:
+        importlib.reload(sys.modules["pages"])
+    else:
+        import pages  # noqa: F401
+
     database_url = f"sqlite:////{tmp_path / 'admin.db'}"
     await db.init(default=database_url)
     try:
@@ -38,7 +50,7 @@ async def client(tmp_path: Path):
 
         app = create_app(
             database_url=database_url,
-            mount_wagtail_admin=True,
+            mount_ragtail_admin=True,
             secret_key="test-secret",
         )
         transport = ASGITransport(app=app)
@@ -46,6 +58,7 @@ async def client(tmp_path: Path):
             yield http_client
     finally:
         await db.close()
+        clear_page_models()
 
 
 @pytest.mark.asyncio
@@ -67,7 +80,7 @@ async def test_admin_login_and_page_explorer(client: AsyncClient) -> None:
 
     dashboard = await client.get("/admin/", cookies=login.cookies)
     assert dashboard.status_code == 200
-    assert "Welcome to the Wagtail CMS" in dashboard.text
+    assert "Welcome to Ragtail CMS" in dashboard.text
 
     pages = await client.get("/admin/pages/", cookies=login.cookies, follow_redirects=False)
     assert pages.status_code == 303
@@ -98,32 +111,121 @@ async def test_admin_page_add_route(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_admin_page_edit_body_uses_base64_initial_value(client: AsyncClient) -> None:
-    import importlib
-    import re
-    import sys
-    from pathlib import Path
+async def test_admin_page_add_persists_typed_extra_field(client: AsyncClient) -> None:
+    from oxyde import Field
 
     from ragtail.models import Page
-    from ragtail.wagtail_admin.registry import clear_page_form_fields
+    from ragtail.page_types import cast_page, clear_page_models, get_page_model, register_page_model
 
-    demo_dir = Path(__file__).resolve().parents[1] / "examples" / "demo"
-    sys.path.insert(0, str(demo_dir))
-    clear_page_form_fields()
-    if "admin_setup" in sys.modules:
-        importlib.reload(sys.modules["admin_setup"])
-    else:
-        importlib.import_module("admin_setup")
+    clear_page_models()
+
+    @register_page_model
+    class BlogPage(Page):
+        intro: str | None = Field(default=None)
 
     login = await client.post(
         "/admin/login/",
         data={"username": "admin", "password": "admin", "next": "/admin/pages/"},
         follow_redirects=False,
     )
-    about_page = await Page.objects.filter(slug="about").first()
+    pages = await client.get("/admin/pages/", cookies=login.cookies, follow_redirects=False)
+    root_id = pages.headers["location"].rstrip("/").rsplit("/", 1)[-1]
+
+    create = await client.post(
+        f"/admin/pages/add/?parent={root_id}",
+        data={
+            "content_type": "blog_page",
+            "title": "Blog post",
+            "slug": "blog-post",
+            "intro": "Short intro text",
+            "live": "1",
+        },
+        cookies=login.cookies,
+        follow_redirects=False,
+    )
+    assert create.status_code == 303
+
+    stored = await Page.objects.filter(slug="blog-post").first()
+    assert stored is not None
+    typed = await cast_page(stored)
+    assert get_page_model("blog_page") is BlogPage
+    assert typed.intro == "Short intro text"
+
+    clear_page_models()
+
+
+@pytest.mark.asyncio
+async def test_admin_page_edit_persists_typed_extra_field(client: AsyncClient) -> None:
+    from oxyde import Field
+
+    from ragtail.models import Page
+    from ragtail.page_types import cast_page, clear_page_models, register_page_model
+
+    clear_page_models()
+
+    @register_page_model
+    class BlogPage(Page):
+        intro: str | None = Field(default=None)
+
+    login = await client.post(
+        "/admin/login/",
+        data={"username": "admin", "password": "admin", "next": "/admin/pages/"},
+        follow_redirects=False,
+    )
+    pages = await client.get("/admin/pages/", cookies=login.cookies, follow_redirects=False)
+    root_id = pages.headers["location"].rstrip("/").rsplit("/", 1)[-1]
+
+    create = await client.post(
+        f"/admin/pages/add/?parent={root_id}",
+        data={
+            "content_type": "blog_page",
+            "title": "Blog post",
+            "slug": "blog-post",
+            "intro": "First intro",
+            "live": "1",
+        },
+        cookies=login.cookies,
+        follow_redirects=False,
+    )
+    assert create.status_code == 303
+    stored = await Page.objects.filter(slug="blog-post").first()
+    assert stored is not None
+
+    edit = await client.post(
+        f"/admin/pages/{stored.id}/edit/",
+        data={
+            "title": "Blog post",
+            "slug": "blog-post",
+            "intro": "Updated intro",
+            "live": "1",
+        },
+        cookies=login.cookies,
+        follow_redirects=False,
+    )
+    assert edit.status_code == 303
+    typed = await cast_page(await Page.objects.get(id=stored.id))
+    assert typed.intro == "Updated intro"
+
+    clear_page_models()
+
+
+@pytest.mark.asyncio
+async def test_admin_page_edit_body_uses_base64_initial_value(client: AsyncClient) -> None:
+    import re
+
+    from ragtail.models import Page
+    from ragtail.page_types import cast_page
+
+    about_page = await cast_page(await Page.objects.filter(slug="about").first())
     assert about_page is not None
     about_page.body = "# Title\n\nParagraph with **bold**"
     await about_page.save()
+
+    login = await client.post(
+        "/admin/login/",
+        data={"username": "admin", "password": "admin", "next": "/admin/pages/"},
+        follow_redirects=False,
+    )
 
     edit = await client.get(f"/admin/pages/{about_page.id}/edit/", cookies=login.cookies)
     assert edit.status_code == 200
@@ -136,33 +238,18 @@ async def test_admin_page_edit_body_uses_base64_initial_value(client: AsyncClien
     assert textarea_match is not None
     assert textarea_match.group(1).strip() == ""
 
-    clear_page_form_fields()
-
 
 @pytest.mark.asyncio
 async def test_admin_page_edit_includes_richtext_editor(client: AsyncClient) -> None:
-    import importlib
-    import sys
-    from pathlib import Path
-
-    from ragtail.wagtail_admin.registry import clear_page_form_fields
-
-    demo_dir = Path(__file__).resolve().parents[1] / "examples" / "demo"
-    sys.path.insert(0, str(demo_dir))
-    clear_page_form_fields()
-    if "admin_setup" in sys.modules:
-        importlib.reload(sys.modules["admin_setup"])
-    else:
-        importlib.import_module("admin_setup")
-
     from ragtail.models import Page
+    from ragtail.page_types import cast_page
 
     login = await client.post(
         "/admin/login/",
         data={"username": "admin", "password": "admin", "next": "/admin/pages/"},
         follow_redirects=False,
     )
-    about_page = await Page.objects.filter(slug="about").first()
+    about_page = await cast_page(await Page.objects.filter(slug="about").first())
     assert about_page is not None
 
     edit = await client.get(f"/admin/pages/{about_page.id}/edit/", cookies=login.cookies)
@@ -172,9 +259,6 @@ async def test_admin_page_edit_includes_richtext_editor(client: AsyncClient) -> 
     assert "richtext-toolbar-btn" in edit.text
     assert edit.text.count('data-action="') >= 9
     assert "richtext.js" in edit.text
-
-    clear_page_form_fields()
-    importlib.import_module("admin_setup")
 
 
 @pytest.mark.asyncio
