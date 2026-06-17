@@ -19,7 +19,7 @@ StreamField-like content blocks, images/documents, workflows and role-based perm
 ### As a library
 
 ```bash
-uv add "ragtail[jinja]"
+uv add "ragtail[jinja] @ git+https://github.com/glanzel/ragtail.git"
 ```
 
 Quick start — mount into an existing FastAPI-Oxyde app:
