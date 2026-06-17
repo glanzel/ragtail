@@ -9,32 +9,27 @@ import sys
 from oxyde import db
 
 from .auth import create_user, email_error, normalize_email, update_user
-from .db import init_database
+from .cli_args import add_database_argument, add_noinput_argument, add_superuser_arguments
 from .models import User
+
+
+def add_arguments(parser: argparse.ArgumentParser) -> None:
+    add_database_argument(parser)
+    add_superuser_arguments(parser)
+    add_noinput_argument(
+        parser,
+        help_text=(
+            "Non-interactive mode (requires --username, --email and --password, "
+            "or RAGTAIL_SUPERUSER_* env vars)"
+        ),
+    )
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Create a Ragtail CMS staff user (like Django's createsuperuser).",
     )
-    parser.add_argument(
-        "--database-url",
-        default=os.environ.get("RAGTAIL_DATABASE_URL", "sqlite://ragtail.db"),
-        help="Database URL (default: RAGTAIL_DATABASE_URL or sqlite://ragtail.db)",
-    )
-    parser.add_argument("--username", help="Staff username")
-    parser.add_argument("--email", help="Staff email address")
-    parser.add_argument("--password", help="Staff password (avoid on shared shells)")
-    parser.add_argument(
-        "--noinput",
-        action="store_true",
-        help="Non-interactive mode (requires --username, --email and --password)",
-    )
-    parser.add_argument(
-        "--update",
-        action="store_true",
-        help="Update password when the username already exists",
-    )
+    add_arguments(parser)
     return parser
 
 
@@ -98,11 +93,10 @@ def _resolve_credentials(args: argparse.Namespace) -> tuple[str, str, str]:
     return username, email, password
 
 
-async def _run(args: argparse.Namespace) -> int:
+async def run(args: argparse.Namespace) -> int:
     username, email, password = _resolve_credentials(args)
     normalized_email = normalize_email(email)
 
-    await init_database(args.database_url)
     await db.init(default=args.database_url)
     try:
         existing = await User.objects.get_or_none(username=username)
@@ -141,7 +135,7 @@ async def _run(args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
-    return asyncio.run(_run(args))
+    return asyncio.run(run(args))
 
 
 if __name__ == "__main__":

@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="src/ragtail/ragtail_admin/static/icons/logo.svg" alt="Ragtail logo" width="160">
-</p>
+
 
 # Ragtail
 
@@ -32,18 +30,39 @@ from ragtail import FastAPICMS
 
 cms = FastAPICMS(secret_key="change-me")
 app = FastAPI(lifespan=cms.lifespan("sqlite://app.db"))
-cms.mount(app)  # includes /api/cms/ JSON API by default
+cms.mount(app)  
 ```
 
-Create the database, apply migrations, and add a staff user:
+Create the database , apply migrations, add locale and add a staff user:
 
 ```bash
-uv run ragtail-createsuperuser --username admin --email admin@example.com --password secret --noinput
+uv run ragtail-seeddb \
+  --language-code de \
+  --display-name Deutsch \
+  --username admin \
+  --email admin@example.com \
+  --password secret \
+  --noinput
 ```
 
 Open [http://localhost:8000/admin/](http://localhost:8000/admin/) for the CMS admin.
 
 ### Set up Pages
+
+Custom page type with its own template:
+
+```python
+from oxyde import Field
+from ragtail import Page, register_page_model
+
+@register_page_model
+class ContentPage(Page):
+    body: str | None = Field(default=None, db_type="TEXT")
+```
+
+Published pages are available as JSON at `/api/cms/pages/{path}` — for example `GET /api/cms/pages/about/` returns `content_type`, `body`, and other fields. Use `?language=de` to resolve a specific locale. Menus: `GET /api/cms/menus/{slug}`.
+
+### Set up Templates (optional)
 
 ```python
 from ragtail import FastAPICMS, Jinja2Renderer
@@ -60,23 +79,11 @@ Default page template (`templates/page.html`):
 <h1>{{ page.title }}</h1>
 ```
 
-Custom page type with its own template:
-
-```python
-from oxyde import Field
-from ragtail import Page, register_page_model
-
-@register_page_model
-class ContentPage(Page):
-    body: str | None = Field(default=None, db_type="TEXT")
-```
-
 ```html
 <!-- templates/content_page.html -->
 <h1>{{ page.title }}</h1>
 <div>{{ page.body }}</div>
 ```
-
 
 ## Documentation
 
@@ -102,4 +109,3 @@ make run-demo
 ```
 
 Or in one step: `make setup`.
-

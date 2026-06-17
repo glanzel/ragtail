@@ -1,4 +1,4 @@
-.PHONY: help install install-python install-node sync lock build watch run-demo demo test clean docker-build docker-run init-db createsuperuser setup makemigrations migrate showmigrations
+.PHONY: help install install-python install-node sync lock build watch run-demo demo test clean docker-build docker-run init-db createsuperuser seeddb setup makemigrations migrate showmigrations
 
 UV     ?= uv
 NPM    ?= npm
@@ -10,6 +10,8 @@ DATABASE_URL ?= sqlite://ragtail.db
 USERNAME ?=
 EMAIL ?=
 PASSWORD ?=
+LANGUAGE_CODE ?=
+DISPLAY_NAME ?=
 NOINPUT ?=
 UPDATE ?=
 MIGRATION_NAME ?=
@@ -25,7 +27,7 @@ install: sync install-node build ## Install Python + npm deps and build frontend
 	@echo "Installation complete."
 	@echo "Next: make migrate && make createsuperuser && make run-demo"
 
-setup: install migrate createsuperuser ## First-time install, migrate DB, create admin user
+setup: install seeddb ## First-time install, migrate DB, default locale, and admin user
 
 install-python: sync ## Alias for uv sync (demo extra + dev group)
 
@@ -60,9 +62,20 @@ migrate: ## Create database file (if needed) and apply migrations
 showmigrations: ## Show applied and pending Oxyde migrations
 	RAGTAIL_DATABASE_URL="$(DATABASE_URL)" $(UV) run oxyde showmigrations
 
-createsuperuser: ## Create first staff user (interactive; USERNAME/EMAIL/PASSWORD/NOINPUT=1 for scripted)
+createsuperuser: ## Create staff user only (run migrate first; USERNAME/EMAIL/PASSWORD/NOINPUT=1 for scripted)
 	$(UV) run ragtail-createsuperuser \
 		--database-url "$(DATABASE_URL)" \
+		$(if $(USERNAME),--username "$(USERNAME)",) \
+		$(if $(EMAIL),--email "$(EMAIL)",) \
+		$(if $(PASSWORD),--password "$(PASSWORD)",) \
+		$(if $(NOINPUT),--noinput,) \
+		$(if $(UPDATE),--update,)
+
+seeddb: ## Migrate DB, seed default locale, and create staff user
+	$(UV) run ragtail-seeddb \
+		--database-url "$(DATABASE_URL)" \
+		$(if $(LANGUAGE_CODE),--language-code "$(LANGUAGE_CODE)",) \
+		$(if $(DISPLAY_NAME),--display-name "$(DISPLAY_NAME)",) \
 		$(if $(USERNAME),--username "$(USERNAME)",) \
 		$(if $(EMAIL),--email "$(EMAIL)",) \
 		$(if $(PASSWORD),--password "$(PASSWORD)",) \

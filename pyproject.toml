@@ -37,6 +37,7 @@ demo = [
 [project.scripts]
 ragtail-createsuperuser = "ragtail.createsuperuser:main"
 ragtail-initdb = "ragtail.initdb:main"
+ragtail-seeddb = "ragtail.seeddb:main"
 
 [dependency-groups]
 dev = [
