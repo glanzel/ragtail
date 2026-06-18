@@ -72,7 +72,7 @@ def test_search_description_error_for_too_long_value() -> None:
 
 
 @pytest_asyncio.fixture
-async def public_client(tmp_path: Path):
+async def public_client(tmp_path: Path, oxyde_config):
     from oxyde import Field
 
     from ragtail.page_types import clear_page_models, register_page_model
@@ -83,7 +83,7 @@ async def public_client(tmp_path: Path):
     class ContentPage(Page):
         body: str | None = Field(default=None, db_type="TEXT")
 
-    database_url = f"sqlite:////{tmp_path / 'richtext.db'}"
+    database_url = oxyde_config(f"sqlite:////{tmp_path / 'richtext.db'}")
     await db.init(default=database_url)
     try:
         connection = await db.get_connection("default")
@@ -110,7 +110,6 @@ async def public_client(tmp_path: Path):
             return HTMLResponse(render_body(route.page.body))
 
         app = create_app(
-            database_url=database_url,
             mount_ragtail_admin=True,
             secret_key="test-secret",
             renderer=render_page,

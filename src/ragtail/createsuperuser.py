@@ -9,12 +9,12 @@ import sys
 from oxyde import db
 
 from .auth import create_user, email_error, normalize_email, update_user
-from .cli_args import add_database_argument, add_noinput_argument, add_superuser_arguments
+from .cli_args import add_noinput_argument, add_superuser_arguments
+from .db import load_app_databases
 from .models import User
 
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
-    add_database_argument(parser)
     add_superuser_arguments(parser)
     add_noinput_argument(
         parser,
@@ -97,7 +97,7 @@ async def run(args: argparse.Namespace) -> int:
     username, email, password = _resolve_credentials(args)
     normalized_email = normalize_email(email)
 
-    await db.init(default=args.database_url)
+    await db.init(**load_app_databases())
     try:
         existing = await User.objects.get_or_none(username=username)
         if existing is not None:

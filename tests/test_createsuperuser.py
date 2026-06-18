@@ -36,13 +36,11 @@ async def _get_user(database_url: str, username: str) -> User | None:
         await db.close()
 
 
-def test_createsuperuser_creates_first_user(tmp_path: Path) -> None:
-    database_url = f"sqlite:////{tmp_path / 'createsuperuser.db'}"
+def test_createsuperuser_creates_first_user(tmp_path: Path, oxyde_config) -> None:
+    database_url = oxyde_config(f"sqlite:////{tmp_path / 'createsuperuser.db'}")
     asyncio.run(init_database(database_url))
     exit_code = createsuperuser_main(
         [
-            "--database-url",
-            database_url,
             "--username",
             "admin",
             "--email",
@@ -61,12 +59,10 @@ def test_createsuperuser_creates_first_user(tmp_path: Path) -> None:
     assert verify_password("secret-pass", user.password_hash)
 
 
-def test_createsuperuser_rejects_existing_user(tmp_path: Path) -> None:
-    database_url = f"sqlite:////{tmp_path / 'createsuperuser-dup.db'}"
+def test_createsuperuser_rejects_existing_user(tmp_path: Path, oxyde_config) -> None:
+    database_url = oxyde_config(f"sqlite:////{tmp_path / 'createsuperuser-dup.db'}")
     asyncio.run(init_database(database_url))
     args = [
-        "--database-url",
-        database_url,
         "--username",
         "admin",
         "--email",
@@ -79,12 +75,10 @@ def test_createsuperuser_rejects_existing_user(tmp_path: Path) -> None:
     assert createsuperuser_main(args) == 1
 
 
-def test_createsuperuser_update_password(tmp_path: Path) -> None:
-    database_url = f"sqlite:////{tmp_path / 'createsuperuser-update.db'}"
+def test_createsuperuser_update_password(tmp_path: Path, oxyde_config) -> None:
+    database_url = oxyde_config(f"sqlite:////{tmp_path / 'createsuperuser-update.db'}")
     asyncio.run(init_database(database_url))
     base_args = [
-        "--database-url",
-        database_url,
         "--username",
         "admin",
         "--email",
@@ -99,12 +93,10 @@ def test_createsuperuser_update_password(tmp_path: Path) -> None:
     assert verify_password("new-pass", user.password_hash)
 
 
-def test_initdb_creates_default_locale(tmp_path: Path) -> None:
-    database_url = f"sqlite:////{tmp_path / 'initdb-locale.db'}"
+def test_initdb_creates_default_locale(tmp_path: Path, oxyde_config) -> None:
+    database_url = oxyde_config(f"sqlite:////{tmp_path / 'initdb-locale.db'}")
     exit_code = initdb_main(
         [
-            "--database-url",
-            database_url,
             "--language-code",
             "de",
             "--display-name",
@@ -122,11 +114,9 @@ def test_initdb_creates_default_locale(tmp_path: Path) -> None:
     assert asyncio.run(_count_root_pages(database_url, locale.id)) == 1
 
 
-def test_initdb_skips_existing_default_locale(tmp_path: Path) -> None:
-    database_url = f"sqlite:////{tmp_path / 'initdb-locale-skip.db'}"
+def test_initdb_skips_existing_default_locale(tmp_path: Path, oxyde_config) -> None:
+    database_url = oxyde_config(f"sqlite:////{tmp_path / 'initdb-locale-skip.db'}")
     base_args = [
-        "--database-url",
-        database_url,
         "--language-code",
         "en",
         "--display-name",
@@ -141,12 +131,10 @@ def test_initdb_skips_existing_default_locale(tmp_path: Path) -> None:
     assert locale.language_code == "en"
 
 
-def test_seeddb_runs_initdb_and_createsuperuser(tmp_path: Path) -> None:
-    database_url = f"sqlite:////{tmp_path / 'seeddb.db'}"
+def test_seeddb_runs_initdb_and_createsuperuser(tmp_path: Path, oxyde_config) -> None:
+    database_url = oxyde_config(f"sqlite:////{tmp_path / 'seeddb.db'}")
     exit_code = seeddb_main(
         [
-            "--database-url",
-            database_url,
             "--language-code",
             "de",
             "--display-name",

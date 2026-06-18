@@ -14,8 +14,8 @@ from ragtail.ragtail_admin.services import ensure_root_page
 
 
 @pytest_asyncio.fixture
-async def client(tmp_path: Path):
-    database_url = f"sqlite:////{tmp_path / 'cms-mount.db'}"
+async def client(tmp_path: Path, oxyde_config):
+    database_url = oxyde_config(f"sqlite:////{tmp_path / 'cms-mount.db'}")
     await db.init(default=database_url)
     try:
         connection = await db.get_connection("default")
@@ -30,7 +30,7 @@ async def client(tmp_path: Path):
         await ensure_root_page(en)
 
         cms = FastAPICMS(secret_key="test-secret")
-        app = FastAPI(lifespan=cms.lifespan(database_url))
+        app = FastAPI(lifespan=cms.lifespan(**{"default": database_url}))
         cms.mount(app)
 
         transport = ASGITransport(app=app)

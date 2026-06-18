@@ -90,7 +90,6 @@ def create_api_router() -> APIRouter:
 
 def create_app(
     *,
-    database_url: str = "sqlite://ragtail.db",
     renderer: PageRenderer | None = None,
     template_engine: TemplateEngineInterface | None = None,
     mount_admin: bool = False,
@@ -101,8 +100,12 @@ def create_app(
     startup_hook: StartupHook | None = None,
     api: bool = True,
     pages: bool = True,
+    **databases: str,
 ) -> FastAPI:
-    """Create a runnable FastAPI app using Oxyde's lifespan integration."""
+    """Create a runnable FastAPI app using Oxyde's lifespan integration.
+
+    Reads ``DATABASES`` from ``oxyde_config.py`` when no database aliases are passed.
+    """
     from .cms import FastAPICMS
 
     cms = FastAPICMS(
@@ -114,7 +117,7 @@ def create_app(
     )
     app = FastAPI(
         title=title,
-        lifespan=cms.lifespan(database_url, startup_hook=startup_hook),
+        lifespan=cms.lifespan(startup_hook=startup_hook, **databases),
     )
 
     if mount_ragtail_admin:

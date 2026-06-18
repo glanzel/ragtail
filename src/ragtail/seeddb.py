@@ -6,7 +6,6 @@ import sys
 
 from . import createsuperuser, initdb
 from .cli_args import (
-    add_database_argument,
     add_locale_arguments,
     add_noinput_argument,
     add_superuser_arguments,
@@ -20,7 +19,6 @@ def _build_parser() -> argparse.ArgumentParser:
             "and create a staff user."
         ),
     )
-    add_database_argument(parser)
     add_locale_arguments(parser)
     add_superuser_arguments(parser)
     add_noinput_argument(

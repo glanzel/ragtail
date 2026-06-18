@@ -7,6 +7,7 @@ Assumes Ragtail is mounted into a FastAPI app with an Oxyde database connection.
 ```python
 from fastapi import FastAPI
 from oxyde import Field
+from oxyde_config import DATABASES
 
 from ragtail import FastAPICMS, Page, PyJsxRenderer, register_page_model
 
@@ -21,7 +22,7 @@ cms = FastAPICMS(
     secret_key="change-me",
     template_engine=PyJsxRenderer(components_module="site_templates.content_page"),
 )
-app = FastAPI(lifespan=cms.lifespan("sqlite://app.db"))
+app = FastAPI(lifespan=cms.lifespan(**DATABASES))
 cms.mount(app)
 ```
 
@@ -46,10 +47,11 @@ Mount the admin sub-app without public page routes or JSON API (`cms.mount(app, 
 ## Greenfield app
 
 ```python
+from oxyde_config import DATABASES
 from ragtail.fastapi import create_app
 
 app = create_app(
-    database_url="sqlite://ragtail.db",
+    **DATABASES,
     mount_ragtail_admin=True,
     secret_key="replace-me",
 )
@@ -65,10 +67,11 @@ This creates:
 Pass a renderer to serve HTML templates (for example with PyJSX):
 
 ```python
+from oxyde_config import DATABASES
 from ragtail.fastapi import create_app
 
 app = create_app(
-    database_url="sqlite://ragtail.db",
+    **DATABASES,
     renderer=my_html_renderer,
     mount_ragtail_admin=True,
 )

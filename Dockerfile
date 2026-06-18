@@ -11,7 +11,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY pyproject.toml uv.lock README.md package.json package-lock.json ./
+COPY pyproject.toml uv.lock README.md package.json package-lock.json oxyde_config.py ./
 COPY scripts ./scripts
 COPY styles ./styles
 COPY tailwind.config.js ./
