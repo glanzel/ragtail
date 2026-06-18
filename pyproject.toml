@@ -30,14 +30,13 @@ admin = [
 jinja = [
   "jinja2>=3.1",
 ]
-demo = [
-  "uvicorn[standard]>=0.30",
-]
 
 [project.scripts]
 ragtail-createsuperuser = "ragtail.createsuperuser:main"
 ragtail-initdb = "ragtail.initdb:main"
 ragtail-seeddb = "ragtail.seeddb:main"
+ragtail-makemigrations = "ragtail.migration_tools:makemigrations_main"
+ragtail-showmigrations = "ragtail.migration_tools:showmigrations_main"
 
 [dependency-groups]
 dev = [

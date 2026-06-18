@@ -1,12 +1,19 @@
 # Demo application
 
-A runnable demo with Wagtail-style admin and PyJSX public templates lives in `examples/demo/`:
+A runnable demo with Wagtail-style admin and PyJSX public templates lives in `examples/demo/` as its own small project (`pyproject.toml`, `oxyde_config.py`, local editable `ragtail`).
 
 ```bash
 make install
 make migrate
 make createsuperuser
 make run-demo
+```
+
+Or from `examples/demo/`:
+
+```bash
+uv sync
+uv run uvicorn main:app --reload
 ```
 
 - Public site: http://127.0.0.1:8000/

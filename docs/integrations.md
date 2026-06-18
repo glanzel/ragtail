@@ -92,4 +92,4 @@ You do not need a separate `initdb` step before the first app start — the life
 uv run ragtail-initdb
 ```
 
-Same as `make migrate` in this repository. Run commands from the directory that contains `oxyde_config.py`.
+Same as `make migrate` in this repository (runs from `examples/demo/`). Run commands from the directory that contains your app's `oxyde_config.py`.
