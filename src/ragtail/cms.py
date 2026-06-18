@@ -92,6 +92,9 @@ class FastAPICMS:
         async def cms_lifespan(app: FastAPI) -> AsyncIterator[None]:
             async with base_lifespan(app):
                 await run_migrations(db_alias=db_alias)
+                from .sites import upgrade_all_locales
+
+                await upgrade_all_locales()
                 if startup_hook is not None:
                     await startup_hook()
                 yield

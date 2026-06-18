@@ -5,10 +5,22 @@ from uuid import uuid4
 
 from fastapi import HTTPException, Request
 
-from ..models import Locale, Menu, MenuItem, Page, User
+from ..models import Locale, Menu, MenuItem, Page, Site, User
 from ..page_types import cast_page, get_default_page_model, persist_page
 from ..pages import create_page
-from ..routing import get_default_locale, get_translation, join_page_path, normalize_path
+from ..routing import get_default_locale, get_translation, normalize_path
+from ..sites import (
+    compute_page_path,
+    ensure_site,
+    ensure_site_setup,
+    ensure_tree_root,
+    get_site_for_locale,
+    get_site_root_page,
+    get_tree_root,
+    is_tree_root,
+    page_admin_title,
+    set_site_root_page,
+)
 
 ADMIN_LOCALE_SESSION_KEY = "ragtail_admin_locale"
 
@@ -59,14 +71,14 @@ async def resolve_page_for_admin_locale(page: Page, admin_locale: Locale) -> Pag
 
 async def resolve_translated_parent(source_page: Page, target_locale: Locale) -> Page:
     if source_page.parent_id is None:
-        return await ensure_root_page(target_locale)
+        return await ensure_tree_root(target_locale)
     parent = await Page.objects.get_or_none(id=source_page.parent_id)
-    if parent is None:
-        return await ensure_root_page(target_locale)
+    if parent is None or is_tree_root(parent):
+        return await ensure_tree_root(target_locale)
     translated_parent = await get_translation(parent, target_locale.language_code)
     if translated_parent is not None:
         return translated_parent
-    return await ensure_root_page(target_locale)
+    return await ensure_tree_root(target_locale)
 
 
 async def get_locales_missing_translation(page: Page) -> list[Locale]:
@@ -116,11 +128,12 @@ async def get_missing_translations_by_page(pages: list[Page]) -> dict[int, list[
 
 
 async def get_root_pages(locale: Locale) -> list[Page]:
-    return (
-        await Page.objects.filter(locale_id=locale.id, parent_id__isnull=True)
-        .order_by("sort_order", "title")
-        .all()
-    )
+    """Return top-level pages visible in the explorer (children of the tree root)."""
+
+    tree_root = await get_tree_root(locale)
+    if tree_root is None:
+        return []
+    return await get_child_pages(tree_root)
 
 
 async def get_page_or_404(page_id: int) -> Page:
@@ -157,6 +170,7 @@ async def get_page_locale(page: Page) -> Locale:
 async def build_page_tree(locale: Locale) -> list[PageTreeNode]:
     pages = (
         await Page.objects.filter(locale_id=locale.id)
+        .exclude(content_type="tree_root")
         .order_by("depth", "sort_order", "title")
         .all()
     )
@@ -168,15 +182,18 @@ async def build_page_tree(locale: Locale) -> list[PageTreeNode]:
             continue
         nodes[page.id] = PageTreeNode(page=page, children=[])
 
+    tree_root = await get_tree_root(locale)
+    tree_root_id = tree_root.id if tree_root is not None else None
+
     for page in pages:
         if page.id is None:
             continue
         node = nodes[page.id]
         parent_id = page.parent_id
-        if parent_id is not None and parent_id in nodes:
-            nodes[parent_id].children.append(node)
-        else:
+        if parent_id == tree_root_id:
             roots.append(node)
+        elif parent_id is not None and parent_id in nodes:
+            nodes[parent_id].children.append(node)
 
     return roots
 
@@ -187,7 +204,8 @@ async def build_breadcrumbs(page: Page) -> list[Breadcrumb]:
     chain: list[Page] = []
 
     while current is not None:
-        chain.append(current)
+        if not is_tree_root(current):
+            chain.append(current)
         if current.parent_id is None:
             break
         current = await Page.objects.get_or_none(id=current.parent_id)
@@ -195,7 +213,7 @@ async def build_breadcrumbs(page: Page) -> list[Breadcrumb]:
     for ancestor in reversed(chain):
         crumbs.append(
             Breadcrumb(
-                title=ancestor.title,
+                title=page_admin_title(ancestor),
                 url=f"/admin/pages/{ancestor.id}/" if ancestor.id is not None else None,
             )
         )
@@ -244,12 +262,7 @@ async def update_page(
     parent = None
     if typed_page.parent_id is not None:
         parent = await Page.objects.get_or_none(id=typed_page.parent_id)
-    parent_path = parent.path if parent is not None else "/"
-    new_path = (
-        "/"
-        if typed_page.parent is None and not slug.strip("/")
-        else join_page_path(parent_path, slug)
-    )
+    new_path = compute_page_path(parent, slug)
 
     typed_page.title = title
     typed_page.slug = slug.strip("/")
@@ -270,7 +283,8 @@ async def _repath_descendants(page: Page) -> None:
         return
     children = await Page.objects.filter(parent_id=page.id).all()
     for child in children:
-        child.path = join_page_path(page.path, child.slug)
+        parent = await Page.objects.get_or_none(id=child.parent_id) if child.parent_id else None
+        child.path = compute_page_path(parent, child.slug)
         await child.save()
         await _repath_descendants(child)
 
@@ -278,21 +292,34 @@ async def _repath_descendants(page: Page) -> None:
 async def delete_page(page: Page) -> None:
     if page.id is None:
         return
+    if is_tree_root(page):
+        raise ValueError("The technical tree root cannot be deleted.")
+    sites = await Site.objects.filter(root_page_id=page.id).all()
+    for site in sites:
+        site.root_page_id = None
+        await site.save()
     await page.delete()
 
 
 async def ensure_root_page(locale: Locale) -> Page:
-    roots = await get_root_pages(locale)
-    if roots:
-        return await cast_page(roots[0])
-    return await create_page(
-        title="Root",
+    """Ensure tree root, site, and a homepage exist. Returns the site homepage."""
+
+    tree_root = await ensure_tree_root(locale)
+    site = await ensure_site(locale)
+    existing_home = await get_site_root_page(locale)
+    if existing_home is not None:
+        return await cast_page(existing_home)
+    home = await create_page(
+        title="Home",
         slug="",
         locale=locale,
+        parent=tree_root,
         live=True,
         show_in_menus=True,
         page_model=get_default_page_model(),
     )
+    await set_site_root_page(site, home)
+    return await cast_page(home)
 
 
 async def get_locale_or_404(locale_id: int) -> Locale:
@@ -440,6 +467,81 @@ async def can_delete_user(*, target: User, actor: User) -> tuple[bool, str | Non
         if remaining == 0:
             return False, "Cannot delete the last active staff user."
     return True, None
+
+
+async def get_all_sites() -> list[Site]:
+    return await Site.objects.order_by("hostname", "port").all()
+
+
+async def get_site_or_404(site_id: int) -> Site:
+    site = await Site.objects.get_or_none(id=site_id)
+    if site is None:
+        raise HTTPException(status_code=404, detail="Site not found")
+    return site
+
+
+async def get_pages_for_site_root_choice(locale: Locale) -> list[Page]:
+    tree_root = await get_tree_root(locale)
+    if tree_root is None:
+        return []
+    pages = await Page.objects.filter(locale_id=locale.id).order_by("path", "title").all()
+    result: list[Page] = []
+    for page in pages:
+        if is_tree_root(page) or page.parent_id is None:
+            continue
+        current_id = page.parent_id
+        while current_id is not None:
+            if current_id == tree_root.id:
+                result.append(page)
+                break
+            parent = await Page.objects.get_or_none(id=current_id)
+            if parent is None or is_tree_root(parent):
+                break
+            current_id = parent.parent_id
+    return result
+
+
+async def get_explorer_root_listing(locale: Locale) -> tuple[Page, list[Page]]:
+    tree_root = await ensure_tree_root(locale)
+    children = await get_child_pages(tree_root)
+    return tree_root, children
+
+
+async def update_site(
+    site: Site,
+    *,
+    hostname: str,
+    port: int,
+    site_name: str | None,
+    root_page_id: int | None,
+    is_default_site: bool,
+) -> Site:
+    if not hostname.strip():
+        raise ValueError("Hostname is required.")
+    if port < 1 or port > 65535:
+        raise ValueError("Port must be between 1 and 65535.")
+
+    if root_page_id is not None:
+        page = await Page.objects.get_or_none(id=root_page_id)
+        if page is None or page.locale_id != site.locale_id:
+            raise ValueError("Root page must belong to this site's locale.")
+        if is_tree_root(page) or page.parent_id is None:
+            raise ValueError("The technical tree root cannot be the site homepage.")
+
+    if is_default_site:
+        others = await Site.objects.filter(is_default_site=True).all()
+        for other in others:
+            if other.id != site.id:
+                other.is_default_site = False
+                await other.save()
+
+    site.hostname = hostname.strip()
+    site.port = port
+    site.site_name = site_name.strip() if site_name and site_name.strip() else None
+    site.root_page_id = root_page_id
+    site.is_default_site = is_default_site
+    await site.save()
+    return site
 
 
 async def validate_user_update(

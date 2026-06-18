@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .models import Locale, Menu, MenuItem, Page, User
+from .models import Locale, Menu, MenuItem, Page, Site, User
 
 
 def register_cms_models(admin: Any, *, include_users: bool = False) -> Any:
@@ -13,6 +13,11 @@ def register_cms_models(admin: Any, *, include_users: bool = False) -> Any:
         list_display=["language_code", "display_name", "is_default", "is_active", "sort_order"],
         search_fields=["language_code", "display_name"],
         list_filter=["is_default", "is_active"],
+    )
+    admin.register(
+        Site,
+        list_display=["hostname", "port", "site_name", "locale", "root_page", "is_default_site"],
+        list_filter=["is_default_site"],
     )
     admin.register(
         Page,

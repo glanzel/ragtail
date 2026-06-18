@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from .models import Locale, Page
 from .page_types import cast_page, copy_page_model_field_values, get_content_type, get_default_page_model, get_page_model, persist_page
-from .routing import join_page_path
+from .sites import compute_page_path, is_tree_root
 
 _PAGE_COLUMN_NAMES = frozenset(Page.model_fields.keys())
 
@@ -31,8 +31,11 @@ async def create_page(
     model = page_model or get_default_page_model()
     resolved_content_type = content_type or get_content_type(model)
 
-    parent_path = parent.path if parent is not None else "/"
-    path = "/" if parent is None and not slug.strip("/") else join_page_path(parent_path, slug)
+    if parent is None and resolved_content_type != "tree_root":
+        msg = "Pages must have a parent. Use ensure_tree_root() for the technical tree root."
+        raise ValueError(msg)
+
+    path = compute_page_path(parent, slug)
     depth = (parent.depth + 1) if parent is not None else 1
 
     column_fields: dict[str, Any] = {}

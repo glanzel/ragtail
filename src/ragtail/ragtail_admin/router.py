@@ -25,6 +25,7 @@ from ..menus import create_menu, create_menu_item
 from ..models import Locale, Page, User
 from ..pages import create_translation
 from ..routing import get_locale
+from ..sites import get_site_for_locale, is_tree_root, page_admin_title
 from .components.dashboard import DashboardPage
 from .components.locales import LocaleAddPage, LocaleEditPage, LocaleListPage
 from .components.login import LoginPage
@@ -37,6 +38,7 @@ from .components.users import (
     UserListPage,
     UserResetPasswordPage,
 )
+from .components.sites import SiteEditPage, SiteListPage
 from .components.pages import (
     DeletePagePage,
     PageFormPage,
@@ -58,16 +60,23 @@ from ..page_types import (
 from .registry import PageFormField, get_page_form_fields, uses_richtext
 from .render import html_response
 from .services import (
+    Breadcrumb,
     build_breadcrumbs,
     build_page_tree,
     create_child_page,
     create_locale,
     delete_page,
     ensure_root_page,
+    ensure_site_setup,
+    ensure_tree_root,
     get_admin_locale,
     get_all_locales,
+    get_all_sites,
     get_child_pages,
     get_locale_or_404,
+    get_pages_for_site_root_choice,
+    get_site_or_404,
+    get_explorer_root_listing,
     get_locales_missing_translation,
     get_menu_item_or_404,
     get_menu_items,
@@ -88,6 +97,7 @@ from .services import (
     set_admin_locale,
     update_locale,
     update_page,
+    update_site,
 )
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -357,7 +367,7 @@ def create_admin_router() -> APIRouter:
             display_name=display_name.strip(),
             is_default=is_default == "1" or not existing,
         )
-        await ensure_root_page(locale)
+        await ensure_site_setup(locale)
         return RedirectResponse("/admin/locales/", status_code=status.HTTP_303_SEE_OTHER)
 
     @router.get("/locales/{locale_id}/edit/")
@@ -743,11 +753,99 @@ def create_admin_router() -> APIRouter:
         await item.delete()
         return RedirectResponse(f"/admin/menus/{menu_id}/", status_code=status.HTTP_303_SEE_OTHER)
 
+    @router.get("/sites/")
+    async def sites_list(user: Annotated[User, Depends(require_user)]):
+        sites = await get_all_sites()
+        locales = {locale.id: locale for locale in await get_all_locales()}
+        return html_response(
+            SiteListPage,
+            username=user.username,
+            sites=sites,
+            locales=locales,
+        )
+
+    @router.get("/sites/{site_id}/edit/")
+    async def sites_edit_get(site_id: int, user: Annotated[User, Depends(require_user)]):
+        site = await get_site_or_404(site_id)
+        locale = await get_locale_or_404(site.locale_id) if site.locale_id else None
+        if locale is None:
+            raise HTTPException(status_code=404, detail="Locale not found")
+        pages = await get_pages_for_site_root_choice(locale)
+        return html_response(
+            SiteEditPage,
+            username=user.username,
+            site=site,
+            locale=locale,
+            pages=pages,
+        )
+
+    @router.post("/sites/{site_id}/edit/")
+    async def sites_edit_post(
+        site_id: int,
+        user: Annotated[User, Depends(require_user)],
+        hostname: Annotated[str, Form()],
+        port: Annotated[int, Form()],
+        site_name: Annotated[str, Form()] = "",
+        root_page_id: Annotated[str, Form()] = "",
+        is_default_site: Annotated[str | None, Form()] = None,
+    ):
+        site = await get_site_or_404(site_id)
+        locale = await get_locale_or_404(site.locale_id) if site.locale_id else None
+        if locale is None:
+            raise HTTPException(status_code=404, detail="Locale not found")
+        pages = await get_pages_for_site_root_choice(locale)
+        values = {
+            "hostname": hostname,
+            "port": port,
+            "site_name": site_name,
+            "root_page_id": root_page_id,
+            "is_default_site": is_default_site == "1",
+        }
+        parsed_root_page_id = int(root_page_id) if root_page_id.strip() else None
+        try:
+            await update_site(
+                site,
+                hostname=hostname,
+                port=port,
+                site_name=site_name or None,
+                root_page_id=parsed_root_page_id,
+                is_default_site=is_default_site == "1",
+            )
+        except ValueError as exc:
+            return html_response(
+                SiteEditPage,
+                username=user.username,
+                site=site,
+                locale=locale,
+                pages=pages,
+                values=values,
+                error=str(exc),
+            )
+        return RedirectResponse("/admin/sites/", status_code=status.HTTP_303_SEE_OTHER)
+
     @router.get("/pages/")
     async def pages_root(request: Request, user: Annotated[User, Depends(require_user)]):
-        locale = await get_admin_locale(request)
-        root = await ensure_root_page(locale)
-        return RedirectResponse(f"/admin/pages/{root.id}/", status_code=status.HTTP_303_SEE_OTHER)
+        admin_locale = await get_admin_locale(request)
+        tree_root, children = await get_explorer_root_listing(admin_locale)
+        tree = await build_page_tree(admin_locale)
+        locales = await get_all_locales()
+        missing_by_child = await get_missing_translations_by_page(children)
+        site = await get_site_for_locale(admin_locale)
+        return html_response(
+            PageListingPage,
+            username=user.username,
+            parent_page=None,
+            children=children,
+            tree=tree,
+            locales=locales,
+            current_locale=admin_locale,
+            missing_by_child=missing_by_child,
+            parent_missing_locales=[],
+            breadcrumbs=[Breadcrumb(title="Pages", url="/admin/pages/")],
+            is_explorer_root=True,
+            add_parent_id=tree_root.id,
+            site=site,
+        )
 
     @router.get("/pages/add/")
     async def page_add_get(
@@ -760,11 +858,12 @@ def create_admin_router() -> APIRouter:
         parent_page = (
             await get_page_or_404(parent)
             if parent
-            else await ensure_root_page(default_locale)
+            else await ensure_tree_root(default_locale)
         )
         breadcrumbs = await build_breadcrumbs(parent_page)
         breadcrumbs.append(type(breadcrumbs[-1])("Add child page", None))
 
+        parent_label = page_admin_title(parent_page)
         page_types = get_page_type_choices()
         if page_types and content_type is None:
             if len(page_types) == 1:
@@ -775,6 +874,7 @@ def create_admin_router() -> APIRouter:
                     PageTypeChooserPage,
                     username=user.username,
                     parent_page=parent_page,
+                    parent_label=parent_label,
                     breadcrumbs=breadcrumbs,
                     page_types=page_types,
                 )
@@ -784,6 +884,13 @@ def create_admin_router() -> APIRouter:
         if page_types and page_model is Page:
             raise HTTPException(status_code=404, detail=f"Page type '{resolved_content_type}' is not registered")
 
+        parent_label = page_admin_title(parent_page)
+        parent_form_extras = {
+            "parent_label": parent_label,
+            "parent_cancel_href": (
+                "/admin/pages/" if is_tree_root(parent_page) else f"/admin/pages/{parent_page.id}/"
+            ),
+        }
         return html_response(
             PageFormPage,
             username=user.username,
@@ -793,6 +900,7 @@ def create_admin_router() -> APIRouter:
             title="Add child page",
             submit_label="Create page",
             values=_form_values(content_type=resolved_content_type),
+            **parent_form_extras,
             **_page_form_kwargs(content_type=resolved_content_type),
         )
 
@@ -815,7 +923,7 @@ def create_admin_router() -> APIRouter:
         parent_page = (
             await get_page_or_404(parent)
             if parent
-            else await ensure_root_page(default_locale)
+            else await ensure_tree_root(default_locale)
         )
         locale = await get_page_locale(parent_page)
         page_types = get_page_type_choices()
@@ -830,6 +938,7 @@ def create_admin_router() -> APIRouter:
 
         breadcrumbs = await build_breadcrumbs(parent_page)
         breadcrumbs.append(type(breadcrumbs[-1])("Add child page", None))
+        parent_label = page_admin_title(parent_page)
         extra_fields = _extra_fields_from_form(form, content_type=content_type)
         values = _form_values(
             None,
@@ -845,6 +954,12 @@ def create_admin_router() -> APIRouter:
         form_kwargs = {
             **_page_form_kwargs(content_type=content_type),
         }
+        parent_form_extras = {
+            "parent_label": parent_label,
+            "parent_cancel_href": (
+                "/admin/pages/" if is_tree_root(parent_page) else f"/admin/pages/{parent_page.id}/"
+            ),
+        }
         if not title.strip():
             return html_response(
                 PageFormPage,
@@ -856,6 +971,7 @@ def create_admin_router() -> APIRouter:
                 submit_label="Create page",
                 values=values,
                 error="Title is required.",
+                **parent_form_extras,
                 **form_kwargs,
             )
         if error := search_description_error(search_description):
@@ -869,6 +985,7 @@ def create_admin_router() -> APIRouter:
                 submit_label="Create page",
                 values=values,
                 error=error,
+                **parent_form_extras,
                 **form_kwargs,
             )
         page = await create_child_page(
@@ -968,6 +1085,8 @@ def create_admin_router() -> APIRouter:
     ):
         admin_locale = await get_admin_locale(request)
         page = await get_page_or_404(page_id)
+        if is_tree_root(page):
+            return RedirectResponse("/admin/pages/", status_code=status.HTTP_303_SEE_OTHER)
         page_in_locale = await resolve_page_for_admin_locale(page, admin_locale)
         if page_in_locale.id != page.id:
             return RedirectResponse(
@@ -980,6 +1099,7 @@ def create_admin_router() -> APIRouter:
         breadcrumbs = await build_breadcrumbs(page)
         missing_by_child = await get_missing_translations_by_page(children)
         parent_missing = await get_locales_missing_translation(page)
+        site = await get_site_for_locale(admin_locale)
         return html_response(
             PageListingPage,
             username=user.username,
@@ -991,11 +1111,14 @@ def create_admin_router() -> APIRouter:
             missing_by_child=missing_by_child,
             parent_missing_locales=parent_missing,
             breadcrumbs=breadcrumbs,
+            site=site,
         )
 
     @router.get("/pages/{page_id}/edit/")
     async def page_edit_get(page_id: int, user: Annotated[User, Depends(require_user)]):
         page = await cast_page(await get_page_or_404(page_id))
+        if is_tree_root(page):
+            raise HTTPException(status_code=404, detail="The technical tree root cannot be edited.")
         breadcrumbs = await build_breadcrumbs(page)
         breadcrumbs.append(type(breadcrumbs[-1])("Edit", None))
         return html_response(
@@ -1025,6 +1148,8 @@ def create_admin_router() -> APIRouter:
         show_in_menus = form.get("show_in_menus")
 
         page = await cast_page(await get_page_or_404(page_id))
+        if is_tree_root(page):
+            raise HTTPException(status_code=404, detail="The technical tree root cannot be edited.")
         breadcrumbs = await build_breadcrumbs(page)
         breadcrumbs.append(type(breadcrumbs[-1])("Edit", None))
         extra_fields = _extra_fields_from_form(form, page=page)
@@ -1080,6 +1205,8 @@ def create_admin_router() -> APIRouter:
     @router.get("/pages/{page_id}/delete/")
     async def page_delete_get(page_id: int, user: Annotated[User, Depends(require_user)]):
         page = await get_page_or_404(page_id)
+        if is_tree_root(page):
+            raise HTTPException(status_code=404, detail="The technical tree root cannot be deleted.")
         breadcrumbs = await build_breadcrumbs(page)
         breadcrumbs.append(type(breadcrumbs[-1])("Delete", None))
         return html_response(
@@ -1096,12 +1223,18 @@ def create_admin_router() -> APIRouter:
         user: Annotated[User, Depends(require_user)],
     ):
         page = await get_page_or_404(page_id)
+        if is_tree_root(page):
+            raise HTTPException(status_code=404, detail="The technical tree root cannot be deleted.")
         parent_id = page.parent_id
-        await delete_page(page)
+        try:
+            await delete_page(page)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         if parent_id:
+            parent = await get_page_or_404(parent_id)
+            if is_tree_root(parent):
+                return RedirectResponse("/admin/pages/", status_code=status.HTTP_303_SEE_OTHER)
             return RedirectResponse(f"/admin/pages/{parent_id}/", status_code=status.HTTP_303_SEE_OTHER)
-        locale = await get_admin_locale(request)
-        root = await ensure_root_page(locale)
-        return RedirectResponse(f"/admin/pages/{root.id}/", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse("/admin/pages/", status_code=status.HTTP_303_SEE_OTHER)
 
     return router

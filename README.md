@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="src/ragtail/ragtail_admin/static/icons/logo.svg" alt="Ragtail logo" width="160">
+</p>
+
 # Ragtail
 
 Ragtail is a Wagtail-inspired CMS built on [Oxyde ORM](https://oxyde.fatalyst.dev/) and FastAPI. It ships with:

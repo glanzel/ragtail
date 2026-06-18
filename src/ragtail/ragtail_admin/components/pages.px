@@ -71,7 +71,7 @@ def ExplorerLocaleSwitcher(locales, current_locale, current_page_id, children=No
           for locale in locales
         ]}
       </select>
-      <input type="hidden" name="next" value={f"/admin/pages/{current_page_id}/"} />
+      <input type="hidden" name="next" value={"/admin/pages/" if current_page_id is None else f"/admin/pages/{current_page_id}/"} />
     </form>
   )
 
@@ -181,12 +181,17 @@ def PageListingPage(
   breadcrumbs,
   parent_missing_locales=None,
   messages=None,
+  is_explorer_root: bool = False,
+  add_parent_id: int | None = None,
+  site=None,
 ):
-  parent_id = parent_page.id
+  parent_id = add_parent_id if is_explorer_root else parent_page.id
+  listing_title = "Pages" if is_explorer_root else parent_page.title
+  explorer_page_id = None if is_explorer_root else parent_id
   missing_for_parent = parent_missing_locales or []
   return (
     <AdminLayout
-      title={parent_page.title}
+      title={listing_title}
       active="pages"
       username={username}
       breadcrumbs={[]}
@@ -198,14 +203,14 @@ def PageListingPage(
           tree={tree}
           locales={locales}
           current_locale={current_locale}
-          current_page_id={parent_id}
+          current_page_id={explorer_page_id}
           parent_title="Pages"
         />
         <section class="min-w-0 flex-1">
           <header class="flex min-h-slim-header flex-col justify-center gap-1 border-b border-gray-200 bg-gray-50 px-5 py-3 md:flex-row md:items-center md:justify-between md:gap-4 md:py-0">
             <div class="min-w-0">
               <Breadcrumbs crumbs={breadcrumbs} />
-              <h1 class="text-2xl font-semibold text-gray-900">{parent_page.title}</h1>
+              <h1 class="text-2xl font-semibold text-gray-900">{listing_title}</h1>
             </div>
             <div class="flex flex-wrap items-center gap-3">
               {(
@@ -215,7 +220,7 @@ def PageListingPage(
                     for locale in missing_for_parent
                   ]}
                 </div>
-              ) if missing_for_parent else None}
+              ) if parent_missing_locales and parent_page else None}
               <a href={f"/admin/pages/add/?parent={parent_id}"} class={BTN}>
                 <IconPlus />
                 Add child page
@@ -252,9 +257,27 @@ def PageListingPage(
             </tbody>
           </table>
           <div class="px-6 py-5">
-            <a href={f"/admin/pages/{parent_id}/edit/"} class={BTN_SECONDARY}>
-              Edit this page
-            </a>
+            {(
+              <div class="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900" role="status">
+                <p class="text-sm">
+                  New pages here are not publicly accessible until one is set as the site homepage.
+                  {(
+                    <span>
+                      {" "}
+                      <a href="/admin/sites/" class="font-semibold text-ragtail-secondary hover:underline">
+                        Configure the site root page
+                      </a>
+                      .
+                    </span>
+                  ) if site is None or site.root_page_id is None else None}
+                </p>
+              </div>
+            ) if is_explorer_root else None}
+            {(
+              <a href={f"/admin/pages/{parent_page.id}/edit/"} class={BTN_SECONDARY}>
+                Edit this page
+              </a>
+            ) if not is_explorer_root else None}
           </div>
         </section>
       </div>
@@ -308,11 +331,13 @@ def PageTypeChooserPage(
   *,
   username: str,
   parent_page,
+  parent_label: str | None = None,
   breadcrumbs,
   page_types,
   children=None,
 ):
   parent_id = parent_page.id
+  label = parent_label or parent_page.title
   return (
     <AdminLayout
       title="Choose page type"
@@ -325,7 +350,7 @@ def PageTypeChooserPage(
         <Breadcrumbs crumbs={breadcrumbs} />
         <h1 class="text-2xl font-semibold text-gray-900">Choose page type</h1>
         <p class="text-sm text-gray-600">
-          Add a child page under <strong class="text-gray-900">{parent_page.title}</strong>
+          Add a child page under <strong class="text-gray-900">{label}</strong>
         </p>
       </header>
       <div class="px-6 py-8">
@@ -358,6 +383,8 @@ def PageFormPage(
   username: str,
   page=None,
   parent_page=None,
+  parent_label: str | None = None,
+  parent_cancel_href: str | None = None,
   breadcrumbs,
   action_url: str,
   title: str,
@@ -376,7 +403,7 @@ def PageFormPage(
   if page and page.id:
     cancel_href = f"/admin/pages/{page.id}/"
   elif parent_page:
-    cancel_href = f"/admin/pages/{parent_page.id}/"
+    cancel_href = parent_cancel_href or f"/admin/pages/{parent_page.id}/"
 
   return (
     <AdminLayout
