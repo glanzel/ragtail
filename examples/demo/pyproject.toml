@@ -1,0 +1,12 @@
+[project]
+name = "ragtail-demo"
+version = "0.1.0"
+description = "Runnable demo for the Ragtail CMS"
+requires-python = ">=3.10"
+dependencies = [
+  "ragtail",
+  "uvicorn[standard]>=0.30",
+]
+
+[tool.uv.sources]
+ragtail = { path = "../..", editable = true }

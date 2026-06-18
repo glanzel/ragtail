@@ -1,4 +1,4 @@
-"""Oxyde ORM configuration for schema migrations."""
+"""Oxyde configuration for the Ragtail demo app."""
 
 from __future__ import annotations
 
@@ -16,8 +16,9 @@ DATABASES = {
     ),
 }
 
-MODELS = ["ragtail.models"]
+MODELS = ["pages", "ragtail.models"]
 
-MIGRATIONS_DIR = "src/ragtail/migrations"
+# Demo-local migrations only (Ragtail CMS schema ships in the ragtail package).
+MIGRATIONS_DIR = "migrations"
 
 DIALECT = detect_dialect(DATABASES["default"])

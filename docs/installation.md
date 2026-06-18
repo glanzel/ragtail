@@ -23,23 +23,25 @@ uv add "ragtail[admin]"   # legacy oxyde-admin CRUD
 
 ## Local development (this repository)
 
-This project uses [uv](https://docs.astral.sh/uv/) for Python dependency management.
+The **library** (tests, `make makemigrations`) uses the root `pyproject.toml`. Ragtail CMS migrations live inside the installed `ragtail` package; `ragtail-makemigrations` writes there. The **demo app** in `examples/demo/` has its own `oxyde_config.py` for database settings only.
 
 ```bash
-make install              # Python + npm deps, build CSS
-make migrate              # create DB and apply migrations
+make install              # root + demo Python envs, npm, build CSS
+make migrate              # from examples/demo (ragtail-initdb)
 make createsuperuser      # first CMS staff user
-make run-demo             # demo app with reload
+make run-demo             # uvicorn from examples/demo
 ```
 
 Equivalent without make:
 
 ```bash
-uv sync --locked --extra demo
-npm install && npm run build:css
+uv sync --locked
+cd examples/demo && uv sync --locked
+npm install && npm run build:css   # from repository root
+cd examples/demo
 uv run ragtail-initdb
 uv run ragtail-createsuperuser
-uv run uvicorn examples.demo.main:app --reload
+uv run uvicorn main:app --reload
 ```
 
 One-shot first-time setup:
@@ -81,9 +83,9 @@ Environment variables for scripted runs:
 Ragtail uses [Oxyde migrations](https://oxyde.fatalyst.dev/) (Django-style). On app startup, `cms.lifespan` applies pending migrations automatically. For offline/CI use:
 
 ```bash
-make migrate              # create DB file if needed, apply pending migrations
-make makemigrations       # generate migration after model changes
-make showmigrations       # list applied/pending migrations
+make migrate              # create DB and apply migrations
+make makemigrations       # generate migration files in the ragtail package
+make showmigrations       # list package migrations (from examples/demo)
 ```
 
 Fresh database:

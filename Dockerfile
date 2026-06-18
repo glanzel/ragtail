@@ -11,7 +11,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY pyproject.toml uv.lock README.md package.json package-lock.json oxyde_config.py ./
+COPY pyproject.toml uv.lock README.md package.json package-lock.json ./
 COPY scripts ./scripts
 COPY styles ./styles
 COPY tailwind.config.js ./
@@ -24,12 +24,14 @@ RUN apt-get update \
     && npm ci \
     && npm run build:css
 
+WORKDIR /app/examples/demo
+
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --extra demo --no-editable
+    uv sync --locked --no-editable
 
 RUN mkdir -p /data
 VOLUME ["/data"]
 
 EXPOSE 8000
 
-CMD ["uv", "run", "uvicorn", "examples.demo.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

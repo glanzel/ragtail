@@ -3,25 +3,20 @@
 from __future__ import annotations
 
 import os
-import sys
 from pathlib import Path
 
 import pyjsx.auto_setup  # noqa: F401
 from fastapi.staticfiles import StaticFiles
 from oxyde_config import DATABASES
 
+import site_setup  # noqa: F401 registers ContentPage and demo configuration
+
+from ragtail.fastapi import create_app
+from ragtail.templates import PyJsxRenderer
+
+from seed import seed_if_empty
+
 DEMO_DIR = Path(__file__).resolve().parent
-ROOT = DEMO_DIR.parents[1]
-sys.path.insert(0, str(ROOT / "src"))
-sys.path.insert(0, str(DEMO_DIR))
-
-import site_setup  # noqa: F401,E402 registers ContentPage and demo configuration
-
-from ragtail.fastapi import create_app  # noqa: E402
-from ragtail.templates import PyJsxRenderer  # noqa: E402
-
-from seed import seed_if_empty  # noqa: E402
-
 SECRET_KEY = os.environ.get("RAGTAIL_SECRET_KEY", "ragtail-demo-secret-change-me")
 
 app = create_app(
