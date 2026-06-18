@@ -12,6 +12,15 @@ from ragtail.models import Locale
 from ragtail.page_types import clear_page_models
 from ragtail.pages import create_page
 from ragtail.ragtail_admin.services import ensure_root_page
+from ragtail.sites import get_site_root_page, get_tree_root
+
+
+async def _tree_root_parent_id() -> int:
+    locale = await Locale.objects.first()
+    assert locale is not None
+    tree_root = await get_tree_root(locale)
+    assert tree_root is not None and tree_root.id is not None
+    return tree_root.id
 
 
 @pytest_asyncio.fixture
@@ -81,14 +90,19 @@ async def test_admin_login_and_page_explorer(client: AsyncClient) -> None:
     assert dashboard.status_code == 200
     assert "Welcome to Ragtail CMS" in dashboard.text
 
-    pages = await client.get("/admin/pages/", cookies=login.cookies, follow_redirects=False)
-    assert pages.status_code == 303
-    root_id = pages.headers["location"].rstrip("/").rsplit("/", 1)[-1]
-
-    listing = await client.get(f"/admin/pages/{root_id}/", cookies=login.cookies)
+    listing = await client.get("/admin/pages/", cookies=login.cookies)
     assert listing.status_code == 200
     assert "Add child page" in listing.text
-    assert "About" in listing.text
+    assert "Pages" in listing.text
+    assert "Home" in listing.text
+    assert "[Root]" not in listing.text
+    assert ">Root<" not in listing.text
+
+    home = await get_site_root_page(await Locale.objects.first())
+    assert home is not None
+    home_listing = await client.get(f"/admin/pages/{home.id}/", cookies=login.cookies)
+    assert home_listing.status_code == 200
+    assert "About" in home_listing.text
 
 
 @pytest.mark.asyncio
@@ -98,8 +112,7 @@ async def test_admin_page_add_route(client: AsyncClient) -> None:
         data={"username": "admin", "password": "admin", "next": "/admin/pages/"},
         follow_redirects=False,
     )
-    pages = await client.get("/admin/pages/", cookies=login.cookies, follow_redirects=False)
-    root_id = pages.headers["location"].rstrip("/").rsplit("/", 1)[-1]
+    root_id = await _tree_root_parent_id()
 
     add_page = await client.get(
         f"/admin/pages/add/?parent={root_id}",
@@ -127,8 +140,7 @@ async def test_admin_page_add_persists_typed_extra_field(client: AsyncClient) ->
         data={"username": "admin", "password": "admin", "next": "/admin/pages/"},
         follow_redirects=False,
     )
-    pages = await client.get("/admin/pages/", cookies=login.cookies, follow_redirects=False)
-    root_id = pages.headers["location"].rstrip("/").rsplit("/", 1)[-1]
+    root_id = await _tree_root_parent_id()
 
     create = await client.post(
         f"/admin/pages/add/?parent={root_id}",
@@ -171,8 +183,7 @@ async def test_admin_page_edit_persists_typed_extra_field(client: AsyncClient) -
         data={"username": "admin", "password": "admin", "next": "/admin/pages/"},
         follow_redirects=False,
     )
-    pages = await client.get("/admin/pages/", cookies=login.cookies, follow_redirects=False)
-    root_id = pages.headers["location"].rstrip("/").rsplit("/", 1)[-1]
+    root_id = await _tree_root_parent_id()
 
     create = await client.post(
         f"/admin/pages/add/?parent={root_id}",
@@ -274,18 +285,15 @@ async def test_admin_page_explorer_has_locale_switcher(client: AsyncClient) -> N
         follow_redirects=False,
     )
 
-    pages = await client.get("/admin/pages/", cookies=login.cookies, follow_redirects=False)
-    root_id = pages.headers["location"].rstrip("/").rsplit("/", 1)[-1]
-
-    listing = await client.get(f"/admin/pages/{root_id}/", cookies=login.cookies)
+    listing = await client.get("/admin/pages/", cookies=login.cookies)
     assert listing.status_code == 200
     assert 'id="id_explorer_locale"' in listing.text
     assert "Deutsch" in listing.text
-    assert "About" in listing.text
+    assert "Home" in listing.text
 
     switch = await client.post(
         "/admin/set-locale/",
-        data={"language_code": "de", "next": f"/admin/pages/{root_id}/"},
+        data={"language_code": "de", "next": "/admin/pages/"},
         cookies=login.cookies,
         follow_redirects=False,
     )
@@ -330,3 +338,20 @@ async def test_admin_translate_page(client: AsyncClient) -> None:
     translated = await Page.objects.filter(translation_key=about.translation_key, locale_id=de.id).first()
     assert translated is not None
     assert translated.slug == "ueber-uns"
+
+
+@pytest.mark.asyncio
+async def test_tree_root_is_hidden_from_admin_urls(client: AsyncClient) -> None:
+    login = await client.post(
+        "/admin/login/",
+        data={"username": "admin", "password": "admin", "next": "/admin/pages/"},
+        follow_redirects=False,
+    )
+    tree_root_id = await _tree_root_parent_id()
+
+    redirected = await client.get(f"/admin/pages/{tree_root_id}/", cookies=login.cookies, follow_redirects=False)
+    assert redirected.status_code == 303
+    assert redirected.headers["location"] == "/admin/pages/"
+
+    edit = await client.get(f"/admin/pages/{tree_root_id}/edit/", cookies=login.cookies)
+    assert edit.status_code == 404

@@ -51,7 +51,7 @@ def LocaleListPage(*, username: str, locales, children=None):
       </header>
       <div class="px-6 py-5">
         <p class="mb-4 text-gray-500">
-          Manage site languages. Adding a locale also creates a root page for that language.
+          Manage site languages. Adding a locale also creates a technical tree root and site record.
         </p>
         <table class="w-full border-collapse text-left">
           <thead>

@@ -51,6 +51,12 @@ def AdminSidebar(active: str = "pages", username: str = "", children=None):
               </a>
             </li>
             <li>
+              <a href="/admin/sites/" class={_sidebar_link_class(active, "sites")}>
+                <IconGlobe />
+                <span>Sites</span>
+              </a>
+            </li>
+            <li>
               <a href="/admin/locales/" class={_sidebar_link_class(active, "locales")}>
                 <IconGlobe />
                 <span>Locales</span>

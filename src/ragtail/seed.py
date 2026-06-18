@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 
 from .models import Locale
-from .ragtail_admin.services import _clear_other_default_locales, create_locale, ensure_root_page
+from .ragtail_admin.services import _clear_other_default_locales, create_locale, ensure_site_setup
 from .routing import get_default_locale
 
 DEFAULT_LANGUAGE_CODE = "en"
@@ -66,7 +66,7 @@ async def ensure_default_locale(
 
     existing_default = await get_default_locale()
     if existing_default is not None:
-        await ensure_root_page(existing_default)
+        await ensure_site_setup(existing_default)
         return existing_default, False
 
     code = language_code.strip().lower()
@@ -83,7 +83,7 @@ async def ensure_default_locale(
             if name:
                 existing.display_name = name
             await existing.save()
-        await ensure_root_page(existing)
+        await ensure_site_setup(existing)
         return existing, False
 
     locale = await create_locale(
@@ -91,5 +91,5 @@ async def ensure_default_locale(
         display_name=name,
         is_default=True,
     )
-    await ensure_root_page(locale)
+    await ensure_site_setup(locale)
     return locale, True

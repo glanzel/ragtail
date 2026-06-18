@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from .models import Locale, Page
+from .models import Locale, Page, Site
 
 
 def normalize_path(path: str | None) -> str:
@@ -83,6 +83,10 @@ async def get_locale(language_code: str | None = None) -> Locale | None:
     return await get_default_locale()
 
 
+async def get_site_for_locale(locale: Locale) -> Site | None:
+    return await Site.objects.filter(locale_id=locale.id).first()
+
+
 async def resolve_page(
     path: str,
     *,
@@ -91,14 +95,55 @@ async def resolve_page(
 ) -> Page | None:
     """Resolve a canonical page path for one locale."""
 
-    locale = await get_locale(language_code)
-    if locale is None:
-        return None
+    route = await resolve_route(
+        path,
+        language_code=language_code,
+        include_unpublished=include_unpublished,
+    )
+    return route.page if route is not None else None
 
-    query = Page.objects.filter(path=normalize_path(path), locale_id=locale.id)
-    if not include_unpublished:
-        query = query.filter(live=True)
-    return await query.first()
+
+async def _resolve_site_root_page(
+    locale: Locale,
+    *,
+    include_unpublished: bool,
+) -> Page | None:
+    from .sites import is_tree_root
+
+    site = await get_site_for_locale(locale)
+    if site is None or site.root_page_id is None:
+        return None
+    page = await Page.objects.get_or_none(id=site.root_page_id, locale_id=locale.id)
+    if page is None or is_tree_root(page):
+        return None
+    if not include_unpublished and not page.live:
+        return None
+    return page
+
+
+async def _resolve_public_page(
+    local_path: str,
+    locale: Locale,
+    *,
+    include_unpublished: bool,
+) -> Page | None:
+    from .sites import TREE_ROOT_CONTENT_TYPE, is_page_publicly_routable
+
+    normalized = normalize_path(local_path)
+    if normalized == "/":
+        return await _resolve_site_root_page(locale, include_unpublished=include_unpublished)
+
+    page = await Page.objects.filter(
+        path=normalized,
+        locale_id=locale.id,
+    ).exclude(content_type=TREE_ROOT_CONTENT_TYPE).first()
+    if page is None:
+        return None
+    if not include_unpublished and not page.live:
+        return None
+    if not await is_page_publicly_routable(page, locale):
+        return None
+    return page
 
 
 async def resolve_route(
@@ -123,31 +168,33 @@ async def resolve_route(
     if locale is None:
         return None
 
-    query = Page.objects.filter(path=local_path, locale_id=locale.id)
-    if not include_unpublished:
-        query = query.filter(live=True)
-
-    page = await query.first()
+    page = await _resolve_public_page(
+        local_path,
+        locale,
+        include_unpublished=include_unpublished,
+    )
     if page is not None:
+        public_path = localized_path(
+            "/" if local_path == "/" else page.path,
+            locale.language_code,
+            default_language_code=default_locale.language_code,
+            prefix_default_language=prefix_default_language,
+        )
         return RouteMatch(
             page=page,
             locale=locale,
-            path=local_path,
-            public_path=localized_path(
-                local_path,
-                locale.language_code,
-                default_language_code=default_locale.language_code,
-                prefix_default_language=prefix_default_language,
-            ),
+            path=normalize_path(local_path),
+            public_path=public_path,
         )
 
     if locale.id == default_locale.id:
         return None
 
-    default_query = Page.objects.filter(path=local_path, locale_id=default_locale.id)
-    if not include_unpublished:
-        default_query = default_query.filter(live=True)
-    default_page = await default_query.first()
+    default_page = await _resolve_public_page(
+        local_path,
+        default_locale,
+        include_unpublished=include_unpublished,
+    )
     if default_page is None:
         return None
 
@@ -157,9 +204,9 @@ async def resolve_route(
     return RouteMatch(
         page=default_page,
         locale=locale,
-        path=local_path,
+        path=normalize_path(local_path),
         public_path=localized_path(
-            local_path,
+            "/" if local_path == "/" else default_page.path,
             locale.language_code,
             default_language_code=default_locale.language_code,
             prefix_default_language=prefix_default_language,

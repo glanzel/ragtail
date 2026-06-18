@@ -96,8 +96,13 @@ class Page(TimestampedModel):
         return self.path
 
     @property
+    def is_tree_root(self) -> bool:
+        return self.content_type == "tree_root"
+
+    @property
     def is_root(self) -> bool:
-        return self.parent is None and self.path == "/"
+        """True for the invisible technical tree root node."""
+        return self.parent is None and self.is_tree_root
 
     async def get_context(self, request: Request, route: RouteMatch) -> dict[str, Any]:
         """Return extra template context (override in Page subclasses)."""
@@ -111,6 +116,23 @@ class Page(TimestampedModel):
 
         model_cls = get_page_model(self.content_type or "page")
         return f"{class_to_content_type(model_cls.__name__)}.html"
+
+
+class Site(TimestampedModel):
+    """Maps a locale (and optional hostname) to the public homepage, Wagtail-style."""
+
+    id: int | None = Field(default=None, db_pk=True)
+    hostname: str = Field(max_length=255, db_index=True)
+    port: int = Field(default=80)
+    site_name: str | None = Field(default=None, max_length=255)
+    locale: Locale | None = Field(default=None, db_on_delete="CASCADE")
+    root_page: Page | None = Field(default=None, db_on_delete="SET NULL")
+    is_default_site: bool = Field(default=False, db_index=True)
+
+    class Meta:
+        is_table = True
+        table_name = "oxytail_sites"
+        unique_together = [("hostname", "port"), ("locale",)]
 
 
 class Menu(TimestampedModel):
