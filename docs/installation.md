@@ -6,6 +6,14 @@
 uv add ragtail
 ```
 
+Initialize Oxyde configuration in your project directory (skip if `oxyde_config.py` already exists):
+
+```bash
+uv run oxyde init
+```
+
+Add `ragtail.models` to `MODELS` in `oxyde_config.py`.
+
 Optional extras:
 
 ```bash
@@ -29,7 +37,7 @@ Equivalent without make:
 ```bash
 uv sync --locked --extra demo
 npm install && npm run build:css
-uv run ragtail-initdb --database-url sqlite://ragtail.db
+uv run ragtail-initdb
 uv run ragtail-createsuperuser
 uv run uvicorn examples.demo.main:app --reload
 ```
@@ -86,19 +94,23 @@ make migrate
 make createsuperuser
 ```
 
-Programmatically:
+Programmatically (after `await db.init(**DATABASES)` from your `oxyde_config.py`):
 
 ```python
 from oxyde import db
+from oxyde_config import DATABASES
 from ragtail.db import run_migrations
 
-await db.init(default="sqlite://ragtail.db")
+await db.init(**DATABASES)
 await run_migrations()
 ```
 
+## Configuration
+
+Database connections are read from `oxyde_config.py` in the **current working directory** (your app project, not the installed `ragtail` package). CLI commands (`ragtail-initdb`, `ragtail-seeddb`, `ragtail-createsuperuser`) use `DATABASES` automatically.
+
 ## Environment variables
 
-- `RAGTAIL_DATABASE_URL` — database (default: `sqlite://ragtail.db`)
 - `RAGTAIL_SECRET_KEY` — admin session secret
 
 ## Frontend assets (Tailwind CSS)

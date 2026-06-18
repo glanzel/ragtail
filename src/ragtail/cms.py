@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from oxyde import db
 from starlette.middleware.sessions import SessionMiddleware
 
-from .db import prepare_sqlite_database, run_migrations
+from .db import load_app_databases, prepare_sqlite_database, run_migrations
 from .ragtail_admin.router import AdminLoginRequired, STATIC_DIR, _login_url, create_admin_router
 
 if TYPE_CHECKING:
@@ -68,18 +68,30 @@ class FastAPICMS:
 
     def lifespan(
         self,
-        database_url: str,
         *,
         startup_hook: StartupHook | None = None,
+        db_alias: str = "default",
+        **databases: str,
     ) -> Callable[[FastAPI], AsyncIterator[None]]:
-        """Return a FastAPI lifespan that opens the DB and applies Ragtail migrations."""
-        prepare_sqlite_database(database_url)
-        base_lifespan = db.lifespan(default=database_url)
+        """Return a FastAPI lifespan that opens the DB and applies Ragtail migrations.
+
+        Pass ``DATABASES`` from your app's ``oxyde_config.py``::
+
+            from oxyde_config import DATABASES
+
+            app = FastAPI(lifespan=cms.lifespan(**DATABASES))
+
+        Or call without arguments to load ``DATABASES`` from the current working directory.
+        """
+        resolved = databases or load_app_databases()
+        for url in resolved.values():
+            prepare_sqlite_database(url)
+        base_lifespan = db.lifespan(**resolved)
 
         @asynccontextmanager
         async def cms_lifespan(app: FastAPI) -> AsyncIterator[None]:
             async with base_lifespan(app):
-                await run_migrations()
+                await run_migrations(db_alias=db_alias)
                 if startup_hook is not None:
                     await startup_hook()
                 yield

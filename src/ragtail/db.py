@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import importlib.util
 import os
+import sys
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
@@ -8,6 +10,31 @@ from oxyde import db
 from oxyde.migrations import apply_migrations
 
 from oxyde.db.pool import AsyncDatabase
+
+_CONFIG_MISSING = (
+    "No oxyde_config.py found in the current directory. "
+    "Run 'oxyde init' to create configuration (skip if already initialized)."
+)
+
+
+def load_app_databases() -> dict[str, str]:
+    """Return ``DATABASES`` from ``oxyde_config.py`` in the current working directory."""
+    config_path = Path.cwd() / "oxyde_config.py"
+    if not config_path.is_file():
+        raise RuntimeError(_CONFIG_MISSING)
+
+    sys.modules.pop("oxyde_config", None)
+    spec = importlib.util.spec_from_file_location("oxyde_config", config_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(_CONFIG_MISSING)
+
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    databases = getattr(module, "DATABASES", None)
+    if not databases:
+        raise RuntimeError("No DATABASES configured in oxyde_config.py")
+    return dict(databases)
 
 
 def ragtail_migrations_dir() -> Path:

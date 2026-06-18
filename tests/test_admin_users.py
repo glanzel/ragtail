@@ -12,8 +12,8 @@ from ragtail.models import Locale, User
 from ragtail.ragtail_admin.services import ensure_root_page
 
 @pytest_asyncio.fixture
-async def client(tmp_path: Path):
-    database_url = f"sqlite:////{tmp_path / 'admin-users.db'}"
+async def client(tmp_path: Path, oxyde_config):
+    database_url = oxyde_config(f"sqlite:////{tmp_path / 'admin-users.db'}")
     await db.init(default=database_url)
     try:
         connection = await db.get_connection("default")
@@ -28,7 +28,6 @@ async def client(tmp_path: Path):
         await ensure_root_page(en)
 
         app = create_app(
-            database_url=database_url,
             mount_ragtail_admin=True,
             secret_key="test-secret",
         )

@@ -6,14 +6,13 @@ import sys
 
 from oxyde import db
 
-from .cli_args import add_database_argument, add_locale_arguments, add_noinput_argument
-from .db import init_database
+from .cli_args import add_locale_arguments, add_noinput_argument
+from .db import init_database, load_app_databases
 from .seed import resolve_locale_credentials
 from .seed import ensure_default_locale as seed_default_locale
 
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
-    add_database_argument(parser)
     add_locale_arguments(parser)
     add_noinput_argument(
         parser,
@@ -30,7 +29,9 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 async def run(args: argparse.Namespace) -> int:
-    applied = await init_database(args.database_url)
+    databases = load_app_databases()
+    database_url = databases["default"]
+    applied = await init_database(database_url)
     if applied:
         print(f"Applied {len(applied)} migration(s).")
     else:
@@ -42,7 +43,7 @@ async def run(args: argparse.Namespace) -> int:
         noinput=args.noinput,
     )
 
-    await db.init(default=args.database_url)
+    await db.init(**databases)
     try:
         locale, created = await seed_default_locale(
             language_code=language_code,

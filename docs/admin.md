@@ -3,11 +3,12 @@
 Enable the built-in admin with session login:
 
 ```python
+from oxyde_config import DATABASES
 from ragtail.fastapi import create_app
 from ragtail.auth import ensure_superuser
 
 app = create_app(
-    database_url="sqlite://ragtail.db",
+    **DATABASES,
     mount_ragtail_admin=True,
     secret_key="replace-me",
 )

@@ -165,10 +165,10 @@ async def test_cast_page_restores_json_fields(tmp_path: Path) -> None:
 
 
 @pytest_asyncio.fixture
-async def html_client(tmp_path: Path):
+async def html_client(tmp_path: Path, oxyde_config):
     clear_page_models()
     clear_pyjsx_components()
-    database_url = f"sqlite:////{tmp_path / 'template-engine.db'}"
+    database_url = oxyde_config(f"sqlite:////{tmp_path / 'template-engine.db'}")
 
     @register_page_model
     class SimplePage(Page):
@@ -204,7 +204,7 @@ async def html_client(tmp_path: Path):
             secret_key="test-secret",
             template_engine=PyJsxRenderer(),
         )
-        app = FastAPI(lifespan=cms.lifespan(database_url))
+        app = FastAPI(lifespan=cms.lifespan(**{"default": database_url}))
         cms.mount(app)
 
         transport = ASGITransport(app=app)

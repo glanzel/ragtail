@@ -1,5 +1,3 @@
-
-
 # Ragtail
 
 Ragtail is a Wagtail-inspired CMS built on [Oxyde ORM](https://oxyde.fatalyst.dev/) and FastAPI. It ships with:
@@ -22,18 +20,31 @@ StreamField-like content blocks, images/documents, workflows and role-based perm
 uv add "ragtail[jinja] @ git+https://github.com/glanzel/ragtail.git"
 ```
 
+Initialize Oxyde configuration in your project directory (skip if `oxyde_config.py` already exists):
+
+```bash
+uv run oxyde init
+```
+
+Edit `oxyde_config.py` and add `ragtail.models` to `MODELS`, for example:
+
+```python
+MODELS = ["models", "ragtail.models"]
+```
+
 Quick start — mount into an existing FastAPI-Oxyde app:
 
 ```python
 from fastapi import FastAPI
+from oxyde_config import DATABASES
 from ragtail import FastAPICMS
 
 cms = FastAPICMS(secret_key="change-me")
-app = FastAPI(lifespan=cms.lifespan("sqlite://app.db"))
-cms.mount(app)  
+app = FastAPI(lifespan=cms.lifespan(**DATABASES))
+cms.mount(app)
 ```
 
-Create the database , apply migrations, add locale and add a staff user:
+Create the database, apply migrations, add locale and add a staff user (reads `DATABASES` from `oxyde_config.py` automatically):
 
 ```bash
 uv run ragtail-seeddb \
@@ -108,4 +119,4 @@ make createsuperuser
 make run-demo
 ```
 
-Or in one step: `make setup`.
+Or in one step: `make setup`. The repository includes `oxyde_config.py` for local development — run `oxyde init` only if it is missing.

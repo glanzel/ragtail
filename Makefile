@@ -6,7 +6,6 @@ HOST   ?= 127.0.0.1
 PORT   ?= 8000
 DOCKER_IMAGE ?= ragtail-demo
 DOCKER_VOLUME ?= ragtail-data
-DATABASE_URL ?= sqlite://ragtail.db
 USERNAME ?=
 EMAIL ?=
 PASSWORD ?=
@@ -53,18 +52,17 @@ watch: install-node ## Watch CSS sources and rebuild on change
 init-db: migrate ## Alias for migrate (apply schema migrations)
 
 makemigrations: ## Generate Oxyde migration files from model changes (MIGRATION_NAME=optional)
-	RAGTAIL_DATABASE_URL="$(DATABASE_URL)" $(UV) run oxyde makemigrations \
+	$(UV) run oxyde makemigrations \
 		$(if $(MIGRATION_NAME),--name "$(MIGRATION_NAME)",)
 
 migrate: ## Create database file (if needed) and apply migrations
-	RAGTAIL_DATABASE_URL="$(DATABASE_URL)" $(UV) run ragtail-initdb --database-url "$(DATABASE_URL)"
+	$(UV) run ragtail-initdb
 
 showmigrations: ## Show applied and pending Oxyde migrations
-	RAGTAIL_DATABASE_URL="$(DATABASE_URL)" $(UV) run oxyde showmigrations
+	$(UV) run oxyde showmigrations
 
 createsuperuser: ## Create staff user only (run migrate first; USERNAME/EMAIL/PASSWORD/NOINPUT=1 for scripted)
 	$(UV) run ragtail-createsuperuser \
-		--database-url "$(DATABASE_URL)" \
 		$(if $(USERNAME),--username "$(USERNAME)",) \
 		$(if $(EMAIL),--email "$(EMAIL)",) \
 		$(if $(PASSWORD),--password "$(PASSWORD)",) \
@@ -73,7 +71,6 @@ createsuperuser: ## Create staff user only (run migrate first; USERNAME/EMAIL/PA
 
 seeddb: ## Migrate DB, seed default locale, and create staff user
 	$(UV) run ragtail-seeddb \
-		--database-url "$(DATABASE_URL)" \
 		$(if $(LANGUAGE_CODE),--language-code "$(LANGUAGE_CODE)",) \
 		$(if $(DISPLAY_NAME),--display-name "$(DISPLAY_NAME)",) \
 		$(if $(USERNAME),--username "$(USERNAME)",) \

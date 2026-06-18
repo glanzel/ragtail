@@ -15,7 +15,7 @@ from ragtail.ragtail_admin.services import ensure_root_page
 
 
 @pytest_asyncio.fixture
-async def client(tmp_path: Path):
+async def client(tmp_path: Path, oxyde_config):
     import importlib
     import sys
 
@@ -27,7 +27,7 @@ async def client(tmp_path: Path):
     else:
         import pages  # noqa: F401
 
-    database_url = f"sqlite:////{tmp_path / 'admin.db'}"
+    database_url = oxyde_config(f"sqlite:////{tmp_path / 'admin.db'}")
     await db.init(default=database_url)
     try:
         connection = await db.get_connection("default")
@@ -49,7 +49,6 @@ async def client(tmp_path: Path):
         )
 
         app = create_app(
-            database_url=database_url,
             mount_ragtail_admin=True,
             secret_key="test-secret",
         )

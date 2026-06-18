@@ -1,15 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import os
-
-
-def add_database_argument(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument(
-        "--database-url",
-        default=os.environ.get("RAGTAIL_DATABASE_URL", "sqlite://ragtail.db"),
-        help="Database URL (default: RAGTAIL_DATABASE_URL or sqlite://ragtail.db)",
-    )
 
 
 def add_locale_arguments(parser: argparse.ArgumentParser) -> None:

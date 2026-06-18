@@ -54,8 +54,8 @@ docker build -t ragtail-demo .
 docker run --rm -p 8000:8000 -v ragtail-data:/data ragtail-demo
 ```
 
-The SQLite database is stored in `/data/ragtail.db` inside the container.
+The SQLite database is stored in `/data/ragtail.db` inside the container (configured in `oxyde_config.py`).
 Override optional environment variables:
 
-- `RAGTAIL_DATABASE_URL` (default: `sqlite:////data/ragtail.db`)
+- `RAGTAIL_DATABASE_URL` — overrides the default URL in `oxyde_config.py`
 - `RAGTAIL_SECRET_KEY` (admin session secret)
