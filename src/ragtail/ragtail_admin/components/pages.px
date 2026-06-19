@@ -9,7 +9,7 @@ from ragtail.ragtail_admin.classes import (
     LABEL,
     TEXTAREA,
 )
-from ragtail.ragtail_admin.components.icons import IconFolderOpenInverse, IconPlus
+from ragtail.ragtail_admin.components.icons import IconFolderOpenInverse, IconGlobe, IconPlus
 from ragtail.ragtail_admin.components.layout import AdminLayout, Breadcrumbs
 from ragtail.ragtail_admin.components.locale_switcher import LocaleSwitcher
 from ragtail.seo import SEARCH_DESCRIPTION_MAX_LENGTH
@@ -124,6 +124,23 @@ def _status_class(live: bool) -> str:
   return "inline-block rounded px-2 py-0.5 text-xs font-semibold bg-gray-100 text-gray-500"
 
 
+def PagePublicUrlLink(public_url: str | None = None, children=None):
+  if not public_url:
+    return None
+  return (
+    <a
+      href={public_url}
+      class={BTN_SECONDARY}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={f"Open {public_url} in a new tab"}
+    >
+      <IconGlobe />
+      <span class="font-mono text-sm">{public_url}</span>
+    </a>
+  )
+
+
 def TranslateLink(child, locale, children=None):
   return (
     <a
@@ -184,6 +201,7 @@ def PageListingPage(
   is_explorer_root: bool = False,
   add_parent_id: int | None = None,
   site=None,
+  public_url: str | None = None,
 ):
   parent_id = add_parent_id if is_explorer_root else parent_page.id
   listing_title = "Pages" if is_explorer_root else parent_page.title
@@ -221,6 +239,7 @@ def PageListingPage(
                   ]}
                 </div>
               ) if parent_missing_locales and parent_page else None}
+              <PagePublicUrlLink public_url={public_url} />
               <a href={f"/admin/pages/add/?parent={parent_id}"} class={BTN}>
                 <IconPlus />
                 Add child page
@@ -396,6 +415,7 @@ def PageFormPage(
   include_richtext_script=False,
   selected_content_type: str | None = None,
   content_type_label: str | None = None,
+  public_url: str | None = None,
 ):
   form_values = values or {}
   extra_field_defs = extra_fields or []
@@ -414,9 +434,12 @@ def PageFormPage(
       messages={messages}
       body_class="page-editor"
     >
-      <header class="flex min-h-slim-header flex-col justify-center gap-1 border-b border-gray-200 bg-gray-50 px-5 py-3">
-        <Breadcrumbs crumbs={breadcrumbs} />
-        <h1 class="text-2xl font-semibold text-gray-900">{title}</h1>
+      <header class="flex min-h-slim-header flex-col justify-center gap-2 border-b border-gray-200 bg-gray-50 px-5 py-3 md:flex-row md:items-center md:justify-between">
+        <div class="min-w-0">
+          <Breadcrumbs crumbs={breadcrumbs} />
+          <h1 class="text-2xl font-semibold text-gray-900">{title}</h1>
+        </div>
+        <PagePublicUrlLink public_url={public_url} />
       </header>
       <div class="px-6 py-5">
         {(

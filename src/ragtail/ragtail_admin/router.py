@@ -30,7 +30,7 @@ from .components.dashboard import DashboardPage
 from .components.locales import LocaleAddPage, LocaleEditPage, LocaleListPage
 from .components.login import LoginPage
 from .components.password_reset import ForgotPasswordPage
-from .components.menus import MenuAddPage, MenuDetailPage, MenuListPage
+from .components.menus import MenuAddPage, MenuDetailPage, MenuEditPage, MenuListPage
 from .components.users import (
     ChangePasswordPage,
     UserAddPage,
@@ -91,11 +91,13 @@ from .services import (
     validate_user_update,
     get_page_locale,
     get_page_or_404,
+    get_page_public_url,
     get_pages_for_locale,
     resolve_page_for_admin_locale,
     resolve_translated_parent,
     set_admin_locale,
     update_locale,
+    update_menu,
     update_page,
     update_site,
 )
@@ -694,6 +696,46 @@ def create_admin_router() -> APIRouter:
             pages=pages,
         )
 
+    @router.get("/menus/{menu_id}/edit/")
+    async def menus_edit_get(menu_id: int, user: Annotated[User, Depends(require_user)]):
+        menu = await get_menu_or_404(menu_id)
+        return html_response(MenuEditPage, username=user.username, menu=menu)
+
+    @router.post("/menus/{menu_id}/edit/")
+    async def menus_edit_post(
+        menu_id: int,
+        user: Annotated[User, Depends(require_user)],
+        name: Annotated[str, Form()],
+        slug: Annotated[str, Form()],
+        is_active: Annotated[str | None, Form()] = None,
+    ):
+        menu = await get_menu_or_404(menu_id)
+        values = {"name": name, "slug": slug, "is_active": is_active == "1"}
+        if not name.strip() or not slug.strip():
+            return html_response(
+                MenuEditPage,
+                username=user.username,
+                menu=menu,
+                values=values,
+                error="Name and slug are required.",
+            )
+        try:
+            await update_menu(
+                menu,
+                name=name,
+                slug=slug,
+                is_active=is_active == "1",
+            )
+        except ValueError as exc:
+            return html_response(
+                MenuEditPage,
+                username=user.username,
+                menu=menu,
+                values=values,
+                error=str(exc),
+            )
+        return RedirectResponse(f"/admin/menus/{menu_id}/", status_code=status.HTTP_303_SEE_OTHER)
+
     @router.post("/menus/{menu_id}/items/add/")
     async def menus_item_add(
         menu_id: int,
@@ -1100,6 +1142,7 @@ def create_admin_router() -> APIRouter:
         missing_by_child = await get_missing_translations_by_page(children)
         parent_missing = await get_locales_missing_translation(page)
         site = await get_site_for_locale(admin_locale)
+        public_url = await get_page_public_url(page)
         return html_response(
             PageListingPage,
             username=user.username,
@@ -1112,6 +1155,7 @@ def create_admin_router() -> APIRouter:
             parent_missing_locales=parent_missing,
             breadcrumbs=breadcrumbs,
             site=site,
+            public_url=public_url,
         )
 
     @router.get("/pages/{page_id}/edit/")
@@ -1121,6 +1165,7 @@ def create_admin_router() -> APIRouter:
             raise HTTPException(status_code=404, detail="The technical tree root cannot be edited.")
         breadcrumbs = await build_breadcrumbs(page)
         breadcrumbs.append(type(breadcrumbs[-1])("Edit", None))
+        public_url = await get_page_public_url(page)
         return html_response(
             PageFormPage,
             username=user.username,
@@ -1130,6 +1175,7 @@ def create_admin_router() -> APIRouter:
             title=f"Editing {page.title}",
             submit_label="Save draft",
             values=_form_values(page),
+            public_url=public_url,
             **_page_form_kwargs(page),
         )
 
@@ -1164,6 +1210,7 @@ def create_admin_router() -> APIRouter:
             **{name: value or "" for name, value in extra_fields.items()},
         )
         form_kwargs = _page_form_kwargs(page)
+        public_url = await get_page_public_url(page)
         if not title.strip():
             return html_response(
                 PageFormPage,
@@ -1175,6 +1222,7 @@ def create_admin_router() -> APIRouter:
                 submit_label="Save draft",
                 values=values,
                 error="Title is required.",
+                public_url=public_url,
                 **form_kwargs,
             )
         if error := search_description_error(search_description):
@@ -1188,6 +1236,7 @@ def create_admin_router() -> APIRouter:
                 submit_label="Save draft",
                 values=values,
                 error=error,
+                public_url=public_url,
                 **form_kwargs,
             )
         await update_page(

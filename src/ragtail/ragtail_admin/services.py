@@ -408,6 +408,33 @@ async def get_menu_or_404(menu_id: int) -> Menu:
     return menu
 
 
+async def update_menu(
+    menu: Menu,
+    *,
+    name: str,
+    slug: str,
+    is_active: bool,
+) -> Menu:
+    if not name.strip():
+        raise ValueError("Name is required.")
+    if not slug.strip():
+        raise ValueError("Slug is required.")
+
+    normalized_slug = slug.strip().lower()
+    existing = await Menu.objects.filter(
+        locale_id=menu.locale_id,
+        slug=normalized_slug,
+    ).first()
+    if existing is not None and existing.id != menu.id:
+        raise ValueError("A menu with this slug already exists for this locale.")
+
+    menu.name = name.strip()
+    menu.slug = normalized_slug
+    menu.is_active = is_active
+    await menu.save()
+    return menu
+
+
 async def get_menu_items(menu: Menu) -> list[MenuItem]:
     items = (
         await MenuItem.objects.filter(menu_id=menu.id)
@@ -558,3 +585,32 @@ async def validate_user_update(
     if not is_staff:
         return "You cannot remove your own staff access."
     return None
+
+
+async def get_page_public_url(page: Page) -> str | None:
+    """Return the public URL path for a page, or None if it is not in the site tree."""
+
+    from ..routing import get_default_locale, localized_path
+    from ..sites import get_site_root_page, is_page_publicly_routable, is_tree_root
+
+    if is_tree_root(page) or page.locale_id is None:
+        return None
+
+    locale = page.locale
+    if locale is None:
+        locale = await Locale.objects.get_or_none(id=page.locale_id)
+    if locale is None:
+        return None
+    if not await is_page_publicly_routable(page, locale):
+        return None
+
+    default_locale = await get_default_locale()
+    default_language_code = default_locale.language_code if default_locale else None
+    site_root = await get_site_root_page(locale)
+    page_path = "/" if site_root is not None and site_root.id == page.id else page.path
+
+    return localized_path(
+        page_path,
+        locale.language_code,
+        default_language_code=default_language_code,
+    )

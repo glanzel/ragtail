@@ -162,3 +162,39 @@ async def test_create_menu_and_item(client: AsyncClient) -> None:
     listing = await client.get(f"/admin/menus/{menu.id}/")
     assert listing.status_code == 200
     assert "About us" in listing.text
+
+
+@pytest.mark.asyncio
+async def test_edit_menu_updates_name_and_slug(client: AsyncClient) -> None:
+    await _login(client)
+    create_menu_response = await client.post(
+        "/admin/menus/add/",
+        data={"name": "Footer", "slug": "footer", "is_active": "1"},
+        follow_redirects=False,
+    )
+    assert create_menu_response.status_code == 303
+    menu = await Menu.objects.get_or_none(slug="footer")
+    assert menu is not None
+
+    edit = await client.get(f"/admin/menus/{menu.id}/edit/", cookies=client.cookies)
+    assert edit.status_code == 200
+    assert "Edit menu" in edit.text
+
+    save = await client.post(
+        f"/admin/menus/{menu.id}/edit/",
+        data={
+            "name": "Site footer",
+            "slug": "site-footer",
+            "is_active": "1",
+        },
+        cookies=client.cookies,
+        follow_redirects=False,
+    )
+    assert save.status_code == 303
+    assert save.headers["location"] == f"/admin/menus/{menu.id}/"
+
+    menu = await Menu.objects.get_or_none(id=menu.id)
+    assert menu is not None
+    assert menu.name == "Site footer"
+    assert menu.slug == "site-footer"
+    assert menu.is_active is True

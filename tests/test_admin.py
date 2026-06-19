@@ -103,6 +103,25 @@ async def test_admin_login_and_page_explorer(client: AsyncClient) -> None:
     home_listing = await client.get(f"/admin/pages/{home.id}/", cookies=login.cookies)
     assert home_listing.status_code == 200
     assert "About" in home_listing.text
+    assert 'href="/"' in home_listing.text
+
+
+@pytest.mark.asyncio
+async def test_admin_page_edit_shows_public_url(client: AsyncClient) -> None:
+    from ragtail.models import Page
+    from ragtail.page_types import cast_page
+
+    login = await client.post(
+        "/admin/login/",
+        data={"username": "admin", "password": "admin", "next": "/admin/pages/"},
+        follow_redirects=False,
+    )
+    about_page = await cast_page(await Page.objects.filter(slug="about").first())
+    assert about_page is not None
+
+    edit = await client.get(f"/admin/pages/{about_page.id}/edit/", cookies=login.cookies)
+    assert edit.status_code == 200
+    assert 'href="/about/"' in edit.text
 
 
 @pytest.mark.asyncio
