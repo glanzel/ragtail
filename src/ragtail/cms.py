@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, FastAPI, Request
@@ -11,7 +12,10 @@ from oxyde import db
 from starlette.middleware.sessions import SessionMiddleware
 
 from .db import load_app_databases, prepare_sqlite_database, run_migrations
-from .ragtail_admin.router import AdminLoginRequired, STATIC_DIR, _login_url, create_admin_router
+from .images.config import configure_media
+from .images.serving import mount_media
+from .ragtail_admin.deps import AdminLoginRequired
+from .ragtail_admin.router import STATIC_DIR, _login_url, create_admin_router
 
 if TYPE_CHECKING:
     from .fastapi import PageRenderer
@@ -33,6 +37,8 @@ class FastAPICMS:
         template_engine: TemplateEngineInterface | None = None,
         include_unpublished: bool = False,
         prefix_default_language: bool = False,
+        media_root: str | Path | None = None,
+        media_url: str = "/media/",
     ) -> None:
         self.secret_key = secret_key
         self.title = title
@@ -46,6 +52,9 @@ class FastAPICMS:
         self.template_engine = template_engine
         self.include_unpublished = include_unpublished
         self.prefix_default_language = prefix_default_language
+        self.media_root = Path(media_root) if media_root is not None else Path("media")
+        self.media_url = media_url if media_url.endswith("/") else f"{media_url}/"
+        configure_media(root=self.media_root, url=self.media_url)
         self._app: FastAPI | None = None
 
     @property
@@ -101,11 +110,14 @@ class FastAPICMS:
 
         return cms_lifespan
 
-    def mount(self, app: FastAPI, *, pages: bool = True, api: bool = True) -> None:
+    def mount(self, app: FastAPI, *, pages: bool = True, api: bool = True, media: bool = True) -> None:
         """Attach the CMS admin (and optionally API + public pages) to an existing app."""
         from .fastapi import create_api_router
 
         app.mount(self.prefix, self.app)
+        if media:
+            self.media_root.mkdir(parents=True, exist_ok=True)
+            mount_media(app, prefix=self.media_url)
         if api:
             app.include_router(create_api_router())
         if pages:

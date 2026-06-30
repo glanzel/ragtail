@@ -11,10 +11,11 @@ Ragtail is a Wagtail-inspired CMS built on [Oxyde ORM](https://oxyde.fatalyst.de
 - named navigation menus with nested menu items
 - JSON API for pages and menus at `/api/cms/` (enabled by default)
 - HTML page delivery via optional Jinja2 or PyJSX template renderer
-- **Wagtail-style admin** with login, page explorer, and page editor (PyJSX UI)
+- **Wagtail-style admin** with login, page explorer, page editor, and image library (PyJSX UI)
+- image library with `ImageField`, focal points, and renditions (Pillow included)
 - optional legacy `oxyde-admin` CRUD integration
 
-StreamField-like content blocks, images/documents, workflows and role-based permissions are left for later iterations.
+StreamField-like content blocks, documents, workflows and role-based permissions are left for later iterations.
 
 ## Installation
 
@@ -108,6 +109,7 @@ Default page template (`templates/page.html`):
 | [Installation](docs/installation.md)   | Dependencies, migrations, admin user, env vars, Tailwind |
 | [FastAPI integration](docs/fastapi.md) | `FastAPICMS`, `create_app`, renderers                    |
 | [Models](docs/models.md)               | `Page`, `Locale`, `Menu`, creating pages                 |
+| [Images](docs/images.md)               | Image library, `ImageField`, renditions, focal points    |
 | [Admin](docs/admin.md)                 | Wagtail-style CMS UI, rich text                          |
 | [Routing](docs/routing.md)             | Multilingual URL resolution                              |
 | [Menus](docs/menus.md)                 | Menu trees and API                                       |

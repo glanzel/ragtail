@@ -12,6 +12,9 @@ module.exports = {
     "richtext-toolbar-separator",
     "richtext-toolbar-btn",
     "richtext-toolbar-btn--text",
+    "absolute",
+    "-translate-x-1/2",
+    "-translate-y-1/2",
   ],
   theme: {
     extend: {

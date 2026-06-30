@@ -7,6 +7,7 @@ Ragtail provides Oxyde models in `ragtail.models`:
 - `Menu`: named menu per locale, for example `main` or `footer`
 - `MenuItem`: nested menu entries pointing either to a `Page` or an external URL
 - `User`: staff users for CMS admin login
+- `Image` / `Rendition`: media library with focal points and renditions — see [Images](images.md)
 
 After model changes, generate and apply migrations — see [Installation](installation.md#database-migrations).
 

@@ -13,6 +13,7 @@ from ..page_types import (
     get_default_page_model,
     get_page_model,
 )
+from ..images.templates import enrich_page_images
 from ..routing import RouteMatch
 from .base import BaseTemplateEngine, resolve_page_and_context
 
@@ -84,6 +85,7 @@ class PyJsxRenderer(BaseTemplateEngine):
 
     async def serve(self, request: Request, route: RouteMatch) -> str:
         page, context = await resolve_page_and_context(request, route)
+        context = {**context, **await enrich_page_images(page)}
         component = self._lookup_component(page.content_type or "page")
         result = component(page=page, context=context)
         return str(result)

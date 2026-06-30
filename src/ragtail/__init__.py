@@ -40,6 +40,7 @@ from .menus import (
     get_menu,
     get_menu_tree,
 )
+from .images import Image, ImageField, RenditionView, configure_media
 from .models import Locale, Menu, MenuItem, Page, Site, User
 from .ragtail_admin import PageFormField, create_admin_router, register_page_form_field
 from .pages import create_page, create_translation
@@ -58,7 +59,10 @@ from .routing import (
 )
 
 __all__ = [
+    "Image",
+    "ImageField",
     "Locale",
+    "RenditionView",
     "Menu",
     "MenuItem",
     "MenuItemNode",
@@ -69,6 +73,7 @@ __all__ = [
     "User",
     "authenticate_user",
     "build_menu_tree",
+    "configure_media",
     "create_admin_router",
     "FastAPICMS",
     "Jinja2Renderer",

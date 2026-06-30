@@ -19,6 +19,7 @@ from ..auth import (
     reset_user_password,
     update_user,
 )
+from ..images.models import Image
 from ..richtext import prepare_body_for_storage
 from ..seo import normalize_search_description, search_description_error
 from ..menus import create_menu, create_menu_item
@@ -58,6 +59,7 @@ from ..page_types import (
     uses_richtext_for,
 )
 from .registry import PageFormField, get_page_form_fields, uses_richtext
+from .images_router import register_image_routes
 from .render import html_response
 from .services import (
     Breadcrumb,
@@ -103,36 +105,11 @@ from .services import (
 )
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
-SESSION_USER_KEY = "ragtail_user_id"
-
-
-class AdminLoginRequired(Exception):
-    def __init__(self, next_url: str) -> None:
-        self.next_url = next_url
-
-
-@dataclass(frozen=True)
-class AdminMessage:
-    kind: str
-    text: str
+from .deps import AdminLoginRequired, SESSION_USER_KEY, get_optional_user, require_user
 
 
 def _login_url(next_path: str) -> str:
     return f"/admin/login/?next={quote(next_path, safe='/')}"
-
-
-async def get_optional_user(request: Request) -> User | None:
-    user_id = request.session.get(SESSION_USER_KEY)
-    if not user_id:
-        return None
-    return await User.objects.get_or_none(id=user_id, is_active=True, is_staff=True)
-
-
-async def require_user(request: Request) -> User:
-    user = await get_optional_user(request)
-    if user is None:
-        raise AdminLoginRequired(str(request.url.path))
-    return user
 
 
 def _resolved_content_type(
@@ -189,7 +166,13 @@ def _form_values(
     }
     for field in _form_fields_for(page, content_type=resolved):
         attr_value = getattr(page, field.name, None) if page is not None else None
-        values[field.name] = attr_value or ""
+        if field.widget == "image":
+            if isinstance(attr_value, Image) and attr_value.id is not None:
+                values[field.name] = str(attr_value.id)
+            else:
+                values[field.name] = str(attr_value) if attr_value else ""
+        else:
+            values[field.name] = attr_value or ""
     values.update(overrides)
     return values
 
@@ -200,6 +183,11 @@ def _field_value_for_save(
     *,
     page: Page | None,
 ) -> object:
+    if field.widget == "image":
+        cleaned = raw_value.strip()
+        if not cleaned:
+            return None
+        return int(cleaned) if cleaned.isdigit() else None
     if field.widget == "richtext":
         return prepare_body_for_storage(raw_value)
     if field.name == "body" and field.name not in _registered_field_names(page):
@@ -231,6 +219,24 @@ def _body_value_for_save(
     return prepare_body_for_storage(submitted_body)
 
 
+def _image_field_previews(
+    page: Page | None = None,
+    *,
+    content_type: str | None = None,
+) -> dict[str, dict[str, str]]:
+    previews: dict[str, dict[str, str]] = {}
+    for field in _form_fields_for(page, content_type=content_type):
+        if field.widget != "image":
+            continue
+        image = getattr(page, field.name, None) if page is not None else None
+        if isinstance(image, Image) and image.id is not None:
+            previews[field.name] = {
+                "url": image.url,
+                "title": image.title,
+            }
+    return previews
+
+
 def _page_form_kwargs(
     page: Page | None = None,
     *,
@@ -239,9 +245,12 @@ def _page_form_kwargs(
     resolved = _resolved_content_type(page, content_type=content_type)
     page_model = get_page_model(resolved)
     show_type = page_model is not Page
+    extra_fields = _form_fields_for(page, content_type=resolved)
     return {
-        "extra_fields": _form_fields_for(page, content_type=resolved),
+        "extra_fields": extra_fields,
         "include_richtext_script": uses_richtext_for(resolved) or uses_richtext(),
+        "include_image_field_script": any(field.widget == "image" for field in extra_fields),
+        "image_previews": _image_field_previews(page, content_type=resolved),
         "selected_content_type": resolved if show_type else None,
         "content_type_label": content_type_to_label(page_model) if show_type else None,
     }
@@ -1285,5 +1294,7 @@ def create_admin_router() -> APIRouter:
                 return RedirectResponse("/admin/pages/", status_code=status.HTTP_303_SEE_OTHER)
             return RedirectResponse(f"/admin/pages/{parent_id}/", status_code=status.HTTP_303_SEE_OTHER)
         return RedirectResponse("/admin/pages/", status_code=status.HTTP_303_SEE_OTHER)
+
+    register_image_routes(router)
 
     return router

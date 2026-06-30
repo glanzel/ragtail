@@ -49,6 +49,17 @@ def IconGlobe(children=None) -> HTMLDontEscape:
     )
 
 
+def IconImage(children=None) -> HTMLDontEscape:
+    return HTMLDontEscape(
+        _ICON.format(
+            body=(
+                '<path fill="currentColor" '
+                'd="M2.5 2.5h11v11h-11v-11Zm1.5 1.5v8h8v-8h-8Zm1 1h2.5l1 1.5 1.5-2 2 2.5V10H5v-5Z"/>'
+            )
+        )
+    )
+
+
 def IconMenu(children=None) -> HTMLDontEscape:
     return HTMLDontEscape(
         _ICON.format(

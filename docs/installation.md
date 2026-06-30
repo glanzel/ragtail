@@ -14,6 +14,8 @@ uv run oxyde init
 
 Add `ragtail.models` to `MODELS` in `oxyde_config.py`.
 
+The base package includes image processing (Pillow) and the CMS image library — no separate extra is required.
+
 Optional extras:
 
 ```bash

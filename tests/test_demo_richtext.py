@@ -17,8 +17,10 @@ def test_demo_registers_richtext_body_field() -> None:
     importlib.reload(pages)
 
     fields = get_page_form_fields_for("content_page")
-    assert len(fields) == 1
+    assert len(fields) == 2
     assert fields[0].name == "body"
     assert fields[0].widget == "richtext"
+    assert fields[1].name == "hero_image"
+    assert fields[1].widget == "image"
 
     clear_page_models()
