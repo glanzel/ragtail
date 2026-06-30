@@ -1,0 +1,235 @@
+from pyjsx import jsx
+
+from ragtail.ragtail_admin.classes import BTN, BTN_DANGER, BTN_SECONDARY, BTN_SM, INPUT, LABEL
+from ragtail.ragtail_admin.components.layout import AdminLayout
+
+
+def ImageCard(image, *, thumbnail_url: str | None = None, chooser: bool = False, children=None):
+  preview = thumbnail_url or image.url
+  card_body = (
+    <a
+      href={f"/admin/images/{image.id}/"}
+      class="block no-underline"
+    >
+      <div class="aspect-video overflow-hidden rounded-t-lg bg-gray-100">
+        <img src={preview} alt={image.title} class="h-full w-full object-cover" />
+      </div>
+      <div class="rounded-b-lg border border-t-0 border-gray-200 bg-white p-3">
+        <p class="truncate font-semibold text-gray-900">{image.title}</p>
+        <p class="text-xs text-gray-500">{image.width} × {image.height}</p>
+      </div>
+    </a>
+  )
+  if chooser:
+    return (
+      <button
+        type="button"
+        class="ragtail-image-chooser-item block w-full cursor-pointer border-0 bg-transparent p-0 text-left"
+        data-image-id={str(image.id)}
+        data-image-title={image.title}
+        data-image-url={preview}
+      >
+        {card_body}
+      </button>
+    )
+  return (
+    <article class="overflow-hidden rounded-lg shadow-sm">
+      {card_body}
+      <div class="flex gap-2 border border-t-0 border-gray-200 bg-white px-3 pb-3">
+        <a href={f"/admin/images/{image.id}/edit/"} class={BTN_SM}>
+          Edit
+        </a>
+      </div>
+    </article>
+  )
+
+
+def ImageListPage(*, username: str, images, messages=None, error: str | None = None, children=None):
+  return (
+    <AdminLayout title="Images" active="images" username={username} breadcrumbs={[]} messages={messages}>
+      <header class="flex min-h-slim-header flex-wrap items-center justify-between gap-4 border-b border-gray-200 bg-gray-50 px-5 py-3">
+        <div>
+          <h1 class="text-2xl font-semibold text-gray-900">Images</h1>
+          <p class="text-sm text-gray-600">Upload and manage images for your site.</p>
+        </div>
+        <a href="/admin/images/upload/" class={BTN}>
+          Upload image
+        </a>
+      </header>
+      <div class="px-6 py-5">
+        {(
+          <div class="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700" role="status">
+            {error}
+          </div>
+        ) if error else None}
+        {(
+          <p class="text-gray-600">No images yet. Upload your first image to get started.</p>
+        ) if not images else (
+          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[ImageCard(image=image) for image in images]}
+          </div>
+        )}
+      </div>
+    </AdminLayout>
+  )
+
+
+def ImageUploadPage(*, username: str, error: str | None = None, children=None):
+  return (
+    <AdminLayout title="Upload image" active="images" username={username} breadcrumbs={[]}>
+      <header class="border-b border-gray-200 bg-gray-50 px-5 py-3">
+        <h1 class="text-2xl font-semibold text-gray-900">Upload image</h1>
+      </header>
+      <div class="px-6 py-5">
+        {(
+          <div class="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700" role="status">
+            {error}
+          </div>
+        ) if error else None}
+        <form method="post" action="/admin/images/upload/" enctype="multipart/form-data" class="max-w-xl space-y-4">
+          <div>
+            <label for="id_title" class={LABEL}>Title</label>
+            <input id="id_title" name="title" type="text" class={INPUT} placeholder="Optional title" />
+          </div>
+          <div>
+            <label for="id_file" class={LABEL}>Image file</label>
+            <input id="id_file" name="file" type="file" accept="image/*" class={INPUT} required />
+          </div>
+          <div class="flex gap-3">
+            <button type="submit" class={BTN}>Upload</button>
+            <a href="/admin/images/" class={BTN_SECONDARY}>Cancel</a>
+          </div>
+        </form>
+      </div>
+    </AdminLayout>
+  )
+
+
+def ImageFocalEditor(image, *, children=None):
+  focal_x = image.focal_point_x if image.focal_point_x is not None else 0.5
+  focal_y = image.focal_point_y if image.focal_point_y is not None else 0.5
+  return (
+    <div>
+      <label class={LABEL}>Focal point</label>
+      <p class="mb-2 text-sm text-gray-500">Click the image to choose the focal point used by fill renditions.</p>
+      <div id="ragtail-focal-editor">
+        <img id="ragtail-focal-image" src={image.url} alt={image.title} />
+        <span id="ragtail-focal-marker" aria-hidden="true" />
+      </div>
+      <input type="hidden" id="id_focal_point_x" name="focal_point_x" value={str(focal_x)} />
+      <input type="hidden" id="id_focal_point_y" name="focal_point_y" value={str(focal_y)} />
+    </div>
+  )
+
+
+def ImageEditPage(*, username: str, image, error: str | None = None, children=None):
+  return (
+    <AdminLayout title="Edit image" active="images" username={username} breadcrumbs={[]}>
+      <header class="flex min-h-slim-header items-center border-b border-gray-200 bg-gray-50 px-5">
+        <h1 class="text-2xl font-semibold text-gray-900">Edit image</h1>
+      </header>
+      <div class="px-6 py-5">
+        {(
+          <div class="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700" role="status">
+            {error}
+          </div>
+        ) if error else None}
+        <link rel="stylesheet" href="/admin/static/focal-point.css" />
+        <form method="post" action={f"/admin/images/{image.id}/edit/"} class="max-w-3xl space-y-6">
+          <section>
+            <ImageFocalEditor image={image} />
+            <p class="mt-2 text-sm text-gray-500">
+              {image.width} × {image.height}px · {image.file.split("/")[-1]}
+            </p>
+          </section>
+          <section>
+            <label for="id_title" class={LABEL}>Title</label>
+            <input id="id_title" name="title" type="text" class={INPUT} value={image.title} required />
+            <p class="mt-1 text-sm text-gray-500">Used as alt text when the image is embedded on pages.</p>
+          </section>
+          <div class="flex flex-wrap gap-3 pt-2">
+            <button type="submit" class={BTN}>Save</button>
+            <a href="/admin/images/" class={BTN_SECONDARY}>Back to images</a>
+          </div>
+        </form>
+        <section class="mt-8 max-w-3xl border-t border-gray-200 pt-6">
+          <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500">Danger zone</h2>
+          <form method="post" action={f"/admin/images/{image.id}/delete/"}>
+            <button type="submit" class={BTN_DANGER} onclick="return confirm('Delete this image?');">
+              Delete image
+            </button>
+          </form>
+        </section>
+        <script src="/admin/static/focal-point.js"></script>
+      </div>
+    </AdminLayout>
+  )
+
+
+def ImageChooserPage(*, username: str, images, field_name: str = "", children=None):
+  return (
+    <AdminLayout
+      title="Choose image"
+      active="images"
+      username={username}
+      breadcrumbs={[]}
+      body_class={"image-chooser" + (f" chooser-field-{field_name}" if field_name else "")}
+    >
+      <header class="border-b border-gray-200 bg-gray-50 px-5 py-3">
+        <h1 class="text-2xl font-semibold text-gray-900">Choose an image</h1>
+      </header>
+      <div class="px-6 py-5">
+        <input type="hidden" id="ragtail-chooser-field" value={field_name} />
+        <div class="mb-4">
+          <a href="/admin/images/upload/" class={BTN_SM} target="_blank">Upload new image</a>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[ImageCard(image=image, chooser=True) for image in images]}
+        </div>
+      </div>
+      <script src="/admin/static/image-chooser.js"></script>
+    </AdminLayout>
+  )
+
+
+def ImageFieldControl(*, field_def, value: str = "", preview_url: str = "", preview_title: str = "", children=None):
+  field_id = "id_" + field_def.name
+  preview_block = (
+    <div id={f"preview_{field_def.name}"} class="mb-3 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+      {(
+        <img src={preview_url} alt={preview_title or "Selected image"} class="max-h-48 w-full object-contain" />
+      ) if preview_url else (
+        <p class="px-4 py-6 text-sm text-gray-500">No image selected</p>
+      )}
+    </div>
+  )
+  return (
+    <li class="ragtail-image-field" data-field-name={field_def.name}>
+      <label for={field_id} class={LABEL}>{field_def.label}</label>
+      {preview_block}
+      <input type="hidden" id={field_id} name={field_def.name} value={value or ""} />
+      <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          class={BTN_SM + " ragtail-image-choose-btn"}
+          data-field={field_def.name}
+          data-chooser-url={f"/admin/images/chooser/?field={field_def.name}"}
+        >
+          Choose image
+        </button>
+        <a
+          id={f"edit_{field_def.name}"}
+          href={f"/admin/images/{value}/edit/" if value else "#"}
+          target="_blank"
+          rel="noopener noreferrer"
+          class={BTN_SECONDARY + " text-sm ragtail-image-edit-btn"}
+          hidden={not bool(value)}
+        >
+          Edit image
+        </a>
+        <button type="button" class={BTN_SECONDARY + " text-sm ragtail-image-clear-btn"} data-field={field_def.name}>
+          Clear
+        </button>
+      </div>
+    </li>
+  )

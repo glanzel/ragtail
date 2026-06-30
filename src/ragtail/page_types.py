@@ -7,6 +7,8 @@ from typing import Any, TypeVar
 from fastapi import Request
 from pydantic.fields import FieldInfo
 
+from .images.fields import image_field_names, resolve_image_field_value, serialize_image_field_value
+from .images.models import Image
 from .models import Page
 from .routing import RouteMatch
 from .ragtail_admin.registry import PageFormField, infer_widget_for_field
@@ -123,7 +125,14 @@ async def persist_page(page: Page) -> Page:
             continue
         setattr(stored, name, getattr(page, name, None))
 
-    extra_data = {name: getattr(page, name, None) for name in json_fields}
+    image_names = set(image_field_names(model_cls))
+    extra_data: dict[str, Any] = {}
+    for name in json_fields:
+        value = getattr(page, name, None)
+        if isinstance(value, Image) or name in image_names:
+            extra_data[name] = serialize_image_field_value(value)
+        else:
+            extra_data[name] = value
     stored.page_data = json.dumps(extra_data, ensure_ascii=False) if extra_data else None
     await stored.save()
     return await cast_page(stored)
@@ -228,8 +237,17 @@ async def cast_page(page: Page) -> Page:
             row = loaded
 
     data = row.model_dump()
-    data.update(_decode_page_data(row))
-    return model_cls.model_validate(data)
+    decoded = _decode_page_data(row)
+    data.update(decoded)
+
+    image_names = image_field_names(model_cls)
+    stored_images = {name: data.pop(name, None) for name in image_names if name in data}
+
+    typed = model_cls.model_validate(data)
+    for name in image_names:
+        raw_value = stored_images.get(name, decoded.get(name))
+        setattr(typed, name, await resolve_image_field_value(raw_value))
+    return typed
 
 
 def copy_page_model_field_values(page: Page, model_cls: type[Page]) -> dict[str, Any]:
@@ -239,8 +257,13 @@ def copy_page_model_field_values(page: Page, model_cls: type[Page]) -> dict[str,
         if page.body is not None:
             values["body"] = page.body
         return values
+    image_names = set(image_field_names(model_cls))
     for name in _json_stored_field_names(model_cls):
-        values[name] = getattr(page, name, None)
+        value = getattr(page, name, None)
+        if name in image_names:
+            values[name] = serialize_image_field_value(value)
+        else:
+            values[name] = value
     if page.body is not None:
         values["body"] = page.body
     return values
@@ -259,7 +282,11 @@ def get_page_form_fields_for(content_type: str) -> list[PageFormField]:
             PageFormField(
                 name=name,
                 label=name.replace("_", " ").title(),
-                widget=infer_widget_for_field(name, _field_meta_from_info(field_info)),
+                widget=infer_widget_for_field(
+                    name,
+                    _field_meta_from_info(field_info),
+                    field_info=field_info,
+                ),
             )
         )
     return fields

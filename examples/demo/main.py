@@ -26,6 +26,7 @@ app = create_app(
     secret_key=SECRET_KEY,
     title="Oxytail Demo",
     startup_hook=seed_if_empty,
+    media_root=str(DEMO_DIR / "media"),
 )
 app.mount("/static", StaticFiles(directory=DEMO_DIR / "static"), name="demo_static")
 

@@ -3,10 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
+from pydantic.fields import FieldInfo
+
+from ..images.fields import is_image_field
+
 if TYPE_CHECKING:
     pass
 
-WidgetType = Literal["text", "textarea", "richtext"]
+WidgetType = Literal["text", "textarea", "richtext", "image"]
 
 
 @dataclass(frozen=True)
@@ -18,7 +22,14 @@ class PageFormField:
     widget: WidgetType = "textarea"
 
 
-def infer_widget_for_field(name: str, meta: object) -> WidgetType:
+def infer_widget_for_field(
+    name: str,
+    meta: object,
+    *,
+    field_info: FieldInfo | None = None,
+) -> WidgetType:
+    if field_info is not None and is_image_field(field_info):
+        return "image"
     if name == "body":
         return "richtext"
     python_type = getattr(meta, "python_type", None)

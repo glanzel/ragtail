@@ -8,6 +8,7 @@ import json
 import sys
 from pathlib import Path
 
+import ragtail.images.models  # noqa: F401 — register image models
 import ragtail.models  # noqa: F401 — register CMS models
 from oxyde import db
 from oxyde.core import migration_compute_diff

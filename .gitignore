@@ -4,13 +4,15 @@ __pycache__/
 .pytest_cache/
 .venv/
 examples/demo/.venv/
-examples/demo/ragtail.db
-examples/demo/ragtail.db-*
 *.db-shm
 *.db-wal
 freshtest.db
 migrations-test.db
-examples/demo/oxytail.db
 src/oxytail/models.pyi
-examples/demo/oxytail.db-*
+# Demo local database and uploads
+examples/demo/*.db
+examples/demo/*.db-*
+examples/demo/media/
+# Default local media storage
+media/
 node_modules/

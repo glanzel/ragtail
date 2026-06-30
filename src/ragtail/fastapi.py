@@ -8,8 +8,11 @@ from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
 
 from .admin import create_fastapi_admin
+from .images.fields import image_field_names, image_field_renditions, image_to_api_dict
+from .images.models import Image
 from .menus import get_menu_tree
 from .models import Page
+from .page_types import cast_page, get_page_model
 from .routing import RouteMatch, resolve_route
 
 if TYPE_CHECKING:
@@ -33,6 +36,35 @@ def default_page_payload(route: RouteMatch) -> dict[str, Any]:
         "search_description": page.search_description,
         "is_fallback": route.is_fallback,
     }
+
+
+async def page_payload_with_fields(route: RouteMatch) -> dict[str, Any]:
+    payload = default_page_payload(route)
+    page = await cast_page(route.page)
+    model_cls = get_page_model(page.content_type or "page")
+    if model_cls is Page:
+        return payload
+
+    extra: dict[str, Any] = {}
+    for name in image_field_names(model_cls):
+        image = getattr(page, name, None)
+        specs = image_field_renditions(model_cls.model_fields[name])
+        extra[name] = await image_to_api_dict(image, renditions=specs)
+
+    for name in model_cls.model_fields:
+        if name in payload or name in extra:
+            continue
+        if name.startswith("_") or name in {"children", "page_data"}:
+            continue
+        if name in Page.model_fields and name not in {"body", "seo_title", "search_description"}:
+            continue
+        value = getattr(page, name, None)
+        if name not in image_field_names(model_cls):
+            extra[name] = value
+
+    if extra:
+        payload["fields"] = extra
+    return payload
 
 
 async def default_page_renderer(_request: Request, route: RouteMatch) -> Response:
@@ -78,7 +110,29 @@ def create_api_router() -> APIRouter:
         route = await resolve_route(path, language_code=language)
         if route is None:
             raise HTTPException(status_code=404, detail="Page not found")
-        return default_page_payload(route)
+        return await page_payload_with_fields(route)
+
+    @router.get("/images/{image_id}")
+    async def image_detail(image_id: int) -> dict[str, Any]:
+        image = await Image.objects.get_or_none(id=image_id)
+        if image is None:
+            raise HTTPException(status_code=404, detail="Image not found")
+        payload = await image_to_api_dict(image)
+        assert payload is not None
+        return payload
+
+    @router.get("/images/{image_id}/renditions/{filter_spec:path}")
+    async def image_rendition(image_id: int, filter_spec: str) -> dict[str, Any]:
+        image = await Image.objects.get_or_none(id=image_id)
+        if image is None:
+            raise HTTPException(status_code=404, detail="Image not found")
+        try:
+            rendition = await image.get_rendition(filter_spec)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        from .images.fields import rendition_to_api_dict
+
+        return rendition_to_api_dict(rendition)
 
     @router.get("/menus/{slug}")
     async def menu_detail(slug: str, language: str | None = None) -> dict[str, Any]:
@@ -100,6 +154,8 @@ def create_app(
     startup_hook: StartupHook | None = None,
     api: bool = True,
     pages: bool = True,
+    media_root: str | None = None,
+    media_url: str = "/media/",
     **databases: str,
 ) -> FastAPI:
     """Create a runnable FastAPI app using Oxyde's lifespan integration.
@@ -114,6 +170,8 @@ def create_app(
         prefix=admin_path,
         renderer=renderer,
         template_engine=template_engine,
+        media_root=media_root,
+        media_url=media_url,
     )
     app = FastAPI(
         title=title,
@@ -143,4 +201,5 @@ __all__ = [
     "create_app",
     "create_cms_router",
     "default_page_payload",
+    "page_payload_with_fields",
 ]

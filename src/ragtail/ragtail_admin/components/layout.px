@@ -5,6 +5,7 @@ from ragtail.ragtail_admin.components.icons import (
     IconDocEmptyInverse,
     IconGlobe,
     IconHome,
+    IconImage,
     IconMenu,
     IconUsers,
     RagtailLogoBird,
@@ -42,6 +43,12 @@ def AdminSidebar(active: str = "pages", username: str = "", children=None):
               <a href="/admin/pages/" class={_sidebar_link_class(active, "pages")}>
                 <IconDocEmptyInverse />
                 <span>Pages</span>
+              </a>
+            </li>
+            <li>
+              <a href="/admin/images/" class={_sidebar_link_class(active, "images")}>
+                <IconImage />
+                <span>Images</span>
               </a>
             </li>
             <li>
