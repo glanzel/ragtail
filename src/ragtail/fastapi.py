@@ -13,7 +13,7 @@ from .images.models import Image
 from .menus import get_menu_tree
 from .models import Page
 from .page_types import cast_page, get_page_model
-from .routing import RouteMatch, resolve_route
+from .routing import RouteMatch, get_translation_alternates, resolve_route
 
 if TYPE_CHECKING:
     from .templates.base import TemplateEngineInterface
@@ -22,8 +22,9 @@ PageRenderer = Callable[[Request, RouteMatch], Response | Awaitable[Response]]
 StartupHook = Callable[[], Awaitable[None]]
 
 
-def default_page_payload(route: RouteMatch) -> dict[str, Any]:
+async def default_page_payload(route: RouteMatch) -> dict[str, Any]:
     page = route.page
+    alternates = await get_translation_alternates(page, current_locale=route.locale)
     return {
         "id": page.id,
         "title": page.title,
@@ -35,11 +36,12 @@ def default_page_payload(route: RouteMatch) -> dict[str, Any]:
         "seo_title": page.seo_title,
         "search_description": page.search_description,
         "is_fallback": route.is_fallback,
+        "alternates": [alternate.as_dict() for alternate in alternates],
     }
 
 
 async def page_payload_with_fields(route: RouteMatch) -> dict[str, Any]:
-    payload = default_page_payload(route)
+    payload = await default_page_payload(route)
     page = await cast_page(route.page)
     model_cls = get_page_model(page.content_type or "page")
     if model_cls is Page:
@@ -68,14 +70,13 @@ async def page_payload_with_fields(route: RouteMatch) -> dict[str, Any]:
 
 
 async def default_page_renderer(_request: Request, route: RouteMatch) -> Response:
-    return JSONResponse(default_page_payload(route))
+    return JSONResponse(await default_page_payload(route))
 
 
 def create_cms_router(
     *,
     renderer: PageRenderer | None = None,
     include_unpublished: bool = False,
-    prefix_default_language: bool = False,
 ) -> APIRouter:
     """Create a catch-all router that resolves Page objects from request paths."""
 
@@ -87,7 +88,6 @@ def create_cms_router(
         route = await resolve_route(
             f"/{full_path}",
             include_unpublished=include_unpublished,
-            prefix_default_language=prefix_default_language,
         )
         if route is None:
             raise HTTPException(status_code=404, detail="Page not found")

@@ -8,7 +8,7 @@ from ragtail.menus import create_menu, create_menu_item, get_menu_tree
 from ragtail.models import Locale
 from ragtail.pages import create_page, create_translation
 from ragtail.routing import resolve_route
-from ragtail.sites import ensure_site, ensure_tree_root, set_site_root_page
+from ragtail.sites import ensure_default_site, ensure_tree_root, set_site_root_page
 
 
 @pytest.mark.asyncio
@@ -31,19 +31,18 @@ async def test_pages_routes_and_menus_work_with_oxyde(tmp_path) -> None:
         de = await Locale.objects.create(language_code="de", display_name="Deutsch")
 
         tree_root = await ensure_tree_root(en)
-        site = await ensure_site(en)
+        site = await ensure_default_site()
         home = await create_page(title="Home", slug="", parent=tree_root, locale=en, live=True)
         await set_site_root_page(site, home)
         de_tree_root = await ensure_tree_root(de)
-        de_site = await ensure_site(de)
-        de_home = await create_page(
+        de_home = await create_translation(
+            home,
             title="Home",
             slug="",
-            parent=de_tree_root,
             locale=de,
+            parent=de_tree_root,
             live=True,
         )
-        await set_site_root_page(de_site, de_home)
         about = await create_page(title="About", slug="about", parent=home, locale=en, live=True)
         await create_translation(
             about,

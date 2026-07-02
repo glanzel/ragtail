@@ -1,10 +1,10 @@
 from pyjsx import jsx
 
-from ragtail.ragtail_admin.classes import BTN, BTN_SECONDARY, BTN_SM, INPUT, LABEL
+from ragtail.ragtail_admin.classes import BTN, BTN_DANGER, BTN_DANGER_SM, BTN_SECONDARY, BTN_SM, INPUT, LABEL
 from ragtail.ragtail_admin.components.layout import AdminLayout
 
 
-def LocaleRow(locale, children=None):
+def LocaleRow(locale, *, can_delete: bool = False, children=None):
   default_badge = (
     <span class="ml-2 inline-block rounded bg-teal-50 px-2 py-0.5 text-xs font-semibold text-ragtail-secondary">
       Default
@@ -32,15 +32,23 @@ def LocaleRow(locale, children=None):
       <td class="px-5 py-3.5 text-gray-600">{locale.language_code}</td>
       <td class="px-5 py-3.5">{status}</td>
       <td class="px-5 py-3.5">
-        <a href={f"/admin/locales/{locale.id}/edit/"} class={BTN_SM}>
-          Edit
-        </a>
+        <div class="flex flex-wrap gap-2">
+          <a href={f"/admin/locales/{locale.id}/edit/"} class={BTN_SM}>
+            Edit
+          </a>
+          {(
+            <a href={f"/admin/locales/{locale.id}/delete/"} class={BTN_DANGER_SM}>
+              Delete
+            </a>
+          ) if can_delete else None}
+        </div>
       </td>
     </tr>
   )
 
 
-def LocaleListPage(*, username: str, locales, children=None):
+def LocaleListPage(*, username: str, locales, deletable_locale_ids=None, children=None):
+  deletable = set(deletable_locale_ids or [])
   return (
     <AdminLayout title="Locales" active="locales" username={username} breadcrumbs={[]}>
       <header class="flex min-h-slim-header items-center justify-between gap-4 border-b border-gray-200 bg-gray-50 px-5">
@@ -51,7 +59,7 @@ def LocaleListPage(*, username: str, locales, children=None):
       </header>
       <div class="px-6 py-5">
         <p class="mb-4 text-gray-500">
-          Manage site languages. Adding a locale also creates a technical tree root and site record.
+          Manage site languages. Adding a locale also creates a technical tree root for that language.
         </p>
         <table class="w-full border-collapse text-left">
           <thead>
@@ -64,7 +72,7 @@ def LocaleListPage(*, username: str, locales, children=None):
           </thead>
           <tbody>
             {(
-              [<LocaleRow locale={locale} /> for locale in locales]
+              [<LocaleRow locale={locale} can_delete={locale.id in deletable} /> for locale in locales]
               if locales
               else [
                 <tr>
@@ -76,6 +84,35 @@ def LocaleListPage(*, username: str, locales, children=None):
             )}
           </tbody>
         </table>
+      </div>
+    </AdminLayout>
+  )
+
+
+def DeleteLocalePage(*, username: str, locale, children=None):
+  return (
+    <AdminLayout
+      title="Delete locale"
+      active="locales"
+      username={username}
+      breadcrumbs={[]}
+    >
+      <header class="flex min-h-slim-header items-center border-b border-gray-200 bg-gray-50 px-5">
+        <h1 class="text-2xl font-semibold text-gray-900">Delete locale</h1>
+      </header>
+      <div class="px-6 py-5">
+        <p class="mb-6 text-gray-600">
+          Are you sure you want to delete <strong class="text-gray-900">{locale.display_name}</strong>?
+          All pages and menus for this language will be removed.
+        </p>
+        <form method="post" action={f"/admin/locales/{locale.id}/delete/"} class="flex flex-wrap gap-3">
+          <button type="submit" class={BTN_DANGER}>
+            Yes, delete
+          </button>
+          <a href={f"/admin/locales/{locale.id}/edit/"} class={BTN_SECONDARY}>
+            No, don't delete
+          </a>
+        </form>
       </div>
     </AdminLayout>
   )
@@ -144,7 +181,7 @@ def LocaleAddPage(*, username: str, error: str | None = None, values=None, child
   )
 
 
-def LocaleEditPage(*, username: str, locale, error: str | None = None, values=None, children=None):
+def LocaleEditPage(*, username: str, locale, error: str | None = None, values=None, can_delete: bool = False, children=None):
   form_values = values or {
     "display_name": locale.display_name,
     "is_default": locale.is_default,
@@ -212,6 +249,22 @@ def LocaleEditPage(*, username: str, locale, error: str | None = None, values=No
             <a href="/admin/locales/" class={BTN_SECONDARY}>Cancel</a>
           </div>
         </form>
+        {(
+          <form
+            method="post"
+            action={f"/admin/locales/{locale.id}/delete/"}
+            class="mt-10 max-w-xl border-t border-gray-200 pt-6"
+            onsubmit="return confirm('Delete this locale and all of its pages and menus permanently?');"
+          >
+            <h2 class="mb-2 text-lg font-semibold text-gray-900">Danger zone</h2>
+            <p class="mb-4 text-sm text-gray-500">
+              This removes all pages and menus for {locale.display_name}. This cannot be undone.
+            </p>
+            <button type="submit" class="rounded border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">
+              Delete locale
+            </button>
+          </form>
+        ) if can_delete else None}
       </div>
     </AdminLayout>
   )

@@ -140,6 +140,13 @@ async def get_menu(slug: str, *, language_code: str | None = None) -> Menu | Non
     return await Menu.objects.filter(slug=slug, locale_id=locale.id, is_active=True).first()
 
 
+async def _apply_public_hrefs(nodes: list[MenuItemNode], items_by_id: dict[int, MenuItem]) -> None:
+    for node in nodes:
+        if node.id is not None and node.id in items_by_id:
+            node.href = await items_by_id[node.id].resolve_href()
+        await _apply_public_hrefs(node.children, items_by_id)
+
+
 async def get_menu_tree(slug: str, *, language_code: str | None = None) -> list[MenuItemNode]:
     menu = await get_menu(slug, language_code=language_code)
     if menu is None:
@@ -151,4 +158,7 @@ async def get_menu_tree(slug: str, *, language_code: str | None = None) -> list[
         .all()
     )
     items = await _hydrate_page_links(items)
-    return build_menu_tree(items)
+    items_by_id = {item.id: item for item in items if item.id is not None}
+    tree = build_menu_tree(items)
+    await _apply_public_hrefs(tree, items_by_id)
+    return tree

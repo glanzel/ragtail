@@ -106,8 +106,13 @@ class Page(TimestampedModel):
 
     async def get_context(self, request: Request, route: RouteMatch) -> dict[str, Any]:
         """Return extra template context (override in Page subclasses)."""
-        _ = request, route
-        return {}
+        from .routing import get_translation_alternates
+
+        _ = request
+        alternates = await get_translation_alternates(self, current_locale=route.locale)
+        return {
+            "translation_alternates": [alternate.as_dict() for alternate in alternates],
+        }
 
     def get_template_name(self, request: Request, route: RouteMatch) -> str:
         """Default Wagtail-style template: ``about_page.html`` for ``AboutPage``."""
@@ -119,20 +124,20 @@ class Page(TimestampedModel):
 
 
 class Site(TimestampedModel):
-    """Maps a locale (and optional hostname) to the public homepage, Wagtail-style."""
+    """Maps a hostname to the default-language homepage (Wagtail-style)."""
 
     id: int | None = Field(default=None, db_pk=True)
     hostname: str = Field(max_length=255, db_index=True)
     port: int = Field(default=80)
     site_name: str | None = Field(default=None, max_length=255)
-    locale: Locale | None = Field(default=None, db_on_delete="CASCADE")
     root_page: Page | None = Field(default=None, db_on_delete="SET NULL")
     is_default_site: bool = Field(default=False, db_index=True)
+    prefix_default_language: bool = Field(default=False, db_index=True)
 
     class Meta:
         is_table = True
         table_name = "oxytail_sites"
-        unique_together = [("hostname", "port"), ("locale",)]
+        unique_together = [("hostname", "port")]
 
 
 class Menu(TimestampedModel):
@@ -190,5 +195,15 @@ class MenuItem(TimestampedModel):
     @property
     def href(self) -> str:
         if self.page is not None:
+            return self.page.url
+        return self.url or "#"
+
+    async def resolve_href(self) -> str:
+        if self.page is not None:
+            from .routing import get_page_public_url
+
+            public_url = await get_page_public_url(self.page)
+            if public_url is not None:
+                return public_url
             return self.page.url
         return self.url or "#"

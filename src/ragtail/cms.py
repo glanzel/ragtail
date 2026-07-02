@@ -36,7 +36,6 @@ class FastAPICMS:
         renderer: PageRenderer | None = None,
         template_engine: TemplateEngineInterface | None = None,
         include_unpublished: bool = False,
-        prefix_default_language: bool = False,
         media_root: str | Path | None = None,
         media_url: str = "/media/",
     ) -> None:
@@ -51,7 +50,6 @@ class FastAPICMS:
             self.renderer = None
         self.template_engine = template_engine
         self.include_unpublished = include_unpublished
-        self.prefix_default_language = prefix_default_language
         self.media_root = Path(media_root) if media_root is not None else Path("media")
         self.media_url = media_url if media_url.endswith("/") else f"{media_url}/"
         configure_media(root=self.media_root, url=self.media_url)
@@ -72,7 +70,6 @@ class FastAPICMS:
         return create_cms_router(
             renderer=self.renderer,
             include_unpublished=self.include_unpublished,
-            prefix_default_language=self.prefix_default_language,
         )
 
     def lifespan(

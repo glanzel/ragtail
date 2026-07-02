@@ -25,6 +25,10 @@ BTN_DANGER = (
     "inline-flex items-center gap-1.5 rounded px-4 py-2.5 font-semibold text-white "
     "bg-red-600 hover:bg-red-700"
 )
+BTN_DANGER_SM = (
+    "inline-flex items-center gap-1 rounded px-2.5 py-1.5 text-sm font-semibold text-white "
+    "bg-red-600 hover:bg-red-700"
+)
 SIDEBAR_LINK = (
     "flex items-center gap-3 px-4 py-3 text-white/85 hover:bg-ragtail-primary-dark hover:text-white"
 )

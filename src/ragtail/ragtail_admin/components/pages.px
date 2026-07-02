@@ -3,6 +3,7 @@ from pyjsx import jsx
 from ragtail.ragtail_admin.classes import (
     BTN,
     BTN_DANGER,
+    BTN_DANGER_SM,
     BTN_SECONDARY,
     BTN_SM,
     INPUT,
@@ -153,7 +154,7 @@ def TranslateLink(child, locale, children=None):
   )
 
 
-def ChildRow(child, missing_locales=None, children=None):
+def ChildRow(child, missing_locales=None, can_delete: bool = True, children=None):
   locales_to_translate = missing_locales or []
   return (
     <tr class="border-b border-gray-200">
@@ -179,9 +180,16 @@ def ChildRow(child, missing_locales=None, children=None):
       </td>
       <td class="px-5 py-3.5 text-sm text-gray-500">{child.updated_at or "-"}</td>
       <td class="px-5 py-3.5">
-        <a href={f"/admin/pages/{child.id}/edit/"} class={BTN_SM}>
-          Edit
-        </a>
+        <div class="flex flex-wrap gap-2">
+          <a href={f"/admin/pages/{child.id}/edit/"} class={BTN_SM}>
+            Edit
+          </a>
+          {(
+            <a href={f"/admin/pages/{child.id}/delete/"} class={BTN_DANGER_SM}>
+              Delete
+            </a>
+          ) if can_delete else None}
+        </div>
       </td>
     </tr>
   )
@@ -203,6 +211,7 @@ def PageListingPage(
   add_parent_id: int | None = None,
   site=None,
   public_url: str | None = None,
+  can_delete_parent: bool = False,
 ):
   parent_id = add_parent_id if is_explorer_root else parent_page.id
   listing_title = "Pages" if is_explorer_root else parent_page.title
@@ -294,9 +303,16 @@ def PageListingPage(
               </div>
             ) if is_explorer_root else None}
             {(
-              <a href={f"/admin/pages/{parent_page.id}/edit/"} class={BTN_SECONDARY}>
-                Edit this page
-              </a>
+              <div class="flex flex-wrap gap-3">
+                <a href={f"/admin/pages/{parent_page.id}/edit/"} class={BTN_SECONDARY}>
+                  Edit this page
+                </a>
+                {(
+                  <a href={f"/admin/pages/{parent_page.id}/delete/"} class={BTN_DANGER}>
+                    Delete this page
+                  </a>
+                ) if can_delete_parent else None}
+              </div>
             ) if not is_explorer_root else None}
           </div>
         </section>
@@ -670,7 +686,16 @@ def TranslatePageForm(
   )
 
 
-def DeletePagePage(*, username: str, page, breadcrumbs, error: str | None = None, children=None):
+def DeletePagePage(
+  *,
+  username: str,
+  page,
+  breadcrumbs,
+  descendant_count: int = 0,
+  is_site_root: bool = False,
+  error: str | None = None,
+  children=None,
+):
   return (
     <AdminLayout
       title="Delete page"
@@ -689,9 +714,19 @@ def DeletePagePage(*, username: str, page, breadcrumbs, error: str | None = None
             {error}
           </div>
         ) if error else None}
-        <p class="mb-6 text-gray-600">
+        <p class="mb-4 text-gray-600">
           Are you sure you want to delete <strong class="text-gray-900">{page.title}</strong>?
         </p>
+        {(
+          <p class="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            This page is the site homepage. The site will have no root page until you configure one again.
+          </p>
+        ) if is_site_root else None}
+        {(
+          <p class="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            This will also delete {descendant_count} child page{"s" if descendant_count != 1 else ""}.
+          </p>
+        ) if descendant_count else None}
         <form method="post" action={f"/admin/pages/{page.id}/delete/"} class="flex flex-wrap gap-3">
           <button type="submit" class={BTN_DANGER}>
             Yes, delete
