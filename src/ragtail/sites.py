@@ -24,6 +24,7 @@ def compute_page_path(
     slug: str,
     *,
     site_root_page_id: int | None = None,
+    page_id: int | None = None,
 ) -> str:
     """Build the stored public path for a page.
 
@@ -35,6 +36,8 @@ def compute_page_path(
     if parent is None:
         return TREE_ROOT_PATH
     if is_tree_root(parent):
+        if page_id is not None and page_id == site_root_page_id:
+            return "/"
         if not clean_slug:
             return "/"
         return normalize_path(f"/{clean_slug}")
@@ -121,14 +124,19 @@ async def get_homepage_for_locale(site: Site, locale: Locale) -> Page | None:
     return root_page
 
 
-async def sync_default_locale_from_site(site: Site) -> None:
-    from .ragtail_admin.services import _clear_other_default_locales
+async def clear_other_default_locales(*, exclude_locale_id: int | None = None) -> None:
+    for other in await Locale.objects.filter(is_default=True).all():
+        if other.id != exclude_locale_id:
+            other.is_default = False
+            await other.save()
 
+
+async def sync_default_locale_from_site(site: Site) -> None:
     default_locale = await get_site_default_locale(site)
     if default_locale is None:
         return
 
-    await _clear_other_default_locales(exclude_locale_id=default_locale.id)
+    await clear_other_default_locales(exclude_locale_id=default_locale.id)
     default_locale.is_default = True
     await default_locale.save()
 
@@ -191,17 +199,6 @@ async def is_page_publicly_routable(page: Page, locale: Locale) -> bool:
     if homepage is None:
         return False
     return await is_page_in_site_tree(page, homepage)
-
-
-async def get_top_level_pages(locale: Locale) -> list[Page]:
-    tree_root = await get_tree_root(locale)
-    if tree_root is None:
-        return []
-    return (
-        await Page.objects.filter(parent_id=tree_root.id, locale_id=locale.id)
-        .order_by("sort_order", "title")
-        .all()
-    )
 
 
 async def ensure_site_homepage_paths() -> None:

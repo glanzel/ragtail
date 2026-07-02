@@ -3,9 +3,9 @@ from __future__ import annotations
 import os
 
 from .models import Locale
-from .ragtail_admin.services import _clear_other_default_locales, create_locale
+from .ragtail_admin.services import create_locale
 from .routing import get_default_locale
-from .sites import ensure_default_site, ensure_tree_root
+from .sites import clear_other_default_locales, ensure_default_site, ensure_tree_root
 
 DEFAULT_LANGUAGE_CODE = "en"
 DEFAULT_DISPLAY_NAME = "English"
@@ -79,7 +79,7 @@ async def ensure_default_locale(
     existing = await Locale.objects.get_or_none(language_code=code)
     if existing is not None:
         if not existing.is_default:
-            await _clear_other_default_locales(exclude_locale_id=existing.id)
+            await clear_other_default_locales(exclude_locale_id=existing.id)
             existing.is_default = True
             existing.is_active = True
             if name:

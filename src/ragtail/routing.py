@@ -215,22 +215,11 @@ async def _resolve_public_page(
     *,
     include_unpublished: bool,
 ) -> Page | None:
-    from .sites import TREE_ROOT_CONTENT_TYPE, get_default_site, get_homepage_for_locale, is_page_publicly_routable
+    from .sites import get_default_site, get_homepage_for_locale
 
     normalized = normalize_path(local_path)
     if normalized == "/":
         return await _resolve_site_root_page(locale, include_unpublished=include_unpublished)
-
-    page = await Page.objects.filter(
-        path=normalized,
-        locale_id=locale.id,
-    ).exclude(content_type=TREE_ROOT_CONTENT_TYPE).first()
-    if page is not None:
-        if not include_unpublished and not page.live:
-            return None
-        if not await is_page_publicly_routable(page, locale):
-            return None
-        return page
 
     site = await get_default_site()
     homepage = await get_homepage_for_locale(site, locale) if site is not None else None
@@ -244,7 +233,7 @@ async def _resolve_public_page(
     )
 
 
-async def _localized_public_path_for_page(
+async def _localized_page_path(
     page: Page,
     locale: Locale,
     *,
@@ -253,7 +242,6 @@ async def _localized_public_path_for_page(
     from .sites import get_default_site, get_homepage_for_locale
 
     default_locale, prefix_default_language = await get_site_routing_settings()
-    default_language_code = default_locale.language_code if default_locale else None
     site = await get_default_site()
     homepage = await get_homepage_for_locale(site, locale) if site is not None else None
     if homepage is not None:
@@ -266,7 +254,7 @@ async def _localized_public_path_for_page(
     return localized_path(
         page_path,
         locale.language_code,
-        default_language_code=default_language_code,
+        default_language_code=default_locale.language_code if default_locale else None,
         prefix_default_language=prefix_default_language,
     )
 
@@ -301,7 +289,7 @@ async def resolve_route(
         include_unpublished=include_unpublished,
     )
     if page is not None:
-        public_path = await _localized_public_path_for_page(
+        public_path = await _localized_page_path(
             page,
             locale,
             local_path=local_path,
@@ -331,7 +319,7 @@ async def resolve_route(
         page=default_page,
         locale=locale,
         path=normalize_path(local_path),
-        public_path=await _localized_public_path_for_page(
+        public_path=await _localized_page_path(
             default_page,
             locale,
             local_path=local_path,
@@ -393,7 +381,7 @@ async def get_translation_alternates(
 async def get_page_public_url(page: Page) -> str | None:
     """Return the public URL path for a page, or None if it is not in the site tree."""
 
-    from .sites import get_default_site, get_homepage_for_locale, is_page_publicly_routable, is_tree_root
+    from .sites import is_page_publicly_routable, is_tree_root
 
     if is_tree_root(page) or page.locale_id is None:
         return None
@@ -406,18 +394,4 @@ async def get_page_public_url(page: Page) -> str | None:
     if not await is_page_publicly_routable(page, locale):
         return None
 
-    default_locale, prefix_default_language = await get_site_routing_settings()
-    default_language_code = default_locale.language_code if default_locale else None
-    site = await get_default_site()
-    homepage = await get_homepage_for_locale(site, locale) if site is not None else None
-    if homepage is not None:
-        page_path = await build_public_path_from_homepage(page, homepage)
-    else:
-        page_path = page.path
-
-    return localized_path(
-        page_path,
-        locale.language_code,
-        default_language_code=default_language_code,
-        prefix_default_language=prefix_default_language,
-    )
+    return await _localized_page_path(page, locale)

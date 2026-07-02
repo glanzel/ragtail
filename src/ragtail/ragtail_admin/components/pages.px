@@ -692,6 +692,7 @@ def DeletePagePage(
   page,
   breadcrumbs,
   descendant_count: int = 0,
+  translation_count: int = 0,
   is_site_root: bool = False,
   error: str | None = None,
   children=None,
@@ -727,6 +728,11 @@ def DeletePagePage(
             This will also delete {descendant_count} child page{"s" if descendant_count != 1 else ""}.
           </p>
         ) if descendant_count else None}
+        {(
+          <p class="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            This will also delete {translation_count} translated page{"s" if translation_count != 1 else ""} in other locales.
+          </p>
+        ) if translation_count else None}
         <form method="post" action={f"/admin/pages/{page.id}/delete/"} class="flex flex-wrap gap-3">
           <button type="submit" class={BTN_DANGER}>
             Yes, delete

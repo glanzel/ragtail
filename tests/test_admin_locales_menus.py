@@ -246,6 +246,98 @@ async def test_delete_page_removes_page(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_delete_page_removes_translations_in_other_locales(client: AsyncClient) -> None:
+    from ragtail.pages import create_translation
+    from ragtail.sites import ensure_tree_root
+
+    await _login(client)
+    en = await Locale.objects.get_or_none(language_code="en")
+    de = await Locale.objects.create(
+        language_code="de",
+        display_name="Deutsch",
+        is_default=False,
+        is_active=True,
+    )
+    about = await Page.objects.filter(slug="about").first()
+    home = await Page.objects.filter(slug="", locale_id=en.id).first()
+    assert en is not None and about is not None and home is not None
+
+    de_tree_root = await ensure_tree_root(de)
+    de_home = await create_translation(
+        home,
+        title="Zuhause",
+        slug="",
+        locale=de,
+        parent=de_tree_root,
+        live=True,
+    )
+    de_about = await create_translation(
+        about,
+        title="Ueber uns",
+        slug="ueber-uns",
+        locale=de,
+        parent=de_home,
+        live=True,
+    )
+
+    delete = await client.post(
+        f"/admin/pages/{about.id}/delete/",
+        cookies=client.cookies,
+        follow_redirects=False,
+    )
+    assert delete.status_code == 303
+    assert await Page.objects.get_or_none(id=about.id) is None
+    assert await Page.objects.get_or_none(id=de_about.id) is None
+    assert await Page.objects.get_or_none(id=de_home.id) is not None
+
+
+@pytest.mark.asyncio
+async def test_delete_locale_does_not_remove_translations_in_other_locales(client: AsyncClient) -> None:
+    from ragtail.pages import create_translation
+    from ragtail.sites import ensure_tree_root
+
+    await _login(client)
+    en = await Locale.objects.get_or_none(language_code="en")
+    de = await Locale.objects.create(
+        language_code="de",
+        display_name="Deutsch",
+        is_default=False,
+        is_active=True,
+    )
+    about = await Page.objects.filter(slug="about").first()
+    home = await Page.objects.filter(slug="").first()
+    assert en is not None and about is not None and home is not None
+
+    de_tree_root = await ensure_tree_root(de)
+    de_home = await create_translation(
+        home,
+        title="Zuhause",
+        slug="",
+        locale=de,
+        parent=de_tree_root,
+        live=True,
+    )
+    await create_translation(
+        about,
+        title="Ueber uns",
+        slug="ueber-uns",
+        locale=de,
+        parent=de_home,
+        live=True,
+    )
+
+    delete = await client.post(
+        f"/admin/locales/{de.id}/delete/",
+        cookies=client.cookies,
+        follow_redirects=False,
+    )
+    assert delete.status_code == 303
+    assert await Locale.objects.get_or_none(id=de.id) is None
+    assert await Page.objects.get_or_none(id=about.id) is not None
+    assert await Page.objects.get_or_none(id=home.id) is not None
+
+
+@pytest.mark.asyncio
 async def test_delete_locale_removes_non_default_language(client: AsyncClient) -> None:
     await _login(client)
     await client.post(
