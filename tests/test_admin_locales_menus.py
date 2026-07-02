@@ -198,3 +198,86 @@ async def test_edit_menu_updates_name_and_slug(client: AsyncClient) -> None:
     assert menu.name == "Site footer"
     assert menu.slug == "site-footer"
     assert menu.is_active is True
+
+
+@pytest.mark.asyncio
+async def test_delete_menu_removes_menu_and_items(client: AsyncClient) -> None:
+    await _login(client)
+    create_menu_response = await client.post(
+        "/admin/menus/add/",
+        data={"name": "Main", "slug": "main", "is_active": "1"},
+        follow_redirects=False,
+    )
+    assert create_menu_response.status_code == 303
+    menu = await Menu.objects.get_or_none(slug="main")
+    assert menu is not None
+
+    add_item = await client.post(
+        f"/admin/menus/{menu.id}/items/add/",
+        data={"label": "About", "page_id": "", "url": "/about/", "sort_order": "0"},
+        cookies=client.cookies,
+        follow_redirects=False,
+    )
+    assert add_item.status_code == 303
+
+    delete = await client.post(
+        f"/admin/menus/{menu.id}/delete/",
+        cookies=client.cookies,
+        follow_redirects=False,
+    )
+    assert delete.status_code == 303
+    assert delete.headers["location"] == "/admin/menus/"
+    assert await Menu.objects.get_or_none(id=menu.id) is None
+
+
+@pytest.mark.asyncio
+async def test_delete_page_removes_page(client: AsyncClient) -> None:
+    await _login(client)
+    about = await Page.objects.filter(slug="about").first()
+    assert about is not None
+
+    delete = await client.post(
+        f"/admin/pages/{about.id}/delete/",
+        cookies=client.cookies,
+        follow_redirects=False,
+    )
+    assert delete.status_code == 303
+    assert await Page.objects.get_or_none(id=about.id) is None
+
+
+@pytest.mark.asyncio
+async def test_delete_locale_removes_non_default_language(client: AsyncClient) -> None:
+    await _login(client)
+    await client.post(
+        "/admin/locales/add/",
+        data={"language_code": "de", "display_name": "Deutsch"},
+        cookies=client.cookies,
+        follow_redirects=False,
+    )
+    de = await Locale.objects.get_or_none(language_code="de")
+    assert de is not None
+
+    delete = await client.post(
+        f"/admin/locales/{de.id}/delete/",
+        cookies=client.cookies,
+        follow_redirects=False,
+    )
+    assert delete.status_code == 303
+    assert await Locale.objects.get_or_none(id=de.id) is None
+
+
+@pytest.mark.asyncio
+async def test_cannot_delete_default_locale(client: AsyncClient) -> None:
+    await _login(client)
+    en = await Locale.objects.get_or_none(language_code="en")
+    assert en is not None
+
+    delete = await client.post(
+        f"/admin/locales/{en.id}/delete/",
+        cookies=client.cookies,
+        follow_redirects=False,
+    )
+    assert delete.status_code == 200
+    assert "default" in delete.text.lower()
+    assert await Locale.objects.get_or_none(id=en.id) is not None
+

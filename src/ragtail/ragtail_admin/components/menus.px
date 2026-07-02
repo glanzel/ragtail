@@ -1,6 +1,6 @@
 from pyjsx import jsx
 
-from ragtail.ragtail_admin.classes import BTN, BTN_DANGER, BTN_SECONDARY, BTN_SM, INPUT, LABEL, TEXTAREA
+from ragtail.ragtail_admin.classes import BTN, BTN_DANGER, BTN_DANGER_SM, BTN_SECONDARY, BTN_SM, INPUT, LABEL, TEXTAREA
 from ragtail.ragtail_admin.components.layout import AdminLayout
 from ragtail.ragtail_admin.components.locale_switcher import LocaleSwitcher
 
@@ -31,9 +31,14 @@ def MenuRow(menu, children=None):
         )}
       </td>
       <td class="px-5 py-3.5">
-        <a href={f"/admin/menus/{menu.id}/edit/"} class={BTN_SM}>
-          Edit
-        </a>
+        <div class="flex flex-wrap gap-2">
+          <a href={f"/admin/menus/{menu.id}/edit/"} class={BTN_SM}>
+            Edit
+          </a>
+          <a href={f"/admin/menus/{menu.id}/delete/"} class={BTN_DANGER_SM}>
+            Delete
+          </a>
+        </div>
       </td>
     </tr>
   )
@@ -155,6 +160,42 @@ def MenuEditPage(*, username: str, menu, error: str | None = None, values=None, 
             <a href={f"/admin/menus/{menu.id}/"} class={BTN_SECONDARY}>Cancel</a>
           </div>
         </form>
+        <form
+          method="post"
+          action={f"/admin/menus/{menu.id}/delete/"}
+          class="mt-10 max-w-xl border-t border-gray-200 pt-6"
+          onsubmit="return confirm('Delete this menu and all of its items permanently?');"
+        >
+          <h2 class="mb-2 text-lg font-semibold text-gray-900">Danger zone</h2>
+          <p class="mb-4 text-sm text-gray-500">This cannot be undone.</p>
+          <button type="submit" class="rounded border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">
+            Delete menu
+          </button>
+        </form>
+      </div>
+    </AdminLayout>
+  )
+
+
+def DeleteMenuPage(*, username: str, menu, children=None):
+  return (
+    <AdminLayout title="Delete menu" active="menus" username={username} breadcrumbs={[]}>
+      <header class="flex min-h-slim-header items-center border-b border-gray-200 bg-gray-50 px-5">
+        <h1 class="text-2xl font-semibold text-gray-900">Delete menu</h1>
+      </header>
+      <div class="px-6 py-5">
+        <p class="mb-6 text-gray-600">
+          Are you sure you want to delete <strong class="text-gray-900">{menu.name}</strong>?
+          All menu items will be removed.
+        </p>
+        <form method="post" action={f"/admin/menus/{menu.id}/delete/"} class="flex flex-wrap gap-3">
+          <button type="submit" class={BTN_DANGER}>
+            Yes, delete
+          </button>
+          <a href={f"/admin/menus/{menu.id}/"} class={BTN_SECONDARY}>
+            No, don't delete
+          </a>
+        </form>
       </div>
     </AdminLayout>
   )
@@ -175,8 +216,13 @@ def MenuItemRow(item, children=None):
       <td class="px-5 py-3.5 text-sm text-gray-500">{href}</td>
       <td class="px-5 py-3.5 text-sm text-gray-500">{item.sort_order}</td>
       <td class="px-5 py-3.5">
-        <form method="post" action={f"/admin/menus/items/{item.id}/delete/"} class="inline">
-          <button type="submit" class={BTN_SM + " bg-red-600 hover:bg-red-700"}>
+        <form
+          method="post"
+          action={f"/admin/menus/items/{item.id}/delete/"}
+          class="inline"
+          onsubmit="return confirm('Remove this menu item?');"
+        >
+          <button type="submit" class={BTN_DANGER_SM}>
             Remove
           </button>
         </form>
@@ -211,6 +257,9 @@ def MenuDetailPage(
         <div class="flex flex-wrap gap-3">
           <a href={f"/admin/menus/{menu.id}/edit/"} class={BTN}>
             Edit menu
+          </a>
+          <a href={f"/admin/menus/{menu.id}/delete/"} class={BTN_DANGER}>
+            Delete menu
           </a>
           <a href="/admin/menus/" class={BTN_SECONDARY}>
             Back to menus

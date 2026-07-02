@@ -4,9 +4,9 @@ from ragtail.ragtail_admin.classes import BTN, BTN_SECONDARY, BTN_SM, INPUT, LAB
 from ragtail.ragtail_admin.components.layout import AdminLayout
 
 
-def SiteRow(site, locale, children=None):
+def SiteRow(site, default_locale, children=None):
   site_label = site.site_name or f"{site.hostname}:{site.port}"
-  locale_name = locale.display_name if locale else "-"
+  locale_name = default_locale.display_name if default_locale else "-"
   default_badge = (
     <span class="ml-2 inline-block rounded bg-teal-50 px-2 py-0.5 text-xs font-semibold text-ragtail-secondary">
       Default
@@ -32,7 +32,7 @@ def SiteRow(site, locale, children=None):
   )
 
 
-def SiteListPage(*, username: str, sites, locales, children=None):
+def SiteListPage(*, username: str, sites, default_locales, children=None):
   return (
     <AdminLayout title="Sites" active="sites" username={username} breadcrumbs={[]}>
       <header class="flex min-h-slim-header items-center justify-between gap-4 border-b border-gray-200 bg-gray-50 px-5">
@@ -40,13 +40,14 @@ def SiteListPage(*, username: str, sites, locales, children=None):
       </header>
       <div class="px-6 py-5">
         <p class="mb-4 text-gray-500">
-          Each locale has a site record. Choose which page is served at <code class="text-sm">/</code> for that locale.
+          One site serves all locales. The root page defines the default language and is served at
+          <code class="text-sm">/</code>.
         </p>
         <table class="w-full border-collapse text-left">
           <thead>
             <tr class="border-b border-gray-200 bg-gray-50 text-sm text-gray-500">
               <th class="px-5 py-3 font-medium">Site</th>
-              <th class="px-5 py-3 font-medium">Locale</th>
+              <th class="px-5 py-3 font-medium">Default locale</th>
               <th class="px-5 py-3 font-medium">Hostname</th>
               <th class="px-5 py-3 font-medium">Port</th>
               <th class="px-5 py-3 font-medium"></th>
@@ -55,14 +56,14 @@ def SiteListPage(*, username: str, sites, locales, children=None):
           <tbody>
             {(
               [
-                <SiteRow site={site} locale={locales.get(site.locale_id)} />
+                <SiteRow site={site} default_locale={default_locales.get(site.id)} />
                 for site in sites
               ]
               if sites
               else [
                 <tr>
                   <td colspan="5" class="px-5 py-8 text-center italic text-gray-400">
-                    No sites configured yet. Sites are created automatically when you add a locale.
+                    No sites configured yet. A default site is created automatically on startup.
                   </td>
                 </tr>
               ]
@@ -78,7 +79,7 @@ def SiteEditPage(
   *,
   username: str,
   site,
-  locale,
+  default_locale,
   pages,
   error: str | None = None,
   values=None,
@@ -90,7 +91,13 @@ def SiteEditPage(
     "site_name": site.site_name or "",
     "root_page_id": str(site.root_page_id or ""),
     "is_default_site": site.is_default_site,
+    "prefix_default_language": site.prefix_default_language,
   }
+  locale_label = (
+    f"{default_locale.display_name} ({default_locale.language_code})"
+    if default_locale
+    else "Not configured yet"
+  )
   return (
     <AdminLayout title="Edit site" active="sites" username={username} breadcrumbs={[]}>
       <header class="flex min-h-slim-header items-center border-b border-gray-200 bg-gray-50 px-5">
@@ -98,7 +105,7 @@ def SiteEditPage(
       </header>
       <div class="px-6 py-5">
         <p class="mb-4 text-sm text-gray-600">
-          Locale: <strong class="text-gray-900">{locale.display_name}</strong> ({locale.language_code})
+          Default locale: <strong class="text-gray-900">{locale_label}</strong>
         </p>
         {(
           <div class="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700" role="status">
@@ -155,9 +162,19 @@ def SiteEditPage(
               ]}
             </select>
             <p class="mt-1 text-sm text-gray-500">
-              This page is served at <code class="text-sm">/</code>. Its slug is ignored for the homepage URL.
+              This page is served at <code class="text-sm">/</code> for its locale. Translated
+              homepages are served at <code class="text-sm">/de/</code> and similar prefixes.
             </p>
           </div>
+          <label class="inline-flex items-center gap-2 font-semibold">
+            <input
+              type="checkbox"
+              name="prefix_default_language"
+              value="1"
+              checked={form_values.get("prefix_default_language")}
+            />
+            Prefix default language in URLs (for example <code class="text-sm">/en/</code>)
+          </label>
           <label class="inline-flex items-center gap-2 font-semibold">
             <input
               type="checkbox"

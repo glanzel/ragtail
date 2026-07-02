@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from .models import Locale, Page
 from .page_types import cast_page, copy_page_model_field_values, get_content_type, get_default_page_model, get_page_model, persist_page
-from .sites import compute_page_path, is_tree_root
+from .sites import compute_page_path, get_site_root_page_id, is_tree_root
 
 _PAGE_COLUMN_NAMES = frozenset(Page.model_fields.keys())
 
@@ -35,7 +35,11 @@ async def create_page(
         msg = "Pages must have a parent. Use ensure_tree_root() for the technical tree root."
         raise ValueError(msg)
 
-    path = compute_page_path(parent, slug)
+    path = compute_page_path(
+        parent,
+        slug,
+        site_root_page_id=await get_site_root_page_id(locale),
+    )
     depth = (parent.depth + 1) if parent is not None else 1
 
     column_fields: dict[str, Any] = {}
@@ -63,6 +67,17 @@ async def create_page(
         **column_fields,
     )
 
+    if (
+        parent is not None
+        and is_tree_root(parent)
+        and resolved_content_type != "tree_root"
+    ):
+        from .sites import get_default_site, set_site_root_page
+
+        site = await get_default_site()
+        if site is not None and site.root_page_id is None:
+            await set_site_root_page(site, stored)
+
     if model is Page and not typed_fields:
         return stored
 
@@ -70,6 +85,23 @@ async def create_page(
     data.update(typed_fields)
     typed = model.model_validate(data)
     return await persist_page(typed)
+
+
+async def repath_page_subtree(page: Page) -> None:
+    """Recompute stored paths for all descendants after a parent path changes."""
+
+    if page.id is None:
+        return
+    locale = page.locale
+    if locale is None and page.locale_id is not None:
+        locale = await Locale.objects.get_or_none(id=page.locale_id)
+    site_root_page_id = await get_site_root_page_id(locale) if locale is not None else None
+    children = await Page.objects.filter(parent_id=page.id).all()
+    for child in children:
+        parent = await Page.objects.get_or_none(id=child.parent_id) if child.parent_id else None
+        child.path = compute_page_path(parent, child.slug, site_root_page_id=site_root_page_id)
+        await child.save()
+        await repath_page_subtree(child)
 
 
 async def create_translation(

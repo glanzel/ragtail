@@ -25,13 +25,13 @@ from ..seo import normalize_search_description, search_description_error
 from ..menus import create_menu, create_menu_item
 from ..models import Locale, Page, User
 from ..pages import create_translation
-from ..routing import get_locale
-from ..sites import get_site_for_locale, is_tree_root, page_admin_title
+from ..routing import get_default_locale, get_locale
+from ..sites import get_default_site, get_site_default_locale, is_tree_root, page_admin_title
 from .components.dashboard import DashboardPage
-from .components.locales import LocaleAddPage, LocaleEditPage, LocaleListPage
+from .components.locales import DeleteLocalePage, LocaleAddPage, LocaleEditPage, LocaleListPage
 from .components.login import LoginPage
 from .components.password_reset import ForgotPasswordPage
-from .components.menus import MenuAddPage, MenuDetailPage, MenuEditPage, MenuListPage
+from .components.menus import DeleteMenuPage, MenuAddPage, MenuDetailPage, MenuEditPage, MenuListPage
 from .components.users import (
     ChangePasswordPage,
     UserAddPage,
@@ -69,7 +69,6 @@ from .services import (
     create_locale,
     delete_page,
     ensure_root_page,
-    ensure_site_setup,
     ensure_tree_root,
     get_admin_locale,
     get_all_locales,
@@ -78,6 +77,7 @@ from .services import (
     get_locale_or_404,
     get_pages_for_site_root_choice,
     get_site_or_404,
+    get_explorer_content_root,
     get_explorer_root_listing,
     get_locales_missing_translation,
     get_menu_item_or_404,
@@ -89,7 +89,13 @@ from .services import (
     get_user_by_email,
     get_user_or_404,
     can_delete_user,
+    can_delete_locale,
+    can_delete_page,
     count_active_staff_users,
+    count_page_descendants,
+    delete_locale,
+    delete_menu,
+    is_site_root_page,
     validate_user_update,
     get_page_locale,
     get_page_or_404,
@@ -339,7 +345,17 @@ def create_admin_router() -> APIRouter:
     @router.get("/locales/")
     async def locales_list(user: Annotated[User, Depends(require_user)]):
         locales = await get_all_locales()
-        return html_response(LocaleListPage, username=user.username, locales=locales)
+        deletable_locale_ids = []
+        for locale in locales:
+            can_delete, _ = await can_delete_locale(locale)
+            if can_delete:
+                deletable_locale_ids.append(locale.id)
+        return html_response(
+            LocaleListPage,
+            username=user.username,
+            locales=locales,
+            deletable_locale_ids=deletable_locale_ids,
+        )
 
     @router.get("/locales/add/")
     async def locales_add_get(user: Annotated[User, Depends(require_user)]):
@@ -378,13 +394,19 @@ def create_admin_router() -> APIRouter:
             display_name=display_name.strip(),
             is_default=is_default == "1" or not existing,
         )
-        await ensure_site_setup(locale)
+        await ensure_tree_root(locale)
         return RedirectResponse("/admin/locales/", status_code=status.HTTP_303_SEE_OTHER)
 
     @router.get("/locales/{locale_id}/edit/")
     async def locales_edit_get(locale_id: int, user: Annotated[User, Depends(require_user)]):
         locale = await get_locale_or_404(locale_id)
-        return html_response(LocaleEditPage, username=user.username, locale=locale)
+        can_delete, _ = await can_delete_locale(locale)
+        return html_response(
+            LocaleEditPage,
+            username=user.username,
+            locale=locale,
+            can_delete=can_delete,
+        )
 
     @router.post("/locales/{locale_id}/edit/")
     async def locales_edit_post(
@@ -401,12 +423,14 @@ def create_admin_router() -> APIRouter:
             "is_active": is_active == "1",
         }
         if not display_name.strip():
+            can_delete, _ = await can_delete_locale(locale)
             return html_response(
                 LocaleEditPage,
                 username=user.username,
                 locale=locale,
                 values=values,
                 error="Display name is required.",
+                can_delete=can_delete,
             )
         try:
             await update_locale(
@@ -416,13 +440,44 @@ def create_admin_router() -> APIRouter:
                 is_active=is_active == "1",
             )
         except ValueError as exc:
+            can_delete, _ = await can_delete_locale(locale)
             return html_response(
                 LocaleEditPage,
                 username=user.username,
                 locale=locale,
                 values=values,
                 error=str(exc),
+                can_delete=can_delete,
             )
+        return RedirectResponse("/admin/locales/", status_code=status.HTTP_303_SEE_OTHER)
+
+    @router.get("/locales/{locale_id}/delete/")
+    async def locales_delete_get(locale_id: int, user: Annotated[User, Depends(require_user)]):
+        locale = await get_locale_or_404(locale_id)
+        can_delete, error = await can_delete_locale(locale)
+        if not can_delete:
+            return html_response(
+                LocaleEditPage,
+                username=user.username,
+                locale=locale,
+                error=error,
+                can_delete=False,
+            )
+        return html_response(DeleteLocalePage, username=user.username, locale=locale)
+
+    @router.post("/locales/{locale_id}/delete/")
+    async def locales_delete_post(locale_id: int, user: Annotated[User, Depends(require_user)]):
+        locale = await get_locale_or_404(locale_id)
+        can_delete, error = await can_delete_locale(locale)
+        if not can_delete:
+            return html_response(
+                LocaleEditPage,
+                username=user.username,
+                locale=locale,
+                error=error,
+                can_delete=False,
+            )
+        await delete_locale(locale)
         return RedirectResponse("/admin/locales/", status_code=status.HTTP_303_SEE_OTHER)
 
     @router.get("/users/")
@@ -745,6 +800,17 @@ def create_admin_router() -> APIRouter:
             )
         return RedirectResponse(f"/admin/menus/{menu_id}/", status_code=status.HTTP_303_SEE_OTHER)
 
+    @router.get("/menus/{menu_id}/delete/")
+    async def menus_delete_get(menu_id: int, user: Annotated[User, Depends(require_user)]):
+        menu = await get_menu_or_404(menu_id)
+        return html_response(DeleteMenuPage, username=user.username, menu=menu)
+
+    @router.post("/menus/{menu_id}/delete/")
+    async def menus_delete_post(menu_id: int, user: Annotated[User, Depends(require_user)]):
+        menu = await get_menu_or_404(menu_id)
+        await delete_menu(menu)
+        return RedirectResponse("/admin/menus/", status_code=status.HTTP_303_SEE_OTHER)
+
     @router.post("/menus/{menu_id}/items/add/")
     async def menus_item_add(
         menu_id: int,
@@ -807,26 +873,28 @@ def create_admin_router() -> APIRouter:
     @router.get("/sites/")
     async def sites_list(user: Annotated[User, Depends(require_user)]):
         sites = await get_all_sites()
-        locales = {locale.id: locale for locale in await get_all_locales()}
+        default_locales: dict[int, Locale | None] = {}
+        for site in sites:
+            default_locales[site.id] = await get_site_default_locale(site)
         return html_response(
             SiteListPage,
             username=user.username,
             sites=sites,
-            locales=locales,
+            default_locales=default_locales,
         )
 
     @router.get("/sites/{site_id}/edit/")
     async def sites_edit_get(site_id: int, user: Annotated[User, Depends(require_user)]):
         site = await get_site_or_404(site_id)
-        locale = await get_locale_or_404(site.locale_id) if site.locale_id else None
-        if locale is None:
-            raise HTTPException(status_code=404, detail="Locale not found")
-        pages = await get_pages_for_site_root_choice(locale)
+        default_locale = await get_site_default_locale(site)
+        if default_locale is None:
+            default_locale = await get_default_locale()
+        pages = await get_pages_for_site_root_choice(site)
         return html_response(
             SiteEditPage,
             username=user.username,
             site=site,
-            locale=locale,
+            default_locale=default_locale,
             pages=pages,
         )
 
@@ -839,18 +907,20 @@ def create_admin_router() -> APIRouter:
         site_name: Annotated[str, Form()] = "",
         root_page_id: Annotated[str, Form()] = "",
         is_default_site: Annotated[str | None, Form()] = None,
+        prefix_default_language: Annotated[str | None, Form()] = None,
     ):
         site = await get_site_or_404(site_id)
-        locale = await get_locale_or_404(site.locale_id) if site.locale_id else None
-        if locale is None:
-            raise HTTPException(status_code=404, detail="Locale not found")
-        pages = await get_pages_for_site_root_choice(locale)
+        default_locale = await get_site_default_locale(site)
+        if default_locale is None:
+            default_locale = await get_default_locale()
+        pages = await get_pages_for_site_root_choice(site)
         values = {
             "hostname": hostname,
             "port": port,
             "site_name": site_name,
             "root_page_id": root_page_id,
             "is_default_site": is_default_site == "1",
+            "prefix_default_language": prefix_default_language == "1",
         }
         parsed_root_page_id = int(root_page_id) if root_page_id.strip() else None
         try:
@@ -861,13 +931,14 @@ def create_admin_router() -> APIRouter:
                 site_name=site_name or None,
                 root_page_id=parsed_root_page_id,
                 is_default_site=is_default_site == "1",
+                prefix_default_language=prefix_default_language == "1",
             )
         except ValueError as exc:
             return html_response(
                 SiteEditPage,
                 username=user.username,
                 site=site,
-                locale=locale,
+                default_locale=default_locale,
                 pages=pages,
                 values=values,
                 error=str(exc),
@@ -877,11 +948,11 @@ def create_admin_router() -> APIRouter:
     @router.get("/pages/")
     async def pages_root(request: Request, user: Annotated[User, Depends(require_user)]):
         admin_locale = await get_admin_locale(request)
-        tree_root, children = await get_explorer_root_listing(admin_locale)
+        content_root, children = await get_explorer_root_listing(admin_locale)
         tree = await build_page_tree(admin_locale)
         locales = await get_all_locales()
         missing_by_child = await get_missing_translations_by_page(children)
-        site = await get_site_for_locale(admin_locale)
+        site = await get_default_site()
         return html_response(
             PageListingPage,
             username=user.username,
@@ -894,7 +965,7 @@ def create_admin_router() -> APIRouter:
             parent_missing_locales=[],
             breadcrumbs=[Breadcrumb(title="Pages", url="/admin/pages/")],
             is_explorer_root=True,
-            add_parent_id=tree_root.id,
+            add_parent_id=content_root.id,
             site=site,
         )
 
@@ -909,7 +980,7 @@ def create_admin_router() -> APIRouter:
         parent_page = (
             await get_page_or_404(parent)
             if parent
-            else await ensure_tree_root(default_locale)
+            else await get_explorer_content_root(default_locale)
         )
         breadcrumbs = await build_breadcrumbs(parent_page)
         breadcrumbs.append(type(breadcrumbs[-1])("Add child page", None))
@@ -974,7 +1045,7 @@ def create_admin_router() -> APIRouter:
         parent_page = (
             await get_page_or_404(parent)
             if parent
-            else await ensure_tree_root(default_locale)
+            else await get_explorer_content_root(default_locale)
         )
         locale = await get_page_locale(parent_page)
         page_types = get_page_type_choices()
@@ -1150,8 +1221,9 @@ def create_admin_router() -> APIRouter:
         breadcrumbs = await build_breadcrumbs(page)
         missing_by_child = await get_missing_translations_by_page(children)
         parent_missing = await get_locales_missing_translation(page)
-        site = await get_site_for_locale(admin_locale)
+        site = await get_default_site()
         public_url = await get_page_public_url(page)
+        can_delete_parent, _ = can_delete_page(page)
         return html_response(
             PageListingPage,
             username=user.username,
@@ -1165,6 +1237,7 @@ def create_admin_router() -> APIRouter:
             breadcrumbs=breadcrumbs,
             site=site,
             public_url=public_url,
+            can_delete_parent=can_delete_parent,
         )
 
     @router.get("/pages/{page_id}/edit/")
@@ -1267,11 +1340,15 @@ def create_admin_router() -> APIRouter:
             raise HTTPException(status_code=404, detail="The technical tree root cannot be deleted.")
         breadcrumbs = await build_breadcrumbs(page)
         breadcrumbs.append(type(breadcrumbs[-1])("Delete", None))
+        descendant_count = await count_page_descendants(page)
+        is_site_root = await is_site_root_page(page)
         return html_response(
             DeletePagePage,
             username=user.username,
             page=page,
             breadcrumbs=breadcrumbs,
+            descendant_count=descendant_count,
+            is_site_root=is_site_root,
         )
 
     @router.post("/pages/{page_id}/delete/")

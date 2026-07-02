@@ -16,7 +16,7 @@ def register_cms_models(admin: Any, *, include_users: bool = False) -> Any:
     )
     admin.register(
         Site,
-        list_display=["hostname", "port", "site_name", "locale", "root_page", "is_default_site"],
+        list_display=["hostname", "port", "site_name", "root_page", "is_default_site", "prefix_default_language"],
         list_filter=["is_default_site"],
     )
     admin.register(
