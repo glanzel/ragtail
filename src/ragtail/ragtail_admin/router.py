@@ -24,8 +24,8 @@ from ..richtext import prepare_body_for_storage
 from ..seo import normalize_search_description, search_description_error
 from ..menus import create_menu, create_menu_item
 from ..models import Locale, Page, User
-from ..pages import create_translation
-from ..routing import get_default_locale, get_locale
+from ..pages import create_page, create_translation
+from ..routing import get_default_locale, get_locale, get_page_public_url
 from ..sites import get_default_site, get_site_default_locale, is_tree_root, page_admin_title
 from .components.dashboard import DashboardPage
 from .components.locales import DeleteLocalePage, LocaleAddPage, LocaleEditPage, LocaleListPage
@@ -65,10 +65,8 @@ from .services import (
     Breadcrumb,
     build_breadcrumbs,
     build_page_tree,
-    create_child_page,
     create_locale,
     delete_page,
-    ensure_root_page,
     ensure_tree_root,
     get_admin_locale,
     get_all_locales,
@@ -93,13 +91,13 @@ from .services import (
     can_delete_page,
     count_active_staff_users,
     count_page_descendants,
+    count_translation_siblings,
     delete_locale,
     delete_menu,
     is_site_root_page,
     validate_user_update,
     get_page_locale,
     get_page_or_404,
-    get_page_public_url,
     get_pages_for_locale,
     resolve_page_for_admin_locale,
     resolve_translated_parent,
@@ -1110,14 +1108,14 @@ def create_admin_router() -> APIRouter:
                 **parent_form_extras,
                 **form_kwargs,
             )
-        page = await create_child_page(
-            parent=parent_page,
+        page = await create_page(
             title=title.strip(),
             slug=slug,
             locale=locale,
-            page_model=page_model if page_types else None,
+            parent=parent_page,
             live=live == "1",
             show_in_menus=show_in_menus == "1",
+            page_model=page_model if page_types else get_default_page_model(),
             seo_title=seo_title or None,
             search_description=normalize_search_description(search_description),
             **extra_fields,
@@ -1341,6 +1339,7 @@ def create_admin_router() -> APIRouter:
         breadcrumbs = await build_breadcrumbs(page)
         breadcrumbs.append(type(breadcrumbs[-1])("Delete", None))
         descendant_count = await count_page_descendants(page)
+        translation_count = await count_translation_siblings(page)
         is_site_root = await is_site_root_page(page)
         return html_response(
             DeletePagePage,
@@ -1348,6 +1347,7 @@ def create_admin_router() -> APIRouter:
             page=page,
             breadcrumbs=breadcrumbs,
             descendant_count=descendant_count,
+            translation_count=translation_count,
             is_site_root=is_site_root,
         )
 
