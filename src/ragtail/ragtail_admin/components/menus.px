@@ -216,16 +216,21 @@ def MenuItemRow(item, children=None):
       <td class="px-5 py-3.5 text-sm text-gray-500">{href}</td>
       <td class="px-5 py-3.5 text-sm text-gray-500">{item.sort_order}</td>
       <td class="px-5 py-3.5">
-        <form
-          method="post"
-          action={f"/admin/menus/items/{item.id}/delete/"}
-          class="inline"
-          onsubmit="return confirm('Remove this menu item?');"
-        >
-          <button type="submit" class={BTN_DANGER_SM}>
-            Remove
-          </button>
-        </form>
+        <div class="flex flex-wrap gap-2">
+          <a href={f"/admin/menus/items/{item.id}/edit/"} class={BTN_SM}>
+            Edit
+          </a>
+          <form
+            method="post"
+            action={f"/admin/menus/items/{item.id}/delete/"}
+            class="inline"
+            onsubmit="return confirm('Remove this menu item?');"
+          >
+            <button type="submit" class={BTN_DANGER_SM}>
+              Remove
+            </button>
+          </form>
+        </div>
       </td>
     </tr>
   )
@@ -326,6 +331,77 @@ def MenuDetailPage(
             <button type="submit" class={BTN}>Add item</button>
           </form>
         </section>
+      </div>
+    </AdminLayout>
+  )
+
+
+def MenuItemEditPage(
+  *,
+  username: str,
+  menu,
+  item,
+  pages,
+  error: str | None = None,
+  values=None,
+  children=None,
+):
+  form_values = values or {
+    "label": item.label,
+    "page_id": str(item.page_id) if item.page_id is not None else "",
+    "url": item.url or "",
+    "sort_order": str(item.sort_order),
+    "is_active": item.is_active,
+    "open_in_new_tab": item.open_in_new_tab,
+  }
+  selected_page_id = str(form_values.get("page_id", ""))
+  page_options = [
+    <option value="">External URL only</option>,
+    *[<PageSelectOption page={page} selected_page_id={selected_page_id} /> for page in pages],
+  ]
+  return (
+    <AdminLayout title="Edit menu item" active="menus" username={username} breadcrumbs={[]}>
+      <header class="flex min-h-slim-header items-center border-b border-gray-200 bg-gray-50 px-5">
+        <h1 class="text-2xl font-semibold text-gray-900">Edit menu item</h1>
+      </header>
+      <div class="px-6 py-5">
+        {(
+          <div class="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700" role="status">
+            {error}
+          </div>
+        ) if error else None}
+        <form method="post" action={f"/admin/menus/items/{item.id}/edit/"} class="max-w-xl space-y-4">
+          <div>
+            <label for="id_label" class={LABEL}>Label</label>
+            <input id="id_label" name="label" type="text" class={INPUT} required value={form_values.get("label", "")} />
+          </div>
+          <div>
+            <label for="id_page_id" class={LABEL}>Link to page</label>
+            <select id="id_page_id" name="page_id" class={INPUT}>
+              {page_options}
+            </select>
+          </div>
+          <div>
+            <label for="id_url" class={LABEL}>Or external URL</label>
+            <input id="id_url" name="url" type="text" class={INPUT} placeholder="https://example.com" value={form_values.get("url", "")} />
+          </div>
+          <div>
+            <label for="id_sort_order" class={LABEL}>Sort order</label>
+            <input id="id_sort_order" name="sort_order" type="number" class={INPUT} value={form_values.get("sort_order", "0")} />
+          </div>
+          <label class="inline-flex items-center gap-2 font-semibold">
+            <input type="checkbox" name="is_active" value="1" checked={form_values.get("is_active")} />
+            Active
+          </label>
+          <label class="inline-flex items-center gap-2 font-semibold">
+            <input type="checkbox" name="open_in_new_tab" value="1" checked={form_values.get("open_in_new_tab")} />
+            Open in new tab
+          </label>
+          <div class="flex gap-3 pt-2">
+            <button type="submit" class={BTN}>Save changes</button>
+            <a href={f"/admin/menus/{menu.id}/"} class={BTN_SECONDARY}>Cancel</a>
+          </div>
+        </form>
       </div>
     </AdminLayout>
   )

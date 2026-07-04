@@ -504,6 +504,33 @@ async def get_menu_item_or_404(item_id: int) -> MenuItem:
     return item
 
 
+async def get_menu_item_with_page(item_id: int) -> MenuItem:
+    item = await get_menu_item_or_404(item_id)
+    if item.page_id is not None:
+        item.page = await Page.objects.get_or_none(id=item.page_id)
+    return item
+
+
+async def update_menu_item(
+    item: MenuItem,
+    *,
+    label: str,
+    page: Page | None = None,
+    url: str | None = None,
+    sort_order: int = 0,
+    is_active: bool = True,
+    open_in_new_tab: bool = False,
+) -> MenuItem:
+    item.label = label.strip()
+    item.page_id = page.id if page is not None else None
+    item.url = None if page is not None else (url.strip() or None)
+    item.sort_order = sort_order
+    item.is_active = is_active
+    item.open_in_new_tab = open_in_new_tab
+    await item.save()
+    return item
+
+
 async def get_all_users() -> list[User]:
     return await User.objects.order_by("username").all()
 

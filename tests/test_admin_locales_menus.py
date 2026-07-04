@@ -8,7 +8,7 @@ from oxyde import db
 from ragtail.auth import ensure_superuser
 from ragtail.db import run_migrations
 from ragtail.fastapi import create_app
-from ragtail.models import Locale, Menu, Page
+from ragtail.models import Locale, Menu, MenuItem, Page
 from ragtail.pages import create_page
 from ragtail.ragtail_admin.services import ensure_root_page
 
@@ -162,6 +162,58 @@ async def test_create_menu_and_item(client: AsyncClient) -> None:
     listing = await client.get(f"/admin/menus/{menu.id}/")
     assert listing.status_code == 200
     assert "About us" in listing.text
+
+
+@pytest.mark.asyncio
+async def test_edit_menu_item_updates_label_and_link(client: AsyncClient) -> None:
+    await _login(client)
+    create_menu_response = await client.post(
+        "/admin/menus/add/",
+        data={"name": "Footer", "slug": "footer", "is_active": "1"},
+        follow_redirects=False,
+    )
+    assert create_menu_response.status_code == 303
+    menu = await Menu.objects.get_or_none(slug="footer")
+    assert menu is not None
+
+    add_item = await client.post(
+        f"/admin/menus/{menu.id}/items/add/",
+        data={"label": "About us", "page_id": "", "url": "/about/", "sort_order": "0"},
+        cookies=client.cookies,
+        follow_redirects=False,
+    )
+    assert add_item.status_code == 303
+    item = await MenuItem.objects.filter(menu_id=menu.id).first()
+    assert item is not None
+
+    edit = await client.get(f"/admin/menus/items/{item.id}/edit/", cookies=client.cookies)
+    assert edit.status_code == 200
+    assert "Edit menu item" in edit.text
+
+    save = await client.post(
+        f"/admin/menus/items/{item.id}/edit/",
+        data={
+            "label": "About page",
+            "page_id": "",
+            "url": "https://example.com/about",
+            "sort_order": "5",
+            "is_active": "1",
+            "open_in_new_tab": "1",
+        },
+        cookies=client.cookies,
+        follow_redirects=False,
+    )
+    assert save.status_code == 303
+    assert save.headers["location"] == f"/admin/menus/{menu.id}/"
+
+    item = await MenuItem.objects.get_or_none(id=item.id)
+    assert item is not None
+    assert item.label == "About page"
+    assert item.url == "https://example.com/about"
+    assert item.page_id is None
+    assert item.sort_order == 5
+    assert item.is_active is True
+    assert item.open_in_new_tab is True
 
 
 @pytest.mark.asyncio

@@ -7,6 +7,7 @@ from ragtail.ragtail_admin.components.icons import (
     RichtextIconBold,
     RichtextIconBulletList,
     RichtextIconItalic,
+    RichtextIconLink,
     RichtextIconOrderedList,
     RichtextIconRedo,
     RichtextIconStrike,
@@ -54,6 +55,9 @@ def RichTextToolbar(children=None):
         </RichTextToolbarButton>
         <RichTextToolbarButton action="strike" title="Strikethrough">
           <RichtextIconStrike />
+        </RichTextToolbarButton>
+        <RichTextToolbarButton action="link" title="Link">
+          <RichtextIconLink />
         </RichTextToolbarButton>
       </div>
       <span class="richtext-toolbar-separator" aria-hidden="true" />
@@ -105,7 +109,8 @@ def RichTextField(*, name: str, label: str, value: str = "", field_id: str, chil
         <code class="rounded bg-gray-100 px-1">*italic*</code>,
         <code class="rounded bg-gray-100 px-1">## heading</code>,
         <code class="rounded bg-gray-100 px-1">- list</code>,
-        <code class="rounded bg-gray-100 px-1">&gt; quote</code>
+        <code class="rounded bg-gray-100 px-1">&gt; quote</code>,
+        <code class="rounded bg-gray-100 px-1">[link](https://example.com)</code>
         — or paste Markdown to convert automatically.
       </p>
     </div>
