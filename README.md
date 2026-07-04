@@ -116,24 +116,15 @@ Default page template (`templates/page.html`):
 | [Demo](docs/demo.md)                   | Runnable example app and Docker                          |
 
 
-### Local development
+### Local development / testing
 
-Library tests and the runnable demo are separate: pytest runs from the repository root; the demo is a small project in `examples/demo/` with its own `oxyde_config.py` and local `ragtail` dependency.
-
+Library tests and the runnable demo are separate: pytest runs from the repository root; the demo is a small project in `examples/demo/` with its own `oxyde_config.py` and local `ragtail` dependency.Install
 ```bash
 make install
-make migrate
-make createsuperuser
+```
+
+Create and run the demo
+```bash
 make run-demo
 ```
-
-Or in one step: `make setup`.
-
-To work on the demo directly:
-
-```bash
-cd examples/demo
-uv sync
-uv run ragtail-seeddb --language-code de --display-name Deutsch --username admin --email admin@example.com --password secret --noinput
-uv run uvicorn main:app --reload
-```
+localhost:8000 (login : admin / pw: admin)
