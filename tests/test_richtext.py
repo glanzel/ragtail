@@ -25,6 +25,11 @@ def test_render_body_converts_markdown_to_html() -> None:
     assert "<strong>world</strong>" in html
 
 
+def test_render_body_converts_markdown_links() -> None:
+    html = render_body("Visit [our site](https://example.com) today.")
+    assert '<a href="https://example.com">our site</a>' in html
+
+
 def test_render_body_escapes_inline_html_in_markdown() -> None:
     html = render_body("**bold** and <em>not html</em>")
     assert "<strong>bold</strong>" in html
@@ -120,6 +125,20 @@ async def public_client(tmp_path: Path, oxyde_config):
     finally:
         await db.close()
         clear_page_models()
+
+
+@pytest.mark.asyncio
+async def test_public_page_renders_stored_markdown_links(public_client: AsyncClient) -> None:
+    about_page = await Page.objects.filter(slug="about").first()
+    assert about_page is not None
+    about_page.body = "Read more on [our site](https://example.com)."
+    await about_page.save()
+
+    response = await public_client.get("/about/")
+    assert response.status_code == 200
+    assert '[our site](https://example.com)' not in response.text
+    assert 'href="https://example.com"' in response.text
+    assert ">our site</a>" in response.text
 
 
 @pytest.mark.asyncio

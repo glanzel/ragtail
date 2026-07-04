@@ -7,3 +7,9 @@
     @apply font-sans text-gray-800 antialiased;
   }
 }
+
+@layer components {
+  .prose a {
+    @apply text-ragtail-secondary underline hover:text-ragtail-secondary-dark;
+  }
+}

@@ -31,7 +31,14 @@ from .components.dashboard import DashboardPage
 from .components.locales import DeleteLocalePage, LocaleAddPage, LocaleEditPage, LocaleListPage
 from .components.login import LoginPage
 from .components.password_reset import ForgotPasswordPage
-from .components.menus import DeleteMenuPage, MenuAddPage, MenuDetailPage, MenuEditPage, MenuListPage
+from .components.menus import (
+    DeleteMenuPage,
+    MenuAddPage,
+    MenuDetailPage,
+    MenuEditPage,
+    MenuItemEditPage,
+    MenuListPage,
+)
 from .components.users import (
     ChangePasswordPage,
     UserAddPage,
@@ -79,6 +86,7 @@ from .services import (
     get_explorer_root_listing,
     get_locales_missing_translation,
     get_menu_item_or_404,
+    get_menu_item_with_page,
     get_menu_items,
     get_menu_or_404,
     get_menus_for_locale,
@@ -104,6 +112,7 @@ from .services import (
     set_admin_locale,
     update_locale,
     update_menu,
+    update_menu_item,
     update_page,
     update_site,
 )
@@ -860,6 +869,77 @@ def create_admin_router() -> APIRouter:
             open_in_new_tab=open_in_new_tab == "1",
         )
         return RedirectResponse(f"/admin/menus/{menu_id}/", status_code=status.HTTP_303_SEE_OTHER)
+
+    @router.get("/menus/items/{item_id}/edit/")
+    async def menus_item_edit_get(item_id: int, user: Annotated[User, Depends(require_user)]):
+        item = await get_menu_item_with_page(item_id)
+        menu = await get_menu_or_404(item.menu_id)
+        menu_locale = await get_locale_or_404(menu.locale_id) if menu.locale_id else await get_admin_locale()
+        pages = await get_pages_for_locale(menu_locale)
+        return html_response(
+            MenuItemEditPage,
+            username=user.username,
+            menu=menu,
+            item=item,
+            pages=pages,
+        )
+
+    @router.post("/menus/items/{item_id}/edit/")
+    async def menus_item_edit_post(
+        item_id: int,
+        user: Annotated[User, Depends(require_user)],
+        label: Annotated[str, Form()],
+        page_id: Annotated[str, Form()] = "",
+        url: Annotated[str, Form()] = "",
+        sort_order: Annotated[str, Form()] = "0",
+        is_active: Annotated[str | None, Form()] = None,
+        open_in_new_tab: Annotated[str | None, Form()] = None,
+    ):
+        item = await get_menu_item_with_page(item_id)
+        menu = await get_menu_or_404(item.menu_id)
+        menu_locale = await get_locale_or_404(menu.locale_id) if menu.locale_id else await get_admin_locale()
+        pages = await get_pages_for_locale(menu_locale)
+        values = {
+            "label": label,
+            "page_id": page_id,
+            "url": url,
+            "sort_order": sort_order,
+            "is_active": is_active == "1",
+            "open_in_new_tab": open_in_new_tab == "1",
+        }
+        if not label.strip():
+            return html_response(
+                MenuItemEditPage,
+                username=user.username,
+                menu=menu,
+                item=item,
+                pages=pages,
+                values=values,
+                error="Label is required.",
+            )
+        page = None
+        if page_id.strip():
+            page = await get_page_or_404(int(page_id))
+        elif not url.strip():
+            return html_response(
+                MenuItemEditPage,
+                username=user.username,
+                menu=menu,
+                item=item,
+                pages=pages,
+                values=values,
+                error="Choose a page or provide an external URL.",
+            )
+        await update_menu_item(
+            item,
+            label=label.strip(),
+            page=page,
+            url=url.strip() or None,
+            sort_order=int(sort_order or 0),
+            is_active=is_active == "1",
+            open_in_new_tab=open_in_new_tab == "1",
+        )
+        return RedirectResponse(f"/admin/menus/{menu.id}/", status_code=status.HTTP_303_SEE_OTHER)
 
     @router.post("/menus/items/{item_id}/delete/")
     async def menus_item_delete(item_id: int, user: Annotated[User, Depends(require_user)]):

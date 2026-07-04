@@ -1,4 +1,5 @@
 import { Editor } from "@tiptap/core";
+import Link from "@tiptap/extension-link";
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "tiptap-markdown";
 
@@ -14,6 +15,19 @@ function runToolbarAction(editor, action) {
     case "strike":
       chain.toggleStrike().run();
       break;
+    case "link": {
+      const previousUrl = editor.getAttributes("link").href;
+      const url = window.prompt("URL", previousUrl);
+      if (url === null) {
+        break;
+      }
+      if (url === "") {
+        editor.chain().focus().extendMarkRange("link").unsetLink().run();
+      } else {
+        editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+      }
+      break;
+    }
     case "heading2":
       chain.toggleHeading({ level: 2 }).run();
       break;
@@ -53,6 +67,8 @@ function isToolbarActionActive(editor, action) {
       return editor.isActive("orderedList");
     case "blockquote":
       return editor.isActive("blockquote");
+    case "link":
+      return editor.isActive("link");
     default:
       return false;
   }
@@ -134,6 +150,11 @@ function initRichTextEditors() {
         extensions: [
           StarterKit.configure({
             codeBlock: false,
+          }),
+          Link.configure({
+            openOnClick: false,
+            autolink: true,
+            linkOnPaste: true,
           }),
           Markdown.configure({
             html: false,
