@@ -4,6 +4,8 @@
 
 # Ragtail
 
+> **Alpha** — Ragtail is in early development. APIs, database schema, and admin behaviour may change between releases; expect breaking changes until a stable 1.0.
+
 Ragtail is a Wagtail-inspired CMS built on [Oxyde ORM](https://oxyde.fatalyst.dev/) and FastAPI. It ships with:
 
 - hierarchical `Page` model
