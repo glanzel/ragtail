@@ -44,6 +44,13 @@ class Breadcrumb:
     url: str | None
 
 
+@dataclass(frozen=True)
+class MoveTarget:
+    page_id: int
+    label: str
+    depth: int
+
+
 async def get_admin_locale(request: Request | None = None) -> Locale:
     if request is not None:
         language_code = request.session.get(ADMIN_LOCALE_SESSION_KEY)
@@ -220,6 +227,113 @@ async def build_breadcrumbs(page: Page) -> list[Breadcrumb]:
             )
         )
     return crumbs
+
+
+async def _redepth_subtree(page: Page) -> None:
+    if page.id is None:
+        return
+    children = await Page.objects.filter(parent_id=page.id).all()
+    for child in children:
+        child.depth = page.depth + 1
+        await child.save()
+        await _redepth_subtree(child)
+
+
+async def get_move_targets(page: Page) -> list[MoveTarget]:
+    if page.id is None or is_tree_root(page):
+        return []
+
+    locale = await get_page_locale(page)
+    tree_root = await get_tree_root(locale)
+    excluded_ids: set[int] = {page.id}
+
+    async def collect_descendants(parent: Page) -> None:
+        if parent.id is None:
+            return
+        children = await Page.objects.filter(parent_id=parent.id).all()
+        for child in children:
+            if child.id is not None:
+                excluded_ids.add(child.id)
+                await collect_descendants(child)
+
+    await collect_descendants(page)
+
+    targets: list[MoveTarget] = []
+    if tree_root is not None and tree_root.id is not None and tree_root.id not in excluded_ids:
+        targets.append(
+            MoveTarget(
+                page_id=tree_root.id,
+                label="Root level (top-level page tree)",
+                depth=0,
+            )
+        )
+
+    pages = (
+        await Page.objects.filter(locale_id=locale.id)
+        .exclude(content_type="tree_root")
+        .order_by("depth", "sort_order", "title")
+        .all()
+    )
+    site = await get_default_site()
+    site_root_id = site.root_page_id if site is not None else None
+    for candidate in pages:
+        if candidate.id is None or candidate.id in excluded_ids:
+            continue
+        label = page_admin_title(candidate)
+        if candidate.id == site_root_id:
+            label = f"{label} (site homepage)"
+        targets.append(
+            MoveTarget(
+                page_id=candidate.id,
+                label=label,
+                depth=max(candidate.depth - 1, 0),
+            )
+        )
+    return targets
+
+
+def can_move_page(page: Page) -> tuple[bool, str | None]:
+    if is_tree_root(page):
+        return False, "The technical tree root cannot be moved."
+    return True, None
+
+
+async def move_page(page: Page, *, new_parent_id: int) -> Page:
+    if page.id is None:
+        raise ValueError("Page not found.")
+    if is_tree_root(page):
+        raise ValueError("The technical tree root cannot be moved.")
+
+    new_parent = await Page.objects.get_or_none(id=new_parent_id)
+    if new_parent is None:
+        raise ValueError("Destination page not found.")
+    if new_parent_id == page.id:
+        raise ValueError("A page cannot be moved under itself.")
+    if await is_page_descendant_of(new_parent, page):
+        raise ValueError("A page cannot be moved under one of its descendants.")
+
+    locale = await get_page_locale(page)
+    if not is_tree_root(new_parent) and new_parent.locale_id != locale.id:
+        raise ValueError("Pages can only be moved within the same language tree.")
+    if is_tree_root(new_parent) and new_parent.locale_id != locale.id:
+        raise ValueError("Pages can only be moved within the same language tree.")
+
+    typed_page = await cast_page(page)
+    typed_page.parent_id = new_parent_id
+    typed_page.depth = new_parent.depth + 1
+
+    site_root_page_id = await get_site_root_page_id(locale)
+    typed_page.path = compute_page_path(
+        new_parent,
+        typed_page.slug,
+        site_root_page_id=site_root_page_id,
+        page_id=typed_page.id,
+    )
+    await persist_page(typed_page)
+    stored = await Page.objects.get(id=typed_page.id)
+    await _redepth_subtree(stored)
+    await repath_page_subtree(stored)
+    return await cast_page(await Page.objects.get(id=typed_page.id))
 
 
 async def update_page(

@@ -155,7 +155,7 @@ def TranslateLink(child, locale, children=None):
   )
 
 
-def ChildRow(child, missing_locales=None, can_delete: bool = True, children=None):
+def ChildRow(child, missing_locales=None, can_delete: bool = True, can_move: bool = True, children=None):
   locales_to_translate = missing_locales or []
   return (
     <tr class="border-b border-gray-200">
@@ -185,6 +185,11 @@ def ChildRow(child, missing_locales=None, can_delete: bool = True, children=None
           <a href={f"/admin/pages/{child.id}/edit/"} class={BTN_SM}>
             Edit
           </a>
+          {(
+            <a href={f"/admin/pages/{child.id}/move/"} class={BTN_SM}>
+              Move
+            </a>
+          ) if can_move else None}
           {(
             <a href={f"/admin/pages/{child.id}/delete/"} class={BTN_DANGER_SM}>
               Delete
@@ -307,6 +312,9 @@ def PageListingPage(
               <div class="flex flex-wrap gap-3">
                 <a href={f"/admin/pages/{parent_page.id}/edit/"} class={BTN_SECONDARY}>
                   Edit this page
+                </a>
+                <a href={f"/admin/pages/{parent_page.id}/move/"} class={BTN_SECONDARY}>
+                  Move
                 </a>
                 {(
                   <a href={f"/admin/pages/{parent_page.id}/delete/"} class={BTN_DANGER}>
@@ -626,6 +634,11 @@ def PageFormPage(
                 Cancel
               </a>
               {(
+                <a href={f"/admin/pages/{page.id}/move/"} class={BTN_SECONDARY}>
+                  Move
+                </a>
+              ) if page and page.id else None}
+              {(
                 <a href={f"/admin/pages/{page.id}/delete/"} class={BTN_DANGER}>
                   Delete
                 </a>
@@ -708,6 +721,72 @@ def TranslatePageForm(
           <div class="flex gap-3 pt-2">
             <button type="submit" class={BTN}>Create translation</button>
             <a href={f"/admin/pages/{source_page.id}/"} class={BTN_SECONDARY}>Cancel</a>
+          </div>
+        </form>
+      </div>
+    </AdminLayout>
+  )
+
+
+def MovePagePage(
+  *,
+  username: str,
+  page,
+  breadcrumbs,
+  targets,
+  is_site_root: bool = False,
+  error: str | None = None,
+  selected_parent_id: str | None = None,
+  children=None,
+):
+  return (
+    <AdminLayout
+      title="Move page"
+      active="pages"
+      username={username}
+      breadcrumbs={[]}
+      body_class="page-move"
+    >
+      <header class="flex min-h-slim-header flex-col justify-center gap-1 border-b border-gray-200 bg-gray-50 px-5 py-3">
+        <Breadcrumbs crumbs={breadcrumbs} />
+        <h1 class="text-2xl font-semibold text-gray-900">Move page</h1>
+      </header>
+      <div class="px-6 py-5">
+        <p class="mb-4 text-gray-600">
+          Move <strong class="text-gray-900">{page.title}</strong> and its child pages to a new location.
+        </p>
+        {(
+          <p class="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            This page is the site homepage. After moving it, update the site root page under Sites if needed.
+          </p>
+        ) if is_site_root else None}
+        {(
+          <div class="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700" role="status">
+            {error}
+          </div>
+        ) if error else None}
+        <form method="post" action={f"/admin/pages/{page.id}/move/"} class="max-w-xl space-y-4">
+          <div>
+            <label for="id_new_parent_id" class={LABEL}>Move to</label>
+            <select id="id_new_parent_id" name="new_parent_id" class={INPUT} required>
+              <option value="">— Select destination —</option>
+              {[
+                <option
+                  value={str(target.page_id)}
+                  selected={str(target.page_id) == str(selected_parent_id or "")}
+                >
+                  {"\u00a0" * 4 * target.depth}{target.label}
+                </option>
+                for target in targets
+              ]}
+            </select>
+            <p class="mt-1 text-sm text-gray-500">
+              Choose another page tree by selecting <em>Root level</em> or a top-level page outside the current site homepage.
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <button type="submit" class={BTN}>Move</button>
+            <a href={f"/admin/pages/{page.id}/"} class={BTN_SECONDARY}>Cancel</a>
           </div>
         </form>
       </div>

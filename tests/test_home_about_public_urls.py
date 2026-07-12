@@ -263,3 +263,96 @@ async def test_upgrade_all_locales_repaths_stale_child_paths(tmp_path: Path) -> 
         assert route.public_path == "/about/"
     finally:
         await db.close()
+
+
+@pytest.mark.asyncio
+async def test_move_page_to_alternate_tree_and_back(public_app_client: AsyncClient) -> None:
+    """Pages can be moved to a sibling page tree under the technical tree root."""
+
+    client = public_app_client
+    await _login(client)
+
+    locale = await Locale.objects.first()
+    assert locale is not None
+    tree_root = await ensure_tree_root(locale)
+    assert tree_root.id is not None
+
+    default_home = await ensure_root_page(locale)
+
+    create_about = await client.post(
+        f"/admin/pages/add/?parent={default_home.id}",
+        data={"title": "About", "slug": "about", "live": "1"},
+        cookies=client.cookies,
+        follow_redirects=False,
+    )
+    assert create_about.status_code == 303
+    about = await Page.objects.filter(slug="about", locale_id=locale.id).first()
+    assert about is not None
+    assert about.path == "/about/"
+
+    create_alt_home = await client.post(
+        f"/admin/pages/add/?parent={tree_root.id}",
+        data={"title": "Landing", "slug": "landing", "live": "1"},
+        cookies=client.cookies,
+        follow_redirects=False,
+    )
+    assert create_alt_home.status_code == 303
+    alt_home = await Page.objects.filter(slug="landing", locale_id=locale.id).first()
+    assert alt_home is not None
+    assert alt_home.parent_id == tree_root.id
+
+    move_to_alt = await client.post(
+        f"/admin/pages/{about.id}/move/",
+        data={"new_parent_id": str(alt_home.id)},
+        cookies=client.cookies,
+        follow_redirects=False,
+    )
+    assert move_to_alt.status_code == 303
+    assert move_to_alt.headers["location"] == f"/admin/pages/{alt_home.id}/"
+
+    about = await Page.objects.get(id=about.id)
+    assert about.parent_id == alt_home.id
+    assert about.path == "/landing/about/"
+    assert await get_page_public_url(about) is None
+
+    move_back = await client.post(
+        f"/admin/pages/{about.id}/move/",
+        data={"new_parent_id": str(default_home.id)},
+        cookies=client.cookies,
+        follow_redirects=False,
+    )
+    assert move_back.status_code == 303
+
+    about = await Page.objects.get(id=about.id)
+    assert about.parent_id == default_home.id
+    assert about.path == "/about/"
+    assert await get_page_public_url(about) == "/about/"
+    assert (await client.get("/about/")).status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_move_page_cannot_move_under_descendant(public_app_client: AsyncClient) -> None:
+    client = public_app_client
+    await _login(client)
+
+    locale = await Locale.objects.first()
+    assert locale is not None
+    home = await ensure_root_page(locale)
+
+    create_section = await client.post(
+        f"/admin/pages/add/?parent={home.id}",
+        data={"title": "Section", "slug": "section", "live": "1"},
+        cookies=client.cookies,
+        follow_redirects=False,
+    )
+    assert create_section.status_code == 303
+    section = await Page.objects.filter(slug="section", locale_id=locale.id).first()
+    assert section is not None
+
+    response = await client.post(
+        f"/admin/pages/{home.id}/move/",
+        data={"new_parent_id": str(section.id)},
+        cookies=client.cookies,
+    )
+    assert response.status_code == 200
+    assert "cannot be moved under one of its descendants" in response.text

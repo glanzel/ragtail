@@ -58,6 +58,7 @@ from .components.users import (
 from .components.sites import SiteEditPage, SiteListPage
 from .components.pages import (
     DeletePagePage,
+    MovePagePage,
     PageFormPage,
     PageListingPage,
     PageTypeChooserPage,
@@ -100,18 +101,21 @@ from .services import (
     get_menu_or_404,
     get_menus_for_locale,
     get_missing_translations_by_page,
+    get_move_targets,
     get_all_users,
     get_user_by_email,
     get_user_or_404,
     can_delete_user,
     can_delete_locale,
     can_delete_page,
+    can_move_page,
     count_active_staff_users,
     count_page_descendants,
     count_translation_siblings,
     delete_locale,
     delete_menu,
     is_site_root_page,
+    move_page,
     validate_user_update,
     get_page_locale,
     get_page_or_404,
@@ -1487,6 +1491,90 @@ def create_admin_router() -> APIRouter:
             **extra_fields,
         )
         return RedirectResponse(f"/admin/pages/{page_id}/", status_code=status.HTTP_303_SEE_OTHER)
+
+    @router.get("/pages/{page_id}/move/")
+    async def page_move_get(page_id: int, user: Annotated[User, Depends(require_user)]):
+        page = await get_page_or_404(page_id)
+        if is_tree_root(page):
+            raise HTTPException(status_code=404, detail="The technical tree root cannot be moved.")
+        can_move, reason = can_move_page(page)
+        if not can_move:
+            raise HTTPException(status_code=400, detail=reason)
+        breadcrumbs = await build_breadcrumbs(page)
+        breadcrumbs.append(type(breadcrumbs[-1])("Move", None))
+        targets = await get_move_targets(page)
+        is_site_root = await is_site_root_page(page)
+        return html_response(
+            MovePagePage,
+            username=user.username,
+            page=page,
+            breadcrumbs=breadcrumbs,
+            targets=targets,
+            is_site_root=is_site_root,
+        )
+
+    @router.post("/pages/{page_id}/move/")
+    async def page_move_post(
+        page_id: int,
+        user: Annotated[User, Depends(require_user)],
+        new_parent_id: Annotated[str, Form()],
+    ):
+        page = await get_page_or_404(page_id)
+        if is_tree_root(page):
+            raise HTTPException(status_code=404, detail="The technical tree root cannot be moved.")
+        can_move, reason = can_move_page(page)
+        if not can_move:
+            raise HTTPException(status_code=400, detail=reason)
+
+        breadcrumbs = await build_breadcrumbs(page)
+        breadcrumbs.append(type(breadcrumbs[-1])("Move", None))
+        targets = await get_move_targets(page)
+        is_site_root = await is_site_root_page(page)
+
+        if not new_parent_id.strip():
+            return html_response(
+                MovePagePage,
+                username=user.username,
+                page=page,
+                breadcrumbs=breadcrumbs,
+                targets=targets,
+                is_site_root=is_site_root,
+                error="Please select a destination.",
+            )
+
+        try:
+            parsed_parent_id = int(new_parent_id)
+        except ValueError:
+            return html_response(
+                MovePagePage,
+                username=user.username,
+                page=page,
+                breadcrumbs=breadcrumbs,
+                targets=targets,
+                is_site_root=is_site_root,
+                error="Invalid destination.",
+            )
+
+        try:
+            moved = await move_page(page, new_parent_id=parsed_parent_id)
+        except ValueError as exc:
+            return html_response(
+                MovePagePage,
+                username=user.username,
+                page=page,
+                breadcrumbs=breadcrumbs,
+                targets=targets,
+                is_site_root=is_site_root,
+                selected_parent_id=new_parent_id,
+                error=str(exc),
+            )
+
+        if is_tree_root(await get_page_or_404(parsed_parent_id)):
+            return RedirectResponse("/admin/pages/", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(
+            f"/admin/pages/{moved.parent_id}/",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
 
     @router.get("/pages/{page_id}/delete/")
     async def page_delete_get(page_id: int, user: Annotated[User, Depends(require_user)]):
