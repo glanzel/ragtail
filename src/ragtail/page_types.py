@@ -9,6 +9,13 @@ from pydantic.fields import FieldInfo
 
 from .images.fields import image_field_names, resolve_image_field_value, serialize_image_field_value
 from .images.models import Image
+from .streamfield.fields import (
+    prepare_stream_value_for_storage,
+    resolve_stream_field_value,
+    serialize_stream_field_value,
+    stream_field_blocks,
+    stream_field_names,
+)
 from .models import Page
 from .routing import RouteMatch
 from .ragtail_admin.registry import PageFormField, infer_widget_for_field
@@ -126,11 +133,21 @@ async def persist_page(page: Page) -> Page:
         setattr(stored, name, getattr(page, name, None))
 
     image_names = set(image_field_names(model_cls))
+    stream_names = set(stream_field_names(model_cls))
     extra_data: dict[str, Any] = {}
     for name in json_fields:
         value = getattr(page, name, None)
         if isinstance(value, Image) or name in image_names:
             extra_data[name] = serialize_image_field_value(value)
+        elif name in stream_names:
+            field_info = model_cls.model_fields[name]
+            block_defs = stream_field_blocks(field_info)
+            prepared = prepare_stream_value_for_storage(value, block_definitions=block_defs)
+            if prepared is None:
+                serialized = serialize_stream_field_value(value, block_definitions=block_defs)
+                extra_data[name] = serialized
+            else:
+                extra_data[name] = prepared
         else:
             extra_data[name] = value
     stored.page_data = json.dumps(extra_data, ensure_ascii=False) if extra_data else None
@@ -241,12 +258,23 @@ async def cast_page(page: Page) -> Page:
     data.update(decoded)
 
     image_names = image_field_names(model_cls)
+    stream_names = stream_field_names(model_cls)
     stored_images = {name: data.pop(name, None) for name in image_names if name in data}
+    stored_streams = {name: data.pop(name, None) for name in stream_names if name in data}
 
     typed = model_cls.model_validate(data)
     for name in image_names:
         raw_value = stored_images.get(name, decoded.get(name))
         setattr(typed, name, await resolve_image_field_value(raw_value))
+    for name in stream_names:
+        raw_value = stored_streams.get(name, decoded.get(name))
+        field_info = model_cls.model_fields[name]
+        block_defs = stream_field_blocks(field_info)
+        setattr(
+            typed,
+            name,
+            resolve_stream_field_value(raw_value, block_definitions=block_defs),
+        )
     return typed
 
 
@@ -258,10 +286,15 @@ def copy_page_model_field_values(page: Page, model_cls: type[Page]) -> dict[str,
             values["body"] = page.body
         return values
     image_names = set(image_field_names(model_cls))
+    stream_names = set(stream_field_names(model_cls))
     for name in _json_stored_field_names(model_cls):
         value = getattr(page, name, None)
         if name in image_names:
             values[name] = serialize_image_field_value(value)
+        elif name in stream_names:
+            field_info = model_cls.model_fields[name]
+            block_defs = stream_field_blocks(field_info)
+            values[name] = serialize_stream_field_value(value, block_definitions=block_defs)
         else:
             values[name] = value
     if page.body is not None:

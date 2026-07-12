@@ -22,3 +22,7 @@ home = await create_page(title="Home", slug="", locale=en, live=True)
 about = await create_page(title="About", slug="about", parent=home, locale=en, live=True)
 ueber_uns = await create_translation(about, title="Ueber uns", slug="ueber-uns", locale=de)
 ```
+
+## StreamField
+
+For block-based page content (Markdown, HTML, images, custom templates), declare a `StreamField` on a page subclass. Values are stored in `page_data` as JSON. See [StreamField](streamfield.md).

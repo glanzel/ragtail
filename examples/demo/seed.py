@@ -83,7 +83,19 @@ async def seed_if_empty(
         live=True,
         show_in_menus=True,
         page_model=ContentPage,
-        body="## Blog\n\nExample section. StreamField blocks can come later.",
+        body="## Blog\n\nExample section with a classic Markdown body field.",
+        content=[
+            {
+                "id": "demo0001",
+                "type": "markdown_text",
+                "value": "## StreamField demo\n\nThis section uses the new **StreamField** with Markdown, HTML, and image blocks.",
+            },
+            {
+                "id": "demo0002",
+                "type": "html_text",
+                "value": "<p><em>HTML blocks</em> are stored as sanitized HTML and rendered directly.</p>",
+            },
+        ],
     )
 
     main_menu = await create_menu(name="Main", slug="main", locale=en)

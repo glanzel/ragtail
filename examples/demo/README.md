@@ -7,6 +7,7 @@ Features:
 - **Wagtail-style admin** at `/admin/` (login: `admin` / `admin` after seeding)
 - **Locales, menus & users** management in the admin sidebar
 - **TipTap rich text** for page content (demo-only `body` field)
+- **StreamField** on `ContentPage` — Markdown, HTML, image, highlight, and CTA button blocks (see `pages.py`, `stream_blocks.py`)
 - **PyJSX HTML rendering** for the public site
 - SQLite database at `ragtail.db` in this directory (created on first run)
 

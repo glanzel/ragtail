@@ -41,6 +41,18 @@ from .menus import (
     get_menu_tree,
 )
 from .images import Image, ImageField, RenditionView, configure_media
+from .streamfield import (
+    Block,
+    CharBlock,
+    HtmlTextBlock,
+    ImageBlock,
+    MarkdownTextBlock,
+    StructBlock,
+    StreamField,
+    StreamValue,
+    URLBlock,
+    render_stream_value_html,
+)
 from .models import Locale, Menu, MenuItem, Page, Site, User
 from .ragtail_admin import PageFormField, create_admin_router, register_page_form_field
 from .pages import create_page, create_translation
@@ -62,6 +74,15 @@ from .routing import (
 )
 
 __all__ = [
+    "Block",
+    "CharBlock",
+    "HtmlTextBlock",
+    "ImageBlock",
+    "MarkdownTextBlock",
+    "StructBlock",
+    "StreamField",
+    "StreamValue",
+    "URLBlock",
     "Image",
     "ImageField",
     "Locale",
@@ -122,6 +143,7 @@ __all__ = [
     "normalize_path",
     "register_cms_models",
     "register_page_form_field",
+    "render_stream_value_html",
     "resolve_page",
     "resolve_route",
     "strip_locale_prefix",

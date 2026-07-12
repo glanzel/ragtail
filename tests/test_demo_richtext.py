@@ -13,14 +13,18 @@ def test_demo_registers_richtext_body_field() -> None:
     from ragtail.page_types import clear_page_models, get_page_form_fields_for
 
     clear_page_models()
-    pages = importlib.import_module("pages")
-    importlib.reload(pages)
+    if "pages" in sys.modules:
+        importlib.reload(sys.modules["pages"])
+    else:
+        importlib.import_module("pages")
 
     fields = get_page_form_fields_for("content_page")
-    assert len(fields) == 2
+    assert len(fields) == 3
     assert fields[0].name == "body"
     assert fields[0].widget == "richtext"
     assert fields[1].name == "hero_image"
     assert fields[1].widget == "image"
+    assert fields[2].name == "content"
+    assert fields[2].widget == "streamfield"
 
     clear_page_models()

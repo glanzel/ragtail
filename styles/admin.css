@@ -65,6 +65,22 @@
     @apply border-ragtail-secondary bg-ragtail-secondary text-white hover:border-ragtail-secondary hover:bg-ragtail-secondary;
   }
 
+  .html-editor-mode-toggle {
+    @apply inline-flex rounded-lg border border-gray-300 bg-gray-100 p-1 shadow-inner;
+  }
+
+  .html-editor-mode-btn {
+    @apply rounded-md px-4 py-1.5 text-xs font-semibold text-gray-600 transition;
+  }
+
+  .html-editor-mode-btn.is-active {
+    @apply bg-white text-gray-900 shadow-sm ring-1 ring-gray-200;
+  }
+
+  .streamfield-html-editor .ProseMirror {
+    @apply min-h-[12rem] outline-none;
+  }
+
   .ProseMirror blockquote {
     @apply border-l-4 border-gray-300 pl-4 italic text-gray-700;
   }
