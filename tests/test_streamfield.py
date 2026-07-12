@@ -93,6 +93,8 @@ def test_url_block_normalizes_url() -> None:
     block = URLBlock()
     assert block.prepare_value("example.com") == "https://example.com"
     assert block.prepare_value("https://example.com") == "https://example.com"
+    assert block.prepare_value("/about/") == "/about/"
+    assert block.prepare_value("/de/kontakt") == "/de/kontakt"
 
 
 def test_struct_block_template_rendering() -> None:
@@ -104,6 +106,8 @@ def test_struct_block_template_rendering() -> None:
     )
     html = block.render_value({"label": "Buy", "url": "https://shop.example"})
     assert html == '<a href="https://shop.example">Buy</a>'
+    html = block.render_value({"label": "About", "url": "/about/"})
+    assert html == '<a href="/about/">About</a>'
 
 
 def test_render_block_template_escapes_values() -> None:

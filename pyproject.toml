@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ragtail"
-version = "0.4.0"
+version = "0.4.1"
 description = "A tiny Wagtail-inspired CMS MVP built on Oxyde ORM."
 readme = "README.md"
 requires-python = ">=3.10"

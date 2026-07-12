@@ -125,11 +125,12 @@ function createStructPanel(definition, value, root) {
     label.className = "mb-1 block text-xs font-semibold text-gray-600";
     label.textContent = fieldDef.label || fieldName;
     const input = document.createElement("input");
-    input.type = fieldDef.block_kind === "url" ? "url" : "text";
+    input.type = "text";
     input.className =
       "w-full rounded border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-ragtail-secondary focus:outline focus:outline-[3px] focus:outline-ragtail-focus";
     input.value = current[fieldName] || "";
-    input.placeholder = fieldDef.block_kind === "url" ? "https://example.com" : "";
+    input.placeholder =
+      fieldDef.block_kind === "url" ? "/about/ or https://example.com" : "";
     input.setAttribute("data-struct-field", fieldName);
     input.addEventListener("input", () => syncInput(root));
     fieldWrapper.appendChild(label);
@@ -282,7 +283,13 @@ function renderBlock(root, block) {
     );
   } else if (definition.block_kind === "url") {
     blockEl.appendChild(
-      createTextInput(definition.label, block.value || "", "https://example.com", "url", root),
+      createTextInput(
+        definition.label,
+        block.value || "",
+        "/about/ or https://example.com",
+        "text",
+        root,
+      ),
     );
   } else {
     const textarea = document.createElement("textarea");
