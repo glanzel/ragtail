@@ -6,11 +6,12 @@ from typing import TYPE_CHECKING, Literal
 from pydantic.fields import FieldInfo
 
 from ..images.fields import is_image_field
+from ..streamfield.fields import is_stream_field
 
 if TYPE_CHECKING:
     pass
 
-WidgetType = Literal["text", "textarea", "richtext", "image"]
+WidgetType = Literal["text", "textarea", "richtext", "image", "streamfield"]
 
 
 @dataclass(frozen=True)
@@ -28,6 +29,8 @@ def infer_widget_for_field(
     *,
     field_info: FieldInfo | None = None,
 ) -> WidgetType:
+    if field_info is not None and is_stream_field(field_info):
+        return "streamfield"
     if field_info is not None and is_image_field(field_info):
         return "image"
     if name == "body":

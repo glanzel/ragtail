@@ -15,6 +15,7 @@ def contentPage(*, page, context):
   menu_items = context.get("menu_items", [])
   menu_links = [MenuLink(label=item.label, href=item.href) for item in menu_items]
   hero = context.get("hero")
+  stream_html = context.get("stream_html", "")
   return (
     <SiteLayout title={page.seo_title or page.title} menu_items={menu_links}>
       <article>
@@ -31,9 +32,18 @@ def contentPage(*, page, context):
         ) if hero else None}
         <h1 class="mb-6 text-4xl font-bold text-gray-900">{page.title}</h1>
         {(
-          <div class="prose prose-gray max-w-none">{HTMLDontEscape(render_body(page.body))}</div>
+          <div class="prose prose-gray max-w-none mb-8">{HTMLDontEscape(render_body(page.body))}</div>
           if page.body
-          else <p class="italic text-gray-500">This page has no content yet.</p>
+          else None
+        )}
+        {(
+          <div class="prose prose-gray max-w-none streamfield-content">{HTMLDontEscape(stream_html)}</div>
+          if stream_html
+          else (
+            <p class="italic text-gray-500">This page has no stream content yet.</p>
+            if not page.body
+            else None
+          )
         )}
       </article>
     </SiteLayout>

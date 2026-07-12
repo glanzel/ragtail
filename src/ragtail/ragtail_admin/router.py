@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import pyjsx.auto_setup  # noqa: F401
 from dataclasses import dataclass
 from pathlib import Path
@@ -21,6 +22,14 @@ from ..auth import (
 )
 from ..images.models import Image
 from ..richtext import prepare_body_for_storage
+from ..streamfield.fields import (
+    block_definitions_for_admin,
+    prepare_stream_value_for_storage,
+    resolve_stream_field_value,
+    stream_blocks_for_admin,
+    stream_field_blocks,
+)
+from ..streamfield.value import StreamValue
 from ..seo import normalize_search_description, search_description_error
 from ..menus import create_menu, create_menu_item
 from ..models import Locale, Page, User
@@ -184,6 +193,13 @@ def _form_values(
                 values[field.name] = str(attr_value.id)
             else:
                 values[field.name] = str(attr_value) if attr_value else ""
+        elif field.widget == "streamfield":
+            if isinstance(attr_value, StreamValue):
+                values[field.name] = attr_value.to_json()
+            elif isinstance(attr_value, list):
+                values[field.name] = json.dumps(attr_value, ensure_ascii=False)
+            else:
+                values[field.name] = attr_value or "[]"
         else:
             values[field.name] = attr_value or ""
     values.update(overrides)
@@ -195,15 +211,31 @@ def _field_value_for_save(
     raw_value: str,
     *,
     page: Page | None,
+    content_type: str | None = None,
 ) -> object:
     if field.widget == "image":
         cleaned = raw_value.strip()
         if not cleaned:
             return None
         return int(cleaned) if cleaned.isdigit() else None
+    if field.widget == "streamfield":
+        resolved = _resolved_content_type(page, content_type=content_type)
+        model_cls = get_page_model(resolved)
+        if model_cls is Page:
+            return None
+        field_info = model_cls.model_fields.get(field.name)
+        if field_info is None:
+            return None
+        block_defs = stream_field_blocks(field_info)
+        try:
+            parsed = json.loads(raw_value) if raw_value.strip() else []
+        except json.JSONDecodeError:
+            parsed = []
+        prepared = prepare_stream_value_for_storage(parsed, block_definitions=block_defs)
+        return resolve_stream_field_value(prepared, block_definitions=block_defs)
     if field.widget == "richtext":
         return prepare_body_for_storage(raw_value)
-    if field.name == "body" and field.name not in _registered_field_names(page):
+    if field.name == "body" and field.name not in _registered_field_names(page, content_type=content_type):
         return getattr(page, "body", None) if page is not None else None
     return raw_value or None
 
@@ -217,7 +249,12 @@ def _extra_fields_from_form(
     values: dict[str, object] = {}
     for field in _form_fields_for(page, content_type=content_type):
         raw_value = str(form_data.get(field.name, ""))
-        values[field.name] = _field_value_for_save(field, raw_value, page=page)
+        values[field.name] = _field_value_for_save(
+            field,
+            raw_value,
+            page=page,
+            content_type=content_type,
+        )
     return values
 
 
@@ -250,7 +287,41 @@ def _image_field_previews(
     return previews
 
 
-def _page_form_kwargs(
+async def _stream_field_admin_data(
+    page: Page | None = None,
+    *,
+    content_type: str | None = None,
+) -> tuple[dict[str, list], dict[str, list]]:
+    stream_defs: dict[str, list] = {}
+    stream_blocks: dict[str, list] = {}
+    resolved = _resolved_content_type(page, content_type=content_type)
+    model_cls = get_page_model(resolved)
+    if model_cls is Page:
+        return stream_defs, stream_blocks
+
+    for field in _form_fields_for(page, content_type=resolved):
+        if field.widget != "streamfield":
+            continue
+        field_info = model_cls.model_fields[field.name]
+        block_defs = stream_field_blocks(field_info)
+        stream_defs[field.name] = block_definitions_for_admin(block_defs)
+        attr_value = getattr(page, field.name, None) if page is not None else None
+        stream_value = resolve_stream_field_value(attr_value, block_definitions=block_defs)
+        blocks = stream_blocks_for_admin(stream_value, block_definitions=block_defs)
+        enriched: list[dict] = []
+        for block in blocks:
+            entry = dict(block)
+            if entry.get("block_kind") == "image" and entry.get("value"):
+                image = await Image.objects.get_or_none(id=entry["value"])
+                if image is not None:
+                    entry["preview_url"] = image.url
+                    entry["preview_title"] = image.title
+            enriched.append(entry)
+        stream_blocks[field.name] = enriched
+    return stream_defs, stream_blocks
+
+
+async def _page_form_kwargs(
     page: Page | None = None,
     *,
     content_type: str | None = None,
@@ -259,11 +330,17 @@ def _page_form_kwargs(
     page_model = get_page_model(resolved)
     show_type = page_model is not Page
     extra_fields = _form_fields_for(page, content_type=resolved)
+    stream_defs, stream_blocks = await _stream_field_admin_data(page, content_type=resolved)
     return {
         "extra_fields": extra_fields,
         "include_richtext_script": uses_richtext_for(resolved) or uses_richtext(),
-        "include_image_field_script": any(field.widget == "image" for field in extra_fields),
+        "include_image_field_script": any(
+            field.widget == "image" for field in extra_fields
+        ) or any(field.widget == "streamfield" for field in extra_fields),
+        "include_streamfield_script": any(field.widget == "streamfield" for field in extra_fields),
         "image_previews": _image_field_previews(page, content_type=resolved),
+        "stream_field_defs": stream_defs,
+        "stream_field_blocks": stream_blocks,
         "selected_content_type": resolved if show_type else None,
         "content_type_label": content_type_to_label(page_model) if show_type else None,
     }
@@ -1101,7 +1178,7 @@ def create_admin_router() -> APIRouter:
             submit_label="Create page",
             values=_form_values(content_type=resolved_content_type),
             **parent_form_extras,
-            **_page_form_kwargs(content_type=resolved_content_type),
+            **(await _page_form_kwargs(content_type=resolved_content_type)),
         )
 
     @router.post("/pages/add/")
@@ -1152,7 +1229,7 @@ def create_admin_router() -> APIRouter:
             **{name: value or "" for name, value in extra_fields.items()},
         )
         form_kwargs = {
-            **_page_form_kwargs(content_type=content_type),
+            **(await _page_form_kwargs(content_type=content_type)),
         }
         parent_form_extras = {
             "parent_label": parent_label,
@@ -1336,7 +1413,7 @@ def create_admin_router() -> APIRouter:
             submit_label="Save draft",
             values=_form_values(page),
             public_url=public_url,
-            **_page_form_kwargs(page),
+            **(await _page_form_kwargs(page)),
         )
 
     @router.post("/pages/{page_id}/edit/")
@@ -1369,7 +1446,7 @@ def create_admin_router() -> APIRouter:
             show_in_menus=show_in_menus == "1",
             **{name: value or "" for name, value in extra_fields.items()},
         )
-        form_kwargs = _page_form_kwargs(page)
+        form_kwargs = await _page_form_kwargs(page)
         public_url = await get_page_public_url(page)
         if not title.strip():
             return html_response(

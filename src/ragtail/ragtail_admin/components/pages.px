@@ -16,6 +16,7 @@ from ragtail.ragtail_admin.components.locale_switcher import LocaleSwitcher
 from ragtail.seo import SEARCH_DESCRIPTION_MAX_LENGTH
 from ragtail.ragtail_admin.components.richtext import RichTextField
 from ragtail.ragtail_admin.components.images import ImageFieldControl
+from ragtail.ragtail_admin.components.streamfield import StreamFieldControl
 
 
 def _explorer_link_class(page_id, current_page_id) -> str:
@@ -333,9 +334,27 @@ def _field_block(*, label: str, field_id: str, control, help: str | None = None)
   )
 
 
-def ExtraFieldControl(field_def, value: str = "", image_previews=None, children=None):
+def ExtraFieldControl(
+  field_def,
+  value: str = "",
+  image_previews=None,
+  stream_field_defs=None,
+  stream_field_blocks=None,
+  children=None,
+):
   field_id = "id_" + field_def.name
   previews = image_previews or {}
+  stream_defs = stream_field_defs or {}
+  stream_blocks = stream_field_blocks or {}
+  if field_def.widget == "streamfield":
+    return (
+      <StreamFieldControl
+        field_def={field_def}
+        value={value}
+        block_definitions={stream_defs.get(field_def.name, [])}
+        stream_blocks={stream_blocks.get(field_def.name, [])}
+      />
+    )
   if field_def.widget == "image":
     preview = previews.get(field_def.name, {})
     return (
@@ -442,7 +461,10 @@ def PageFormPage(
   extra_fields=None,
   include_richtext_script=False,
   include_image_field_script=False,
+  include_streamfield_script=False,
   image_previews=None,
+  stream_field_defs=None,
+  stream_field_blocks=None,
   selected_content_type: str | None = None,
   content_type_label: str | None = None,
   public_url: str | None = None,
@@ -450,6 +472,8 @@ def PageFormPage(
   form_values = values or {}
   extra_field_defs = extra_fields or []
   preview_map = image_previews or {}
+  stream_defs_map = stream_field_defs or {}
+  stream_blocks_map = stream_field_blocks or {}
   cancel_href = "/admin/pages/"
   if page and page.id:
     cancel_href = f"/admin/pages/{page.id}/"
@@ -533,6 +557,8 @@ def PageFormPage(
                   field_def={field_def}
                   value={form_values.get(field_def.name, "")}
                   image_previews={preview_map}
+                  stream_field_defs={stream_defs_map}
+                  stream_field_blocks={stream_blocks_map}
                 />
                 for field_def in extra_field_defs
               ]}
@@ -613,6 +639,9 @@ def PageFormPage(
           {(
           <script src="/admin/static/image-field.js"></script>
         ) if include_image_field_script else None}
+        {(
+          <script type="module" src="/admin/static/streamfield.js"></script>
+        ) if include_streamfield_script else None}
       </div>
     </AdminLayout>
   )

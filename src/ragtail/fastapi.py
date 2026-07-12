@@ -10,6 +10,13 @@ from fastapi.responses import JSONResponse, Response
 from .admin import create_fastapi_admin
 from .images.fields import image_field_names, image_field_renditions, image_to_api_dict
 from .images.models import Image
+from .streamfield.fields import (
+    is_stream_field,
+    stream_field_blocks,
+    stream_field_names,
+    stream_value_to_api_dict,
+)
+from .streamfield.value import StreamValue
 from .menus import get_menu_tree
 from .models import Page
 from .page_types import cast_page, get_page_model
@@ -48,10 +55,17 @@ async def page_payload_with_fields(route: RouteMatch) -> dict[str, Any]:
         return payload
 
     extra: dict[str, Any] = {}
+    stream_names = set(stream_field_names(model_cls))
     for name in image_field_names(model_cls):
         image = getattr(page, name, None)
         specs = image_field_renditions(model_cls.model_fields[name])
         extra[name] = await image_to_api_dict(image, renditions=specs)
+
+    for name in stream_names:
+        value = getattr(page, name, None)
+        if isinstance(value, StreamValue):
+            block_defs = stream_field_blocks(model_cls.model_fields[name])
+            extra[name] = await stream_value_to_api_dict(value, block_definitions=block_defs)
 
     for name in model_cls.model_fields:
         if name in payload or name in extra:
@@ -61,7 +75,7 @@ async def page_payload_with_fields(route: RouteMatch) -> dict[str, Any]:
         if name in Page.model_fields and name not in {"body", "seo_title", "search_description"}:
             continue
         value = getattr(page, name, None)
-        if name not in image_field_names(model_cls):
+        if name not in image_field_names(model_cls) and name not in stream_names:
             extra[name] = value
 
     if extra:

@@ -1,0 +1,54 @@
+import json
+
+from pyjsx import jsx
+
+from ragtail.ragtail_admin.classes import BTN_SM, LABEL
+
+
+def StreamFieldControl(
+  *,
+  field_def,
+  value: str = "",
+  block_definitions=None,
+  stream_blocks=None,
+  children=None,
+):
+  field_id = "id_" + field_def.name
+  block_defs = block_definitions or []
+  initial_blocks = stream_blocks or []
+  return (
+    <li class="ragtail-streamfield" data-field-name={field_def.name}>
+      <label for={field_id} class={LABEL}>{field_def.label}</label>
+      <input
+        type="hidden"
+        id={field_id}
+        name={field_def.name}
+        value={value or "[]"}
+        class="ragtail-streamfield-input"
+      />
+      <div
+        class="ragtail-streamfield-root rounded border border-gray-200 bg-white"
+        data-streamfield-root
+        data-field={field_def.name}
+        data-block-definitions={json.dumps(block_defs)}
+        data-initial-blocks={json.dumps(initial_blocks)}
+      >
+        <div data-streamfield-blocks class="divide-y divide-gray-200" />
+        <div class="flex flex-wrap gap-2 border-t border-gray-200 bg-gray-50 px-4 py-3">
+          {[
+            <button
+              type="button"
+              class={BTN_SM + " ragtail-streamfield-add-btn"}
+              data-block-type={block_def["name"]}
+            >
+              + {block_def["label"]}
+            </button>
+            for block_def in block_defs
+          ]}
+        </div>
+      </div>
+      <p class="mt-2 text-xs leading-relaxed text-gray-500">
+        Add, reorder, or remove content blocks. HTML blocks support a visual editor (TipTap) and raw HTML code view.
+      </p>
+    </li>
+  )

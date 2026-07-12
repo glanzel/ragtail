@@ -44,4 +44,21 @@ class ContentPage(Page):
 
 See `examples/demo/pages.py`.
 
+## StreamField on page models
+
+Page models can declare a `StreamField` for flexible block-based content (Markdown, HTML, images, button/link structs, and custom templates). The admin provides add / reorder / remove controls and a TipTap + HTML toggle for HTML blocks.
+
+```python
+from ragtail.streamfield import HtmlTextBlock, MarkdownTextBlock, StreamField, StreamValue
+
+@register_page_model
+class ContentPage(Page):
+    content: StreamValue | None = StreamField(
+        [MarkdownTextBlock(), HtmlTextBlock()],
+        default=None,
+    )
+```
+
+See [StreamField](streamfield.md) for built-in blocks, `StructBlock`, custom block subclasses, and rendering.
+
 The legacy generic `oxyde-admin` CRUD remains available via `mount_admin=True` on `create_app` or the `[admin]` extra.
