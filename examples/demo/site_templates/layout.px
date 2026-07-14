@@ -1,4 +1,5 @@
 from pyjsx import jsx
+from pyjsx.jsx import HTMLDontEscape
 
 
 def SiteLayout(*, title: str, menu_items, children):
@@ -11,29 +12,54 @@ def SiteLayout(*, title: str, menu_items, children):
         <link rel="stylesheet" href="/static/site.css" />
       </head>
       <body class="min-h-screen bg-white">
-        <header class="bg-wagtail-primary text-white">
-          <div class="mx-auto flex max-w-content items-center justify-between gap-4 px-6 py-4">
-            <a href="/" class="text-lg font-bold text-white no-underline hover:text-white">
-              Oxytail Demo
-            </a>
-            <nav aria-label="Main">
-              <ul class="flex list-none gap-4 p-0">
-                {[
-                  <li>
-                    <a href={item.href} class="text-white/90 no-underline hover:text-white hover:underline">
-                      {item.label}
-                    </a>
-                  </li>
-                  for item in menu_items
-                ]}
-              </ul>
-            </nav>
+        <header class="bg-ragtail-primary text-white">
+          <div class="relative mx-auto max-w-content px-6 py-4">
+            <div class="flex items-center justify-between gap-4">
+              <a href="/" class="text-lg font-bold text-white no-underline hover:text-white">
+                Oxytail Demo
+              </a>
+              <button
+                type="button"
+                id="site-nav-toggle"
+                class="inline-flex items-center justify-center rounded p-2 text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white md:hidden"
+                aria-expanded="false"
+                aria-controls="site-nav"
+                aria-label="Menü öffnen"
+              >
+                {HTMLDontEscape(
+                  '<svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+                  'stroke-width="2" aria-hidden="true">'
+                  '<path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16" />'
+                  "</svg>"
+                )}
+              </button>
+              <nav
+                id="site-nav"
+                class="absolute left-0 right-0 top-full z-10 hidden border-t border-white/20 bg-ragtail-primary px-6 py-4 shadow-lg md:static md:block md:border-0 md:bg-transparent md:p-0 md:shadow-none"
+                aria-label="Main"
+              >
+                <ul class="flex list-none flex-col gap-2 p-0 md:flex-row md:gap-4">
+                  {[
+                    <li>
+                      <a
+                        href={item.href}
+                        class="block rounded px-2 py-1.5 text-white/90 no-underline hover:bg-white/10 hover:text-white hover:underline md:inline-block md:px-0 md:py-0 md:hover:bg-transparent"
+                      >
+                        {item.label}
+                      </a>
+                    </li>
+                    for item in menu_items
+                  ]}
+                </ul>
+              </nav>
+            </div>
           </div>
         </header>
         <main class="mx-auto max-w-content px-6 py-8">{children}</main>
         <footer class="border-t border-gray-200 bg-gray-50 py-6 text-center text-sm text-gray-500">
           <p>Rendered with PyJSX · Powered by Oxytail</p>
         </footer>
+        <script src="/static/site-nav.js"></script>
       </body>
     </html>
   )
