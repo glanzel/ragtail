@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pyjsx import jsx
 
 from ragtail.ragtail_admin.classes import (
@@ -17,6 +19,12 @@ from ragtail.seo import SEARCH_DESCRIPTION_MAX_LENGTH
 from ragtail.ragtail_admin.components.richtext import RichTextField
 from ragtail.ragtail_admin.components.images import ImageFieldControl
 from ragtail.ragtail_admin.components.streamfield import StreamFieldControl
+
+
+def _format_datetime(value: datetime | None) -> str:
+  if not value:
+    return "-"
+  return value.strftime("%Y-%m-%d %H:%M:%S")
 
 
 def _explorer_link_class(page_id, current_page_id) -> str:
@@ -179,7 +187,7 @@ def ChildRow(child, missing_locales=None, can_delete: bool = True, can_move: boo
       <td class="px-5 py-3.5">
         <span class={_status_class(child.live)}>{"Live" if child.live else "Draft"}</span>
       </td>
-      <td class="px-5 py-3.5 text-sm text-gray-500">{child.updated_at or "-"}</td>
+      <td class="px-5 py-3.5 text-sm text-gray-500">{_format_datetime(child.updated_at)}</td>
       <td class="px-5 py-3.5">
         <div class="flex flex-wrap gap-2">
           <a href={f"/admin/pages/{child.id}/edit/"} class={BTN_SM}>

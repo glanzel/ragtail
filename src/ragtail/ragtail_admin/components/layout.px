@@ -1,4 +1,5 @@
 from pyjsx import jsx
+from pyjsx.jsx import HTMLDontEscape
 
 from ragtail.ragtail_admin.classes import BTN_SECONDARY, SIDEBAR_LINK, SIDEBAR_LINK_ACTIVE
 from ragtail.ragtail_admin.components.icons import (
@@ -22,11 +23,11 @@ def AdminSidebar(active: str = "pages", username: str = "", children=None):
   return (
     <aside
       id="ragtail-sidebar"
-      class="sticky top-0 z-[110] h-screen w-sidebar shrink-0 bg-ragtail-primary text-white"
+      class="fixed left-0 top-slim-header bottom-0 z-[110] flex w-sidebar shrink-0 flex-col -translate-x-full bg-ragtail-primary text-white transition-transform duration-200 ease-in-out md:sticky md:top-0 md:h-screen md:translate-x-0"
       aria-label="Sidebar"
     >
       <div class="flex h-full flex-col">
-        <div class="flex h-slim-header items-start border-b border-white/10">
+        <div class="hidden min-h-slim-header shrink-0 items-start border-b border-white/10 md:flex">
           <a href="/admin/" class="flex items-center" aria-label="Dashboard">
             <RagtailLogoBird />
           </a>
@@ -93,6 +94,33 @@ def AdminSidebar(active: str = "pages", username: str = "", children=None):
   )
 
 
+def AdminMobileHeader(children=None):
+  return (
+    <header class="sticky top-0 z-[120] flex min-h-slim-header items-center gap-3 border-b border-white/10 bg-ragtail-primary px-4 text-white md:hidden">
+      <button
+        type="button"
+        id="ragtail-sidebar-toggle"
+        class="inline-flex items-center justify-center rounded p-2 text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        aria-expanded="false"
+        aria-controls="ragtail-sidebar"
+        aria-label="Menü öffnen"
+      >
+        {HTMLDontEscape(
+          '<svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+          'stroke-width="2" aria-hidden="true">'
+          '<path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16" />'
+          "</svg>"
+        )}
+      </button>
+      <a href="/admin/" class="flex items-center" aria-label="Dashboard">
+        {HTMLDontEscape(
+          '<img src="/admin/static/icons/logo.svg" alt="" class="h-8 w-auto" aria-hidden="true" />'
+        )}
+      </a>
+    </header>
+  )
+
+
 def BreadcrumbItem(crumb, children=None):
   if crumb.url:
     return <a href={crumb.url} class="text-ragtail-secondary hover:underline">{crumb.title}</a>
@@ -155,6 +183,12 @@ def AdminLayout(
         <link rel="stylesheet" href="/admin/static/ragtail-admin.css" />
       </head>
       <body class={"min-h-screen bg-white " + body_class}>
+        <AdminMobileHeader />
+        <div
+          id="ragtail-sidebar-backdrop"
+          class="fixed inset-0 z-[105] hidden bg-black/50 md:hidden"
+          aria-hidden="true"
+        />
         <div class="flex min-h-screen">
           <AdminSidebar active={active} username={username} />
           <main class="min-w-0 flex-1" id="main">
@@ -171,6 +205,7 @@ def AdminLayout(
             </div>
           </main>
         </div>
+        <script src="/admin/static/admin-nav.js"></script>
       </body>
     </html>
   )
