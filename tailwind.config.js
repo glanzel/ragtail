@@ -30,6 +30,12 @@ module.exports = {
       minHeight: {
         "slim-header": "3.125rem",
       },
+      height: {
+        "slim-header": "3.125rem",
+      },
+      spacing: {
+        "slim-header": "3.125rem",
+      },
       width: {
         sidebar: "12.5rem",
         explorer: "20rem",
